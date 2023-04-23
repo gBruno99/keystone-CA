@@ -1,0 +1,99 @@
+diff --git a/include/mbedtls/mbedtls_config.h b/include/mbedtls/mbedtls_config.h
+index 89d565971..b9ec465ed 100644
+--- a/include/mbedtls/mbedtls_config.h
++++ b/include/mbedtls/mbedtls_config.h
+@@ -185,7 +185,7 @@
+  *
+  * Enable this layer to allow use of alternative memory allocators.
+  */
+-//#define MBEDTLS_PLATFORM_MEMORY
++#define MBEDTLS_PLATFORM_MEMORY
+ 
+ /**
+  * \def MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
+@@ -204,7 +204,7 @@
+  * Uncomment to prevent default assignment of standard functions in the
+  * platform layer.
+  */
+-//#define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
++#define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
+ 
+ /**
+  * \def MBEDTLS_PLATFORM_EXIT_ALT
+@@ -230,11 +230,11 @@
+  * platform function
+  */
+ //#define MBEDTLS_PLATFORM_SETBUF_ALT
+-//#define MBEDTLS_PLATFORM_EXIT_ALT
++#define MBEDTLS_PLATFORM_EXIT_ALT
+ //#define MBEDTLS_PLATFORM_TIME_ALT
+ //#define MBEDTLS_PLATFORM_FPRINTF_ALT
+-//#define MBEDTLS_PLATFORM_PRINTF_ALT
+-//#define MBEDTLS_PLATFORM_SNPRINTF_ALT
++#define MBEDTLS_PLATFORM_PRINTF_ALT
++#define MBEDTLS_PLATFORM_SNPRINTF_ALT
+ //#define MBEDTLS_PLATFORM_VSNPRINTF_ALT
+ //#define MBEDTLS_PLATFORM_NV_SEED_ALT
+ //#define MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT
+diff --git a/include/mbedtls/platform.h b/include/mbedtls/platform.h
+index f65158719..ebedf948f 100644
+--- a/include/mbedtls/platform.h
++++ b/include/mbedtls/platform.h
+@@ -465,6 +465,10 @@ int mbedtls_platform_setup(mbedtls_platform_context *ctx);
+  */
+ void mbedtls_platform_teardown(mbedtls_platform_context *ctx);
+ 
++int atoi(const char *nptr);
++int rand(void);
++void srand(unsigned int seed);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/library/platform.c b/library/platform.c
+index b15b7b29a..75be5bed6 100644
+--- a/library/platform.c
++++ b/library/platform.c
+@@ -411,4 +411,29 @@ void mbedtls_platform_teardown(mbedtls_platform_context *ctx)
+ }
+ #endif /* MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT */
+ 
++int atoi(const char *nptr){
++    int val = 0;
++    int i = 0;
++    while(nptr[i]!='\0'){
++        if(nptr[i]<'0'||nptr[i]>'9')
++            return 0;
++        val *= 10;
++        val += (int) nptr[i] - 48;
++        i++;
++    }
++    return val;
++}
++
++static unsigned long int next = 1;
++
++int rand(void){  
++    // RAND_MAX assumed to be 32767
++    next = next * 1103515245 + 12345;
++    return (unsigned int)(next/65536) % 32768;
++}
++
++void srand(unsigned int seed){
++    next = seed;
++}
++
+ #endif /* MBEDTLS_PLATFORM_C */
+diff --git a/programs/test/udp_proxy.c b/programs/test/udp_proxy.c
+index ac527f257..4d631fe04 100644
+--- a/programs/test/udp_proxy.c
++++ b/programs/test/udp_proxy.c
+@@ -258,7 +258,7 @@ static void get_options(int argc, char *argv[])
+             buf = mbedtls_calloc(1, len + 1);
+             if (buf == NULL) {
+                 mbedtls_printf(" Allocation failure\n");
+-                exit(1);
++                mbedtls_exit(1);
+             }
+             memcpy(buf, q, len + 1);
+ 
