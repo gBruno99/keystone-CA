@@ -39,28 +39,60 @@ DEMO_DIR=$(pwd)
 
 set -e
 
+# Clone, checkout, and build the openssl library
+# if [ ! -d openssl_build ]
+# then
+#   git clone https://github.com/openssl/openssl.git openssl_build
+#   cd openssl_build
+#   # use openssl version 3.1.0
+#   git checkout a92271e03a8d0dee507b6f1e7f49512568b2c7ad
+#   ./Configure --cross-compile-prefix=riscv64-unknown-linux-gnu- --strict-warnings no-asm no-shared no-threads
+#   make
+#   cd ..
+# fi
+
+mkdir -p mbedtls_builds
+cd mbedtls_builds
+
 # Clone, checkout, and build the mbedtls library
-if [ ! -d mbedtls_build ]
+if [ ! -d mbedtls_eapp ]
 then
-  git clone https://github.com/Mbed-TLS/mbedtls.git mbedtls_build
-  cd mbedtls_build
+  git clone https://github.com/Mbed-TLS/mbedtls.git mbedtls_eapp
+  cd mbedtls_eapp
   git checkout 3c3b94a31b9d91e1579c48165658486171c82a36
   python3 -m pip install --user -r scripts/basic.requirements.txt
+  patch -p1 < $DEMO_DIR/patches/mbedtls_eapp.patch
   mkdir build && cd build
-  cmake -DCMAKE_TOOLCHAIN_FILE=../../riscv-toolchain.cmake -DENABLE_TESTING=0ff ..
+  cmake -DCMAKE_TOOLCHAIN_FILE=$DEMO_DIR/riscv-toolchain.cmake -DENABLE_TESTING=0ff ..
   cmake --build .
   cd ../..
 fi
 
-export MBEDTLS_DIR=$(pwd)/mbedtls_build/
+export MBEDTLS_DIR_EAPP=$(pwd)/mbedtls_eapp
+
+if [ ! -d mbedtls_host ]
+then
+  git clone https://github.com/Mbed-TLS/mbedtls.git mbedtls_host
+  cd mbedtls_host
+  git checkout 3c3b94a31b9d91e1579c48165658486171c82a36
+  python3 -m pip install --user -r scripts/basic.requirements.txt
+  mkdir build && cd build
+  cmake -DCMAKE_TOOLCHAIN_FILE=$DEMO_DIR/riscv-toolchain.cmake -DENABLE_TESTING=0ff ..
+  cmake --build .
+  cd ../..
+fi
+
+export MBEDTLS_DIR_HOST=$(pwd)/mbedtls_host
+
+cd ..
 
 # Build the demo
 mkdir -p build
 cd build
 cmake ..
 make
-make client-package
 make hello-package
+make client-package
 
 # copy enclave packages - only for me
 cp hello/hello.ke ../../keystone/build/overlay/root/

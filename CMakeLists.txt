@@ -7,10 +7,15 @@ if (NOT DEFINED ENV{KEYSTONE_SDK_DIR})
 endif()
 set(KEYSTONE_SDK_DIR $ENV{KEYSTONE_SDK_DIR})
 
-if (NOT DEFINED ENV{MBEDTLS_DIR})
-  message(FATAL_ERROR "Please set MBEDTLS_DIR")
+if (NOT DEFINED ENV{MBEDTLS_DIR_EAPP})
+  message(FATAL_ERROR "Please set MBEDTLS_DIR_EAPP")
 endif()
-set(MBEDTLS_DIR $ENV{MBEDTLS_DIR})
+set(MBEDTLS_DIR_EAPP $ENV{MBEDTLS_DIR_EAPP})
+
+if (NOT DEFINED ENV{MBEDTLS_DIR_HOST})
+  message(FATAL_ERROR "Please set MBEDTLS_DIR_HOST")
+endif()
+set(MBEDTLS_DIR_HOST $ENV{MBEDTLS_DIR_HOST})
 
 include($ENV{KEYSTONE_SDK_DIR}/cmake/macros.cmake)
 
@@ -26,7 +31,6 @@ use_riscv_toolchain(${BITS})
 
 # export include directory
 include_directories(include
-  ${MBEDTLS_DIR}/include
   ${KEYSTONE_SDK_DIR}/include
   ${KEYSTONE_SDK_DIR}/include/host
   ${KEYSTONE_SDK_DIR}/include/edge
@@ -38,9 +42,13 @@ set(KEYSTONE_LIB_EDGE ${KEYSTONE_SDK_DIR}/lib/libkeystone-edge.a)
 set(KEYSTONE_LIB_VERIFIER ${KEYSTONE_SDK_DIR}/lib/libkeystone-verifier.a)
 set(KEYSTONE_LIB_EAPP ${KEYSTONE_SDK_DIR}/lib/libkeystone-eapp.a)
 
-set(MBEDTLS_LIB_CRYPTO ${MBEDTLS_DIR}/build/library/libmbedcrypto.a)
-set(MBEDTLS_LIB_TLS ${MBEDTLS_DIR}/build/library/libmbedtls.a)
-set(MBEDTLS_LIB_X509 ${MBEDTLS_DIR}/build/library/libmbedx509.a)
+set(MBEDTLS_LIB_CRYPTO_EAPP ${MBEDTLS_DIR_EAPP}/build/library/libmbedcrypto.a)
+set(MBEDTLS_LIB_TLS_EAPP ${MBEDTLS_DIR_EAPP}/build/library/libmbedtls.a)
+set(MBEDTLS_LIB_X509_EAPP ${MBEDTLS_DIR_EAPP}/build/library/libmbedx509.a)
+
+set(MBEDTLS_LIB_CRYPTO_HOST ${MBEDTLS_DIR_HOST}/build/library/libmbedcrypto.a)
+set(MBEDTLS_LIB_TLS_HOST ${MBEDTLS_DIR_HOST}/build/library/libmbedtls.a)
+set(MBEDTLS_LIB_X509_HOST ${MBEDTLS_DIR_HOST}/build/library/libmbedx509.a)
 
 # find program "makeself"
 find_program(MAKESELF makeself)
