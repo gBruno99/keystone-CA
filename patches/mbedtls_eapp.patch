@@ -1,7 +1,25 @@
 diff --git a/include/mbedtls/mbedtls_config.h b/include/mbedtls/mbedtls_config.h
-index 89d565971..b9ec465ed 100644
+index 89d565971..1435d3773 100644
 --- a/include/mbedtls/mbedtls_config.h
 +++ b/include/mbedtls/mbedtls_config.h
+@@ -140,7 +140,7 @@
+  *       regardless of the setting of MBEDTLS_HAVE_TIME, unless
+  *       MBEDTLS_TIMING_ALT is used. See timing.c for more information.
+  */
+-#define MBEDTLS_HAVE_TIME
++//#define MBEDTLS_HAVE_TIME
+ 
+ /**
+  * \def MBEDTLS_HAVE_TIME_DATE
+@@ -161,7 +161,7 @@
+  * mbedtls_platform_gmtime_r() at compile-time by using the macro
+  * MBEDTLS_PLATFORM_GMTIME_R_ALT.
+  */
+-#define MBEDTLS_HAVE_TIME_DATE
++//#define MBEDTLS_HAVE_TIME_DATE
+ 
+ /**
+  * \def MBEDTLS_PLATFORM_MEMORY
 @@ -185,7 +185,7 @@
   *
   * Enable this layer to allow use of alternative memory allocators.
@@ -84,6 +102,22 @@ index b15b7b29a..75be5bed6 100644
 +}
 +
  #endif /* MBEDTLS_PLATFORM_C */
+diff --git a/library/platform_util.c b/library/platform_util.c
+index e903f8ed3..4f5e5252f 100644
+--- a/library/platform_util.c
++++ b/library/platform_util.c
+@@ -51,9 +51,9 @@
+ 
+ // Detect platforms known to support explicit_bzero()
+ #if defined(__GLIBC__) && (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 25)
+-#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
++//#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
+ #elif (defined(__FreeBSD__) && (__FreeBSD_version >= 1100037)) || defined(__OpenBSD__)
+-#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
++//#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
+ #endif
+ 
+ #if !defined(MBEDTLS_PLATFORM_ZEROIZE_ALT)
 diff --git a/programs/test/udp_proxy.c b/programs/test/udp_proxy.c
 index ac527f257..4d631fe04 100644
 --- a/programs/test/udp_proxy.c
