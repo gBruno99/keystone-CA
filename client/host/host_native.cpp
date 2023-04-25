@@ -53,7 +53,7 @@ main(int argc, char** argv) {
   edge_call_init_internals(
       (uintptr_t)enclave.getSharedBuffer(), enclave.getSharedBufferSize());
 
-  mbedtls_printf("Mbedtls test\n");
+  mbedtls_printf("Mbedtls test - host\n");
   int i, ret;
   unsigned char digest[16];
   char str[] = "Hello, world!";
