@@ -1,5 +1,5 @@
 diff --git a/include/mbedtls/mbedtls_config.h b/include/mbedtls/mbedtls_config.h
-index 89d565971..1435d3773 100644
+index 89d565971..92c7456ab 100644
 --- a/include/mbedtls/mbedtls_config.h
 +++ b/include/mbedtls/mbedtls_config.h
 @@ -140,7 +140,7 @@
@@ -45,14 +45,51 @@ index 89d565971..1435d3773 100644
 -//#define MBEDTLS_PLATFORM_EXIT_ALT
 +#define MBEDTLS_PLATFORM_EXIT_ALT
  //#define MBEDTLS_PLATFORM_TIME_ALT
- //#define MBEDTLS_PLATFORM_FPRINTF_ALT
+-//#define MBEDTLS_PLATFORM_FPRINTF_ALT
 -//#define MBEDTLS_PLATFORM_PRINTF_ALT
 -//#define MBEDTLS_PLATFORM_SNPRINTF_ALT
++#define MBEDTLS_PLATFORM_FPRINTF_ALT
 +#define MBEDTLS_PLATFORM_PRINTF_ALT
 +#define MBEDTLS_PLATFORM_SNPRINTF_ALT
  //#define MBEDTLS_PLATFORM_VSNPRINTF_ALT
  //#define MBEDTLS_PLATFORM_NV_SEED_ALT
  //#define MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT
+@@ -1058,7 +1058,7 @@
+  *
+  * Enable functions that use the filesystem.
+  */
+-#define MBEDTLS_FS_IO
++//#define MBEDTLS_FS_IO
+ 
+ /**
+  * \def MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES
+@@ -1081,7 +1081,7 @@
+  *
+  * Uncomment this macro to disable the built-in platform entropy functions.
+  */
+-//#define MBEDTLS_NO_PLATFORM_ENTROPY
++#define MBEDTLS_NO_PLATFORM_ENTROPY
+ 
+ /**
+  * \def MBEDTLS_ENTROPY_FORCE_SHA256
+@@ -2991,7 +2991,7 @@
+  *           either MBEDTLS_PSA_ITS_FILE_C or a native implementation of
+  *           the PSA ITS interface
+  */
+-#define MBEDTLS_PSA_CRYPTO_STORAGE_C
++//#define MBEDTLS_PSA_CRYPTO_STORAGE_C
+ 
+ /**
+  * \def MBEDTLS_PSA_ITS_FILE_C
+@@ -3003,7 +3003,7 @@
+  *
+  * Requires: MBEDTLS_FS_IO
+  */
+-#define MBEDTLS_PSA_ITS_FILE_C
++//#define MBEDTLS_PSA_ITS_FILE_C
+ 
+ /**
+  * \def MBEDTLS_RIPEMD160_C
 diff --git a/include/mbedtls/platform.h b/include/mbedtls/platform.h
 index f65158719..ebedf948f 100644
 --- a/include/mbedtls/platform.h
