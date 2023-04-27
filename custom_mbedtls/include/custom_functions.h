@@ -173,6 +173,16 @@ int mbedtls_asn1_get_bool(unsigned char **p,
                           const unsigned char *end,
                           int *val);
 
+/**
+ * \brief       Free all entries in a mbedtls_asn1_named_data list.
+ *
+ * \param head  Pointer to the head of the list of named data entries to free.
+ *              This function calls mbedtls_free() on
+ *              `entry->oid.p` and `entry->val.p` and then on `entry`
+ *              for each list entry, and sets \c *head to \c NULL.
+ */
+//void mbedtls_asn1_free_named_data_list(mbedtls_asn1_named_data **head);
+
 //asn1write.h
 /**
  * \brief           Create or find a specific named_data entry for writing in a
@@ -511,6 +521,36 @@ int mbedtls_x509write_crt_set_extension(mbedtls_x509write_cert *ctx,
                                         int critical,
                                         /*const*/ unsigned char *val, size_t val_len); //new_impl
 
+/**
+ * \brief           Set the subject name for a Certificate
+ *                  Subject names should contain a comma-separated list
+ *                  of OID types and values:
+ *                  e.g. "C=UK,O=ARM,CN=mbed TLS Server 1"
+ *
+ * \param ctx           CRT context to use
+ * \param subject_name  subject name to set
+ *
+ * \return          0 if subject name was parsed successfully, or
+ *                  a specific error code
+ */
+/*int mbedtls_x509write_crt_set_subject_name(mbedtls_x509write_cert *ctx,
+                                           const char *subject_name);*/
+
+/**
+ * \brief           Set the issuer name for a Certificate
+ *                  Issuer names should contain a comma-separated list
+ *                  of OID types and values:
+ *                  e.g. "C=UK,O=ARM,CN=mbed TLS CA"
+ *
+ * \param ctx           CRT context to use
+ * \param issuer_name   issuer name to set
+ *
+ * \return          0 if issuer name was parsed successfully, or
+ *                  a specific error code
+ */
+/*int mbedtls_x509write_crt_set_issuer_name(mbedtls_x509write_cert *ctx,
+                                          const char *issuer_name);*/
+
 //x509.h
 int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *name);
 
@@ -547,6 +587,10 @@ int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, 
 
 int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *end,
                          mbedtls_x509_buf *ext, int tag);
+
+/*int mbedtls_x509_get_sig_alg(const mbedtls_x509_buf *sig_oid, const mbedtls_x509_buf *sig_params,
+                             mbedtls_md_type_t *md_alg, mbedtls_pk_type_t *pk_alg,
+                             void **sig_opts);*/
 
 //pk.h
 /** \ingroup pk_module */
