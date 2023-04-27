@@ -1,6 +1,6 @@
 #ifndef CUSTOM_MBEDTLS_FUNCTIONS_H
 #define CUSTOM_MBEDTLS_FUNCTIONS_H
-#include "x509.h"
+#include "custom_x509.h"
 
 //asn1.h
 /**
@@ -719,8 +719,7 @@ int mbedtls_pk_sign_restartable(mbedtls_pk_context *ctx,
                                 mbedtls_md_type_t md_alg,
                                 const unsigned char *hash, size_t hash_len,
                                 unsigned char *sig, size_t sig_size, size_t *sig_len,
-                                int (*f_rng)(void *, unsigned char *, size_t), void *p_rng,
-                                mbedtls_pk_restart_ctx *rs_ctx);
+                                int (*f_rng)(void *, unsigned char *, size_t), void *p_rng); //new_impl
                                 
 /**
  * \brief           Free the components of a #mbedtls_pk_context.
