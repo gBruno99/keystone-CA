@@ -154,6 +154,25 @@ int mbedtls_asn1_get_int(unsigned char **p,
                          const unsigned char *end,
                          int *val);
 
+/**
+ * \brief       Retrieve a boolean ASN.1 tag and its value.
+ *              Updates the pointer to immediately behind the full tag.
+ *
+ * \param p     On entry, \c *p points to the start of the ASN.1 element.
+ *              On successful completion, \c *p points to the first byte
+ *              beyond the ASN.1 element.
+ *              On error, the value of \c *p is undefined.
+ * \param end   End of data.
+ * \param val   On success, the parsed value (\c 0 or \c 1).
+ *
+ * \return      0 if successful.
+ * \return      An ASN.1 error code if the input does not start with
+ *              a valid ASN.1 BOOLEAN.
+ */
+int mbedtls_asn1_get_bool(unsigned char **p,
+                          const unsigned char *end,
+                          int *val);
+
 //asn1write.h
 /**
  * \brief           Create or find a specific named_data entry for writing in a
@@ -474,6 +493,24 @@ void mbedtls_x509_crt_init(mbedtls_x509_crt *crt);
  */
 void mbedtls_x509_crt_free(mbedtls_x509_crt *crt);
 
+/**
+ * \brief           Generic function to add to or replace an extension in the
+ *                  CRT
+ *
+ * \param ctx       CRT context to use
+ * \param oid       OID of the extension
+ * \param oid_len   length of the OID
+ * \param critical  if the extension is critical (per the RFC's definition)
+ * \param val       value of the extension OCTET STRING
+ * \param val_len   length of the value data
+ *
+ * \return          0 if successful, or a MBEDTLS_ERR_X509_ALLOC_FAILED
+ */
+int mbedtls_x509write_crt_set_extension(mbedtls_x509write_cert *ctx,
+                                        const char *oid, size_t oid_len,
+                                        int critical,
+                                        /*const*/ unsigned char *val, size_t val_len); //new_impl
+
 //x509.h
 int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *name);
 
@@ -507,6 +544,9 @@ int mbedtls_x509_write_extensions(unsigned char **p, unsigned char *start,
 int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len,
                                int critical, const unsigned char *val,
                                size_t val_len);
+
+int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *end,
+                         mbedtls_x509_buf *ext, int tag);
 
 //pk.h
 /** \ingroup pk_module */
@@ -733,6 +773,37 @@ void mbedtls_ed25519_init(mbedtls_ed25519_context *ctx);
 int pk_write_ed25519_pubkey(unsigned char **p, unsigned char *start, mbedtls_ed25519_context ed25519);  
 int pk_set_ed25519privkey(unsigned char **p, mbedtls_ed25519_context *ed25519);
 
+unsigned int my_strlen(const char *s);
+int my_strncmp( const char * s1, const char * s2, size_t n );
+char* my_strncpy(char* destination, const char* source, size_t num);
+void * my_memmove(void* dest, const void* src, unsigned int n);
+int my_memcmp (const void *str1, const void *str2, size_t count);
+void* my_memset(void* dest, int byte, size_t len);
+void* my_memcpy(void* dest, const void* src, size_t len);
+
+void mbedtls_asn1_free_named_data_list_mod(int *ne); //asn1.h
+int mbedtls_asn1_get_alg_mod(unsigned char **p,
+                         const unsigned char *end,
+                         mbedtls_asn1_buf_no_arr *alg, mbedtls_asn1_buf *params); //asn1.h
+int mbedtls_x509write_crt_set_issuer_name_mod(mbedtls_x509write_cert *ctx, const char *issuer_name); //x509_crt.h
+int mbedtls_x509write_crt_set_subject_name_mod(mbedtls_x509write_cert *ctx, const char *subject_name); //x509_crt.h
+int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data *head, const char *name, int *ne); //x509.h
+int mbedtls_x509_write_names_mod(unsigned char **p, unsigned char *start,mbedtls_asn1_named_data *arr, int ne); //x509.h
+int mbedtls_x509_get_name_mod(unsigned char **p, const unsigned char *end, mbedtls_asn1_named_data *cur, int *ne); //x509.h
+int mbedtls_x509_get_alg_mod(unsigned char **p, const unsigned char *end,
+                         mbedtls_x509_buf *alg, mbedtls_x509_buf *params); //x509.h
+int mbedtls_x509_get_sig_alg_mod(const mbedtls_x509_buf_crt *sig_oid, const mbedtls_x509_buf *sig_params,
+                             mbedtls_md_type_t *md_alg, mbedtls_pk_type_t *pk_alg,
+                             void **sig_opts); //x509.h
+int mbedtls_x509_write_extensions_mod(unsigned char **p, unsigned char *start,
+                                  mbedtls_asn1_named_data *arr_exte, int ne); //x509.h
+int mbedtls_asn1_store_named_data_mod( mbedtls_asn1_named_data *head,const char *oid, size_t oid_len,const unsigned char *val,size_t val_len, int *ne); //asn1write.h
+int asn1_find_named_data_mod(mbedtls_asn1_named_data *list,const char *oid, size_t len, size_t ne); //asn1write.c
+int x509_write_name_mod(unsigned char **p, unsigned char *start,mbedtls_asn1_named_data cur_name); //x509_create.c
+int x509_write_extension_mod(unsigned char **p, unsigned char *start,
+                                mbedtls_asn1_named_data ext); //x509_create.c
+int x509_get_attr_type_value_mod(unsigned char **p,const unsigned char *end, mbedtls_asn1_named_data *cur); //x509.c
+
 //x509_create.c
 const x509_attr_descriptor_t *x509_attr_descr_from_name(const char *name, size_t name_len);
 
@@ -796,6 +867,23 @@ int x509_get_dates(unsigned char **p,
                           mbedtls_x509_time *from,
                           mbedtls_x509_time *to);
 
+/*
+ * X.509 v2/v3 unique identifier (not parsed)
+ */
+int x509_get_uid(unsigned char **p,
+                        const unsigned char *end,
+                        mbedtls_x509_buf *uid, int n);
+
+/*
+ * X.509 v3 extensions
+ *
+ */
+int x509_get_crt_ext(unsigned char **p,
+                            const unsigned char *end,
+                            mbedtls_x509_crt *crt,
+                            mbedtls_x509_crt_ext_cb_t cb,
+                            void *p_ctx);
+
 //x509.c
 /*
  *  AttributeTypeAndValue ::= SEQUENCE {
@@ -833,4 +921,14 @@ int asn1_get_tagged_int(unsigned char **p,
                                const unsigned char *end,
                                int tag, int *val);
 
+//pkparse.c
+/* Get a PK algorithm identifier
+ *
+ *  AlgorithmIdentifier  ::=  SEQUENCE  {
+ *       algorithm               OBJECT IDENTIFIER,
+ *       parameters              ANY DEFINED BY algorithm OPTIONAL  }
+ */
+int pk_get_pk_alg(unsigned char **p,
+                         const unsigned char *end,
+                         mbedtls_pk_type_t *pk_alg, mbedtls_asn1_buf *params);
 #endif
