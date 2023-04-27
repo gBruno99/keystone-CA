@@ -1,5 +1,13 @@
 #ifndef CUSTOM_MBEDTLS_OID_H
 #define CUSTOM_MBEDTLS_OID_H
+#include "custom_utils.h"
+
+//oid.h
+
+/** OID is not found. */
+#define MBEDTLS_ERR_OID_NOT_FOUND                         -0x002E
+/** output buffer is too small */
+#define MBEDTLS_ERR_OID_BUF_TOO_SMALL                     -0x000B
 
 /* This is for the benefit of X.509, but defined here in order to avoid
  * having a "backwards" include of x.509.h here */
@@ -396,5 +404,16 @@
  *   iso(1) member-body(2) us(840) ansi-X9-62(10045) signatures(4)
  *   ecdsa-with-SHA2(3) 4 } */
 #define MBEDTLS_OID_ECDSA_SHA512            MBEDTLS_OID_ANSI_X9_62_SIG_SHA2 "\x04"
+
+/**
+ * \brief Base OID descriptor structure
+ */
+typedef struct mbedtls_oid_descriptor_t {
+    const char *MBEDTLS_PRIVATE(asn1);               /*!< OID ASN.1 representation       */
+    size_t MBEDTLS_PRIVATE(asn1_len);                /*!< length of asn1                 */
+    const char *MBEDTLS_PRIVATE(name);               /*!< official name (e.g. from RFC)  */
+    const char *MBEDTLS_PRIVATE(description);        /*!< human friendly description     */
+} mbedtls_oid_descriptor_t;
+
 
 #endif /* oid.h */
