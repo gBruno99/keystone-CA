@@ -231,3 +231,62 @@ int pk_set_ed25519privkey(unsigned char **p, mbedtls_ed25519_context *ed25519)
     */
     return 0;
 }
+
+void mbedtls_ed25519_free(mbedtls_ed25519_context *ctx)
+{
+    if (ctx == NULL)
+    {
+        return;
+    }
+    // mbedtls_free(ctx->priv_key);
+    // mbedtls_free(ctx->pub_key);
+}
+
+int mbedtls_ed25519_check_pub_priv(unsigned char *priv, unsigned char *pub, unsigned char *seed)
+{
+
+    unsigned char result[32];
+    // ed25519_create keypair(seed, priv, result);
+    for (int i = 0; i < 32; i++)
+    {
+        if (result[i] != pub[i])
+            return 1;
+    }
+    return 0;
+}
+
+int pk_write_ed25519_pubkey(unsigned char **p, unsigned char *start, mbedtls_ed25519_context ed25519)
+{
+
+    // int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len = 32;
+    unsigned char buf[32];
+    /*
+    printf("Chiave pubblica\n");
+    for(int i =0; i <32; i ++){
+        printf("%02x",ed25519->pub_key[i]);
+    }
+    */
+
+    for (int i = 0; i < 32; i++)
+    {
+        buf[i] = ed25519.pub_key[i];
+    }
+
+    /*
+    printf("Chiave pubblica\n");
+    for(int i =0; i <32; i ++){
+        printf("%02x",buf[i]);
+    }
+
+   printf("\n");
+    */
+    if (*p < start || (size_t)(*p - start) < len)
+    {
+        return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
+    }
+    *p -= len;
+
+    my_memcpy(*p, buf, len);
+    return (int)len;
+}

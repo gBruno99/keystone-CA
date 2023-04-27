@@ -99,6 +99,9 @@ static inline int mbedtls_error_add(int high, int low,
     mbedtls_error_add(high, low, __FILE__, __LINE__)
 
 //pk.h
+
+#define MBEDTLS_PK_SIGNATURE_MAX_SIZE 64 //new_impl
+
 /** Memory allocation failed. */
 #define MBEDTLS_ERR_PK_ALLOC_FAILED        -0x3F80
 /** Type mismatch, eg attempt to encrypt with an ECDSA key */
@@ -181,6 +184,9 @@ typedef struct mbedtls_pk_context {
 } mbedtls_pk_context;
 
 //md.h
+
+#define MBEDTLS_HASH_MAX_SIZE 64 //new_impl
+
 /**
  * \brief     Supported message digests.
  *
