@@ -178,6 +178,115 @@ int mbedtls_asn1_get_alg(unsigned char **p,
     return 0;
 }
 
+int mbedtls_asn1_get_bitstring_null(unsigned char **p, const unsigned char *end,
+                                    size_t *len)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+    if ((ret = mbedtls_asn1_get_tag(p, end, len, MBEDTLS_ASN1_BIT_STRING)) != 0)
+    {
+        return ret;
+    }
+
+    if (*len == 0)
+    {
+        return MBEDTLS_ERR_ASN1_INVALID_DATA;
+    }
+    --(*len);
+
+    if (**p != 0)
+    {
+        return MBEDTLS_ERR_ASN1_INVALID_DATA;
+    }
+    ++(*p);
+
+    return 0;
+}
+
+int mbedtls_asn1_get_int(unsigned char **p,
+                         const unsigned char *end,
+                         int *val)
+{
+    return asn1_get_tagged_int(p, end, MBEDTLS_ASN1_INTEGER, val);
+}
+
+static int asn1_get_tagged_int(unsigned char **p,
+                               const unsigned char *end,
+                               int tag, int *val)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len;
+
+    if ((ret = mbedtls_asn1_get_tag(p, end, &len, tag)) != 0)
+    {
+        return ret;
+    }
+
+    /*
+     * len==0 is malformed (0 must be represented as 020100 for INTEGER,
+     * or 0A0100 for ENUMERATED tags
+     */
+    if (len == 0)
+    {
+        return MBEDTLS_ERR_ASN1_INVALID_LENGTH;
+    }
+    /* This is a cryptography library. Reject negative integers. */
+    if ((**p & 0x80) != 0)
+    {
+        return MBEDTLS_ERR_ASN1_INVALID_LENGTH;
+    }
+
+    /* Skip leading zeros. */
+    while (len > 0 && **p == 0)
+    {
+        ++(*p);
+        --len;
+    }
+
+    /* Reject integers that don't fit in an int. This code assumes that
+     * the int type has no padding bit. */
+    if (len > sizeof(int))
+    {
+        return MBEDTLS_ERR_ASN1_INVALID_LENGTH;
+    }
+    if (len == sizeof(int) && (**p & 0x80) != 0)
+    {
+        return MBEDTLS_ERR_ASN1_INVALID_LENGTH;
+    }
+
+    *val = 0;
+    while (len-- > 0)
+    {
+        *val = (*val << 8) | **p;
+        (*p)++;
+    }
+
+    return 0;
+}
+
+int mbedtls_asn1_get_bool(unsigned char **p,
+                          const unsigned char *end,
+                          int *val)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len;
+
+    if ((ret = mbedtls_asn1_get_tag(p, end, &len, MBEDTLS_ASN1_BOOLEAN)) != 0)
+    {
+        return ret;
+    }
+
+    if (len != 1)
+    {
+        return MBEDTLS_ERR_ASN1_INVALID_LENGTH;
+    }
+
+    *val = (**p != 0) ? 1 : 0;
+    (*p)++;
+
+    return 0;
+}
+
 // asn1write.c
 /*
 mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
@@ -466,6 +575,25 @@ int asn1_write_tagged_int(unsigned char **p, const unsigned char *start, int val
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, tag));
+
+    return (int)len;
+}
+
+int mbedtls_asn1_write_bool(unsigned char **p, const unsigned char *start, int boolean)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len = 0;
+
+    if (*p - start < 1)
+    {
+        return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
+    }
+
+    *--(*p) = (boolean) ? 255 : 0;
+    len++;
+
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_BOOLEAN));
 
     return (int)len;
 }

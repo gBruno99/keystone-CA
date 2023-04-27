@@ -270,6 +270,115 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
     return ret;
 }
 
+int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
+                               mbedtls_pk_context *pk)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len;
+    mbedtls_asn1_buf alg_params;
+    mbedtls_pk_type_t pk_alg = MBEDTLS_PK_NONE;
+    const mbedtls_pk_info_t *pk_info;
+
+    if ((ret = mbedtls_asn1_get_tag(p, end, &len,
+                                    MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE)) != 0)
+    {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_KEY_INVALID_FORMAT, ret);
+    }
+
+    end = *p + len;
+
+    if ((ret = pk_get_pk_alg(p, end, &pk_alg, &alg_params)) != 0)
+    {
+        return ret;
+    }
+
+    if ((ret = mbedtls_asn1_get_bitstring_null(p, end, &len)) != 0)
+    {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_INVALID_PUBKEY, ret);
+    }
+
+    if (*p + len != end)
+    {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_INVALID_PUBKEY,
+                                 MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+    }
+
+    if ((pk_info = mbedtls_pk_info_from_type(pk_alg)) == NULL)
+    {
+        return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
+    }
+
+    if ((ret = mbedtls_pk_setup(pk, pk_info)) != 0)
+    {
+        return ret;
+    }
+
+#if defined(MBEDTLS_RSA_C)
+    if (pk_alg == MBEDTLS_PK_RSA)
+    {
+        ret = pk_get_rsapubkey(p, end, mbedtls_pk_rsa(*pk));
+    }
+    else
+#endif /* MBEDTLS_RSA_C */
+#if defined(MBEDTLS_ECP_LIGHT)
+        if (pk_alg == MBEDTLS_PK_ECKEY_DH || pk_alg == MBEDTLS_PK_ECKEY)
+    {
+        ret = pk_use_ecparams(&alg_params, &mbedtls_pk_ec(*pk)->grp);
+        if (ret == 0)
+        {
+            ret = pk_get_ecpubkey(p, end, mbedtls_pk_ec(*pk));
+        }
+    }
+    else
+#endif /* MBEDTLS_ECP_LIGHT */
+        ret = MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
+
+    if (ret == 0 && *p != end)
+    {
+        ret = MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_INVALID_PUBKEY,
+                                MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
+    }
+
+    if (ret != 0)
+    {
+        mbedtls_pk_free(pk);
+    }
+
+    return ret;
+}
+
+int pk_get_pk_alg(unsigned char **p,
+                  const unsigned char *end,
+                  mbedtls_pk_type_t *pk_alg, mbedtls_asn1_buf *params)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    mbedtls_asn1_buf alg_oid;
+
+    memset(params, 0, sizeof(mbedtls_asn1_buf));
+
+    if ((ret = mbedtls_asn1_get_alg(p, end, &alg_oid, params)) != 0)
+    {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_INVALID_ALG, ret);
+    }
+
+    if (mbedtls_oid_get_pk_alg(&alg_oid, pk_alg) != 0)
+    {
+        return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
+    }
+
+    /*
+     * No parameters with RSA (only for EC)
+     */
+    if (*pk_alg == MBEDTLS_PK_RSA &&
+        ((params->tag != MBEDTLS_ASN1_NULL && params->tag != 0) ||
+         params->len != 0))
+    {
+        return MBEDTLS_ERR_PK_INVALID_ALG;
+    }
+
+    return 0;
+}
+
 // pkwrite.c
 int mbedtls_pk_write_pubkey_der(const mbedtls_pk_context *key, unsigned char *buf, size_t size)
 {
