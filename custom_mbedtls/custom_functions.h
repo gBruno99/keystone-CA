@@ -3,6 +3,156 @@
 #include "x509.h"
 
 //asn1.h
+/**
+ * \brief       Get the tag and length of the element.
+ *              Check for the requested tag.
+ *              Updates the pointer to immediately behind the tag and length.
+ *
+ * \param p     On entry, \c *p points to the start of the ASN.1 element.
+ *              On successful completion, \c *p points to the first byte
+ *              after the length, i.e. the first byte of the content.
+ *              On error, the value of \c *p is undefined.
+ * \param end   End of data.
+ * \param len   On successful completion, \c *len contains the length
+ *              read from the ASN.1 input.
+ * \param tag   The expected tag.
+ *
+ * \return      0 if successful.
+ * \return      #MBEDTLS_ERR_ASN1_UNEXPECTED_TAG if the data does not start
+ *              with the requested tag.
+ * \return      #MBEDTLS_ERR_ASN1_OUT_OF_DATA if the ASN.1 element
+ *              would end beyond \p end.
+ * \return      #MBEDTLS_ERR_ASN1_INVALID_LENGTH if the length is unparsable.
+ */
+int mbedtls_asn1_get_tag(unsigned char **p,
+                         const unsigned char *end,
+                         size_t *len, int tag);
+
+/**
+ * \brief       Get the length of an ASN.1 element.
+ *              Updates the pointer to immediately behind the length.
+ *
+ * \param p     On entry, \c *p points to the first byte of the length,
+ *              i.e. immediately after the tag.
+ *              On successful completion, \c *p points to the first byte
+ *              after the length, i.e. the first byte of the content.
+ *              On error, the value of \c *p is undefined.
+ * \param end   End of data.
+ * \param len   On successful completion, \c *len contains the length
+ *              read from the ASN.1 input.
+ *
+ * \return      0 if successful.
+ * \return      #MBEDTLS_ERR_ASN1_OUT_OF_DATA if the ASN.1 element
+ *              would end beyond \p end.
+ * \return      #MBEDTLS_ERR_ASN1_INVALID_LENGTH if the length is unparsable.
+ */
+int mbedtls_asn1_get_len(unsigned char **p,
+                         const unsigned char *end,
+                         size_t *len);
+
+/**
+ * \brief       Free all shallow entries in a mbedtls_asn1_named_data list,
+ *              but do not free internal pointer targets.
+ *
+ * \param name  Head of the list of named data entries to free.
+ *              This function calls mbedtls_free() on each list element.
+ */
+void mbedtls_asn1_free_named_data_list_shallow(mbedtls_asn1_named_data *name);
+
+/**
+ * \brief          Free a heap-allocated linked list presentation of
+ *                 an ASN.1 sequence, including the first element.
+ *
+ * There are two common ways to manage the memory used for the representation
+ * of a parsed ASN.1 sequence:
+ * - Allocate a head node `mbedtls_asn1_sequence *head` with mbedtls_calloc().
+ *   Pass this node as the `cur` argument to mbedtls_asn1_get_sequence_of().
+ *   When you have finished processing the sequence,
+ *   call mbedtls_asn1_sequence_free() on `head`.
+ * - Allocate a head node `mbedtls_asn1_sequence *head` in any manner,
+ *   for example on the stack. Make sure that `head->next == NULL`.
+ *   Pass `head` as the `cur` argument to mbedtls_asn1_get_sequence_of().
+ *   When you have finished processing the sequence,
+ *   call mbedtls_asn1_sequence_free() on `head->cur`,
+ *   then free `head` itself in the appropriate manner.
+ *
+ * \param seq      The address of the first sequence component. This may
+ *                 be \c NULL, in which case this functions returns
+ *                 immediately.
+ */
+void mbedtls_asn1_sequence_free(mbedtls_asn1_sequence *seq);
+
+/**
+ * \brief       Retrieve an AlgorithmIdentifier ASN.1 sequence.
+ *              Updates the pointer to immediately behind the full
+ *              AlgorithmIdentifier.
+ *
+ * \param p     On entry, \c *p points to the start of the ASN.1 element.
+ *              On successful completion, \c *p points to the first byte
+ *              beyond the AlgorithmIdentifier element.
+ *              On error, the value of \c *p is undefined.
+ * \param end   End of data.
+ * \param alg   The buffer to receive the OID.
+ * \param params The buffer to receive the parameters.
+ *              This is zeroized if there are no parameters.
+ *
+ * \return      0 if successful or a specific ASN.1 or MPI error code.
+ */
+int mbedtls_asn1_get_alg(unsigned char **p,
+                         const unsigned char *end,
+                         mbedtls_asn1_buf *alg, mbedtls_asn1_buf *params);
+
+/**
+ * \brief       Free all shallow entries in a mbedtls_asn1_named_data list,
+ *              but do not free internal pointer targets.
+ *
+ * \param name  Head of the list of named data entries to free.
+ *              This function calls mbedtls_free() on each list element.
+ */
+void mbedtls_asn1_free_named_data_list_shallow(mbedtls_asn1_named_data *name);
+
+/**
+ * \brief       Retrieve a bitstring ASN.1 tag without unused bits and its
+ *              value.
+ *              Updates the pointer to the beginning of the bit/octet string.
+ *
+ * \param p     On entry, \c *p points to the start of the ASN.1 element.
+ *              On successful completion, \c *p points to the first byte
+ *              of the content of the BIT STRING.
+ *              On error, the value of \c *p is undefined.
+ * \param end   End of data.
+ * \param len   On success, \c *len is the length of the content in bytes.
+ *
+ * \return      0 if successful.
+ * \return      #MBEDTLS_ERR_ASN1_INVALID_DATA if the input starts with
+ *              a valid BIT STRING with a nonzero number of unused bits.
+ * \return      An ASN.1 error code if the input does not start with
+ *              a valid ASN.1 BIT STRING.
+ */
+int mbedtls_asn1_get_bitstring_null(unsigned char **p,
+                                    const unsigned char *end,
+                                    size_t *len);
+
+/**
+ * \brief       Retrieve an integer ASN.1 tag and its value.
+ *              Updates the pointer to immediately behind the full tag.
+ *
+ * \param p     On entry, \c *p points to the start of the ASN.1 element.
+ *              On successful completion, \c *p points to the first byte
+ *              beyond the ASN.1 element.
+ *              On error, the value of \c *p is undefined.
+ * \param end   End of data.
+ * \param val   On success, the parsed value.
+ *
+ * \return      0 if successful.
+ * \return      An ASN.1 error code if the input does not start with
+ *              a valid ASN.1 INTEGER.
+ * \return      #MBEDTLS_ERR_ASN1_INVALID_LENGTH if the parsed value does
+ *              not fit in an \c int.
+ */
+int mbedtls_asn1_get_int(unsigned char **p,
+                         const unsigned char *end,
+                         int *val);
 
 //asn1write.h
 /**
@@ -165,6 +315,22 @@ int mbedtls_asn1_write_tagged_string(unsigned char **p, const unsigned char *sta
  */
 int mbedtls_asn1_write_int(unsigned char **p, const unsigned char *start, int val);
 
+/**
+ * \brief           Write a boolean tag (#MBEDTLS_ASN1_BOOLEAN) and value
+ *                  in ASN.1 format.
+ *
+ * \note            This function works backwards in data buffer.
+ *
+ * \param p         The reference to the current position pointer.
+ * \param start     The start of the buffer, for bounds-checking.
+ * \param boolean   The boolean value to write, either \c 0 or \c 1.
+ *
+ * \return          The number of bytes written to \p p on success.
+ * \return          A negative \c MBEDTLS_ERR_ASN1_XXX error code on failure.
+ */
+int mbedtls_asn1_write_bool(unsigned char **p, const unsigned char *start,
+                            int boolean);
+
 //oid.h
 /**
  * \brief          Translate md_type and pk_type into SignatureAlgorithm OID
@@ -241,6 +407,73 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx, unsigned char *buf, s
                               int (*f_rng)(void *, unsigned char *, size_t),
                               void *p_rng);
 
+/**
+ * \brief           Set the serial number for a Certificate.
+ *
+ * \param ctx          CRT context to use
+ * \param serial       A raw array of bytes containing the serial number in big
+ *                     endian format
+ * \param serial_len   Length of valid bytes (expressed in bytes) in \p serial
+ *                     input buffer
+ *
+ * \return          0 if successful, or
+ *                  MBEDTLS_ERR_X509_BAD_INPUT_DATA if the provided input buffer
+ *                  is too big (longer than MBEDTLS_X509_RFC5280_MAX_SERIAL_LEN)
+ */
+int mbedtls_x509write_crt_set_serial_raw(mbedtls_x509write_cert *ctx,
+                                         unsigned char *serial, size_t serial_len);
+
+/**
+ * \brief           Set the MD algorithm to use for the signature
+ *                  (e.g. MBEDTLS_MD_SHA1)
+ *
+ * \param ctx       CRT context to use
+ * \param md_alg    MD algorithm to use
+ */
+void mbedtls_x509write_crt_set_md_alg(mbedtls_x509write_cert *ctx, mbedtls_md_type_t md_alg);
+
+/**
+ * \brief          Parse a single DER formatted certificate and add it
+ *                 to the end of the provided chained list.
+ *
+ * \note           If #MBEDTLS_USE_PSA_CRYPTO is enabled, the PSA crypto
+ *                 subsystem must have been initialized by calling
+ *                 psa_crypto_init() before calling this function.
+ *
+ * \param chain    The pointer to the start of the CRT chain to attach to.
+ *                 When parsing the first CRT in a chain, this should point
+ *                 to an instance of ::mbedtls_x509_crt initialized through
+ *                 mbedtls_x509_crt_init().
+ * \param buf      The buffer holding the DER encoded certificate.
+ * \param buflen   The size in Bytes of \p buf.
+ *
+ * \note           This function makes an internal copy of the CRT buffer
+ *                 \p buf. In particular, \p buf may be destroyed or reused
+ *                 after this call returns. To avoid duplicating the CRT
+ *                 buffer (at the cost of stricter lifetime constraints),
+ *                 use mbedtls_x509_crt_parse_der_nocopy() instead.
+ *
+ * \return         \c 0 if successful.
+ * \return         A negative error code on failure.
+ */
+int mbedtls_x509_crt_parse_der(mbedtls_x509_crt *chain,
+                               const unsigned char *buf,
+                               size_t buflen);
+
+/**
+ * \brief          Initialize a certificate (chain)
+ *
+ * \param crt      Certificate chain to initialize
+ */
+void mbedtls_x509_crt_init(mbedtls_x509_crt *crt);
+
+/**
+ * \brief          Unallocate all certificate data
+ *
+ * \param crt      Certificate chain to free
+ */
+void mbedtls_x509_crt_free(mbedtls_x509_crt *crt);
+
 //x509.h
 int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *name);
 
@@ -249,6 +482,31 @@ int mbedtls_x509_write_names(unsigned char **p, unsigned char *start,
 
 int mbedtls_x509_write_names(unsigned char **p, unsigned char *start,
                              mbedtls_asn1_named_data *first);
+
+int mbedtls_x509_write_sig(unsigned char **p, unsigned char *start,
+                           const char *oid, size_t oid_len,
+                           unsigned char *sig, size_t size);
+
+int mbedtls_x509_get_serial(unsigned char **p, const unsigned char *end,
+                            mbedtls_x509_buf *serial);
+
+int mbedtls_x509_get_alg(unsigned char **p, const unsigned char *end,
+                         mbedtls_x509_buf *alg, mbedtls_x509_buf *params);
+
+int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
+                          mbedtls_x509_name *cur);
+
+int mbedtls_x509_get_time(unsigned char **p, const unsigned char *end,
+                          mbedtls_x509_time *t);
+
+int mbedtls_x509_get_sig(unsigned char **p, const unsigned char *end, mbedtls_x509_buf *sig);
+
+int mbedtls_x509_write_extensions(unsigned char **p, unsigned char *start,
+                                  mbedtls_asn1_named_data *first);
+
+int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len,
+                               int critical, const unsigned char *val,
+                               size_t val_len);
 
 //pk.h
 /** \ingroup pk_module */
@@ -424,6 +682,32 @@ int mbedtls_pk_sign_restartable(mbedtls_pk_context *ctx,
                                 int (*f_rng)(void *, unsigned char *, size_t), void *p_rng,
                                 mbedtls_pk_restart_ctx *rs_ctx);
                                 
+/**
+ * \brief           Free the components of a #mbedtls_pk_context.
+ *
+ * \param ctx       The context to clear. It must have been initialized.
+ *                  If this is \c NULL, this function does nothing.
+ *
+ * \note            For contexts that have been set up with
+ *                  mbedtls_pk_setup_opaque(), this does not free the underlying
+ *                  PSA key and you still need to call psa_destroy_key()
+ *                  independently if you want to destroy that key.
+ */
+void mbedtls_pk_free(mbedtls_pk_context *ctx);
+
+/**
+ * \brief           Parse a SubjectPublicKeyInfo DER structure
+ *
+ * \param p         the position in the ASN.1 data
+ * \param end       end of the buffer
+ * \param pk        The PK context to fill. It must have been initialized
+ *                  but not set up.
+ *
+ * \return          0 if successful, or a specific PK error code
+ */
+int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
+                               mbedtls_pk_context *pk);
+
 //custom new_impl
 size_t ed25519_get_bitlen(const void *ctx);
 int ed25519_can_do(mbedtls_pk_type_t type);
@@ -447,6 +731,7 @@ int ed25519_verify_wrap(void *ctx, mbedtls_md_type_t md_alg, const unsigned char
 void mbedtls_ed25519_free(mbedtls_ed25519_context *ctx);
 void mbedtls_ed25519_init(mbedtls_ed25519_context *ctx);
 int pk_write_ed25519_pubkey(unsigned char **p, unsigned char *start, mbedtls_ed25519_context ed25519);  
+int pk_set_ed25519privkey(unsigned char **p, mbedtls_ed25519_context *ed25519);
 
 //x509_create.c
 const x509_attr_descriptor_t *x509_attr_descr_from_name(const char *name, size_t name_len);
@@ -465,9 +750,76 @@ const x509_attr_descriptor_t *x509_attr_descr_from_name(const char *name, size_t
  */
 int x509_write_name(unsigned char **p, unsigned char *start, mbedtls_asn1_named_data *cur_name);
 
+int x509_write_extension(unsigned char **p, unsigned char *start,
+                                mbedtls_asn1_named_data *ext);
+
 //x509write_crt.c
 int x509_write_time(unsigned char **p, unsigned char *start,
                            const char *t, size_t size);
+
+//x509_crt.c
+/*
+ * Parse one X.509 certificate in DER format from a buffer and add them to a
+ * chained list
+ */
+int mbedtls_x509_crt_parse_der_internal(mbedtls_x509_crt *chain,
+                                               const unsigned char *buf,
+                                               size_t buflen,
+                                               int make_copy,
+                                               mbedtls_x509_crt_ext_cb_t cb,
+                                               void *p_ctx);
+
+/*
+ * Parse and fill a single X.509 certificate in DER format
+ */
+int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
+                                   const unsigned char *buf,
+                                   size_t buflen,
+                                   int make_copy,
+                                   mbedtls_x509_crt_ext_cb_t cb,
+                                   void *p_ctx);
+
+/*
+ *  Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
+ */
+int x509_get_version(unsigned char **p,
+                            const unsigned char *end,
+                            int *ver);
+
+/*
+ *  Validity ::= SEQUENCE {
+ *       notBefore      Time,
+ *       notAfter       Time }
+ */
+int x509_get_dates(unsigned char **p,
+                          const unsigned char *end,
+                          mbedtls_x509_time *from,
+                          mbedtls_x509_time *to);
+
+//x509.c
+/*
+ *  AttributeTypeAndValue ::= SEQUENCE {
+ *    type     AttributeType,
+ *    value    AttributeValue }
+ *
+ *  AttributeType ::= OBJECT IDENTIFIER
+ *
+ *  AttributeValue ::= ANY DEFINED BY AttributeType
+ */
+int x509_get_attr_type_value(unsigned char **p,
+                                    const unsigned char *end,
+                                    mbedtls_x509_name *cur);
+
+/*
+ * Parse an ASN1_UTC_TIME (yearlen=2) or ASN1_GENERALIZED_TIME (yearlen=4)
+ * field.
+ */
+int x509_parse_time(unsigned char **p, size_t len, size_t yearlen,
+                           mbedtls_x509_time *tm);
+
+int x509_parse_int(unsigned char **p, size_t n, int *res);
+
+int x509_date_is_valid(const mbedtls_x509_time *t);
 
 //ans1write.c
 /* This is a copy of the ASN.1 parsing function mbedtls_asn1_find_named_data(),
@@ -475,5 +827,10 @@ int x509_write_time(unsigned char **p, unsigned char *start,
 mbedtls_asn1_named_data *asn1_find_named_data(mbedtls_asn1_named_data *list, const char *oid, size_t len);
 
 static int asn1_write_tagged_int(unsigned char **p, const unsigned char *start, int val, int tag);
+
+//asn1parse.c
+int asn1_get_tagged_int(unsigned char **p,
+                               const unsigned char *end,
+                               int tag, int *val);
 
 #endif
