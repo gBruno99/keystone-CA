@@ -773,14 +773,6 @@ void mbedtls_ed25519_init(mbedtls_ed25519_context *ctx);
 int pk_write_ed25519_pubkey(unsigned char **p, unsigned char *start, mbedtls_ed25519_context ed25519);  
 int pk_set_ed25519privkey(unsigned char **p, mbedtls_ed25519_context *ed25519);
 
-unsigned int my_strlen(const char *s);
-int my_strncmp( const char * s1, const char * s2, size_t n );
-char* my_strncpy(char* destination, const char* source, size_t num);
-void * my_memmove(void* dest, const void* src, unsigned int n);
-int my_memcmp (const void *str1, const void *str2, size_t count);
-void* my_memset(void* dest, int byte, size_t len);
-void* my_memcpy(void* dest, const void* src, size_t len);
-
 void mbedtls_asn1_free_named_data_list_mod(int *ne); //asn1.h
 int mbedtls_asn1_get_alg_mod(unsigned char **p,
                          const unsigned char *end,
