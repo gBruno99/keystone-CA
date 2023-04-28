@@ -816,6 +816,20 @@ void mbedtls_ed25519_init(mbedtls_ed25519_context *ctx);
 int pk_write_ed25519_pubkey(unsigned char **p, unsigned char *start, mbedtls_ed25519_context ed25519);  
 int pk_set_ed25519privkey(unsigned char **p, mbedtls_ed25519_context *ed25519);
 
+const mbedtls_pk_info_t mbedtls_ed25519_info = {
+    MBEDTLS_PK_ED25519,
+    "ED25519",
+    ed25519_get_bitlen,
+    ed25519_can_do,
+    ed25519_verify_wrap,
+    ed25519_sign_wrap,
+    ed25519_decrypt_wrap,
+    ed25519_encrypt_wrap,
+    ed25519_check_pair_wrap,
+    // ed25519_alloc_wrap,
+    ed25519_free_wrap,
+};
+
 void mbedtls_asn1_free_named_data_list_mod(int *ne); //asn1.h
 int mbedtls_asn1_get_alg_mod(unsigned char **p,
                          const unsigned char *end,

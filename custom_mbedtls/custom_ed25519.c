@@ -182,20 +182,6 @@ int ed25519_verify_wrap(void *ctx, mbedtls_md_type_t md_alg,
     // return 0;
 }
 
-const mbedtls_pk_info_t mbedtls_ed25519_info = {
-    MBEDTLS_PK_ED25519,
-    "ED25519",
-    ed25519_get_bitlen,
-    ed25519_can_do,
-    ed25519_verify_wrap,
-    ed25519_sign_wrap,
-    ed25519_decrypt_wrap,
-    ed25519_encrypt_wrap,
-    ed25519_check_pair_wrap,
-    // ed25519_alloc_wrap,
-    ed25519_free_wrap,
-};
-
 int pk_set_ed25519pubkey(unsigned char **p, mbedtls_ed25519_context *ed25519)
 {
 
