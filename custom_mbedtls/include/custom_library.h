@@ -191,7 +191,7 @@ struct mbedtls_pk_info_t {
                            void *p_rng);
 
     /** Allocate a new context */
-    void * (*ctx_alloc_func)(void);
+    //void * (*ctx_alloc_func)(void);
 
     /** Free the given context */
     void (*ctx_free_func)(void *ctx);

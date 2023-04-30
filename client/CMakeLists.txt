@@ -11,18 +11,26 @@ else()
   set(eyrie_plugins "freemem")
 endif()
 
+set(custom_mbedtls_files ../custom_mbedtls/custom_asn1.c ../custom_mbedtls/custom_ed25519.c ../custom_mbedtls/custom_mod.c 
+../custom_mbedtls/custom_pk.c ../custom_mbedtls/custom_string.c ../custom_mbedtls/custom_utils.c ../custom_mbedtls/custom_x509.c )
+set(custom_mbedtls_include dir ../custom_mbedtls/include/)
+set(sha3_dir ../custom_mbedtls/sha3/)
+set(ed25519_files ../custom_mbedtls/ed25519/ed25519.h ../custom_mbedtls/ed25519/fe.h ../custom_mbedtls/ed25519/fe.c ../custom_mbedtls/ed25519/fixedint.h
+../custom_mbedtls/ed25519/ge.h ../custom_mbedtls/ed25519/ge.c ../custom_mbedtls/ed25519/keypair.c ../custom_mbedtls/ed25519/precomp_data.h
+../custom_mbedtls/ed25519/sc.h ../custom_mbedtls/ed25519/sc.c ../custom_mbedtls/ed25519/sign.c ../custom_mbedtls/ed25519/verify.c)
+
 # eapp
 
-add_executable(${eapp_bin} ${eapp_src} printf.h printf.c)
+add_executable(${eapp_bin} ${eapp_src} ${custom_mbedtls_files} printf.h printf.c 
+${sha3_dir}/sha3.h ${sha3_dir}/sha3.c ${ed25519_files})
 target_link_libraries(${eapp_bin} "-nostdlib -static -T ${CMAKE_CURRENT_SOURCE_DIR}/app.lds" 
-${MBEDTLS_LIB_CRYPTO_EAPP} ${MBEDTLS_LIB_TLS_EAPP} ${MBEDTLS_LIB_X509_EAPP}
 ${KEYSTONE_LIB_EAPP} ${KEYSTONE_LIB_EDGE}) 
 # -nostdlib
 
 target_include_directories(${eapp_bin}
   PUBLIC ${KEYSTONE_SDK_DIR}/include/app
   PUBLIC ${KEYSTONE_SDK_DIR}/include/edge
-  PRIVATE ${MBEDTLS_DIR_EAPP}/include
+  PRIVATE ${custom_mbedtls_include_dir}
   PRIVATE .)
 
 # host

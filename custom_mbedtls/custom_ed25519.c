@@ -1,5 +1,6 @@
-#include "custom_functions.h"
-#include "custom_string.h"
+#include "include/custom_functions.h"
+#include "include/custom_string.h"
+#include "ed25519/ed25519.h"
 
 /*
 static inline mbedtls_ed25519_context *mbedtls_pk_ed25519(const mbedtls_pk_context pk)
@@ -124,12 +125,10 @@ int mbedtls_ed25519_write_signature_restartable(mbedtls_ed25519_context *ctx,
                                     0x0, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9,
                                     0x0, 0x1, 0x2, 0x3
                                 };
-                                /*
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_raw_buffer(&p, buf,
                                                             (const unsigned char *) sign_no_tag, sizeof(sign_no_tag)));
     //MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(&p, buf, len));
     //MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(&p, buf, MBEDTLS_ASN1_BIT_STRING));
-    /*
     if (len > sig_size) {
         return MBEDTLS_ERR_ECP_BUFFER_TOO_SMALL;
     }
@@ -231,8 +230,8 @@ void mbedtls_ed25519_free(mbedtls_ed25519_context *ctx)
 int mbedtls_ed25519_check_pub_priv(unsigned char *priv, unsigned char *pub, unsigned char *seed)
 {
 
-    unsigned char result[32];
-    // ed25519_create keypair(seed, priv, result);
+    unsigned char result[32] = {0};
+    //ed25519_create_keypair(seed, priv, result);
     for (int i = 0; i < 32; i++)
     {
         if (result[i] != pub[i])
