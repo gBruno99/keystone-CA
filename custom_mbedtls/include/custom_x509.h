@@ -4,7 +4,7 @@
 #include "custom_oid.h"
 #include "custom_library.h"
 
-//x509.h
+// x509.h
 #define MBEDTLS_X509_MAX_DN_NAME_SIZE         256 /**< Maximum value size of a DN entry */
 
 /*
@@ -102,7 +102,7 @@ typedef struct mbedtls_x509_time {
 }
 mbedtls_x509_time;
 
-//x509_crt.h
+// x509_crt.h
 #define MBEDTLS_X509_CRT_VERSION_1              0
 #define MBEDTLS_X509_CRT_VERSION_2              1
 #define MBEDTLS_X509_CRT_VERSION_3              2
@@ -157,13 +157,14 @@ typedef struct mbedtls_x509_crt {
     mbedtls_x509_buf issuer_raw;        /**< The raw issuer data (DER). Used for quick comparison. */
     mbedtls_x509_buf subject_raw;       /**< The raw subject data (DER). Used for quick comparison. */
 
-    //new_impl
+    // new_impl
     //mbedtls_x509_name issuer;           /**< The parsed issuer data (named information object). */
     //mbedtls_x509_name subject;          /**< The parsed subject data (named information object). */
     mbedtls_asn1_named_data issuer_arr[10];
     mbedtls_asn1_named_data subject_arr[10];
     int ne_issue_arr;
     int ne_subje_arr;
+    // --------------
 
     mbedtls_x509_time valid_from;       /**< Start time of certificate validity. */
     mbedtls_x509_time valid_to;         /**< End time of certificate validity. */

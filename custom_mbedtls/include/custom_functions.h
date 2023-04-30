@@ -2,7 +2,7 @@
 #define CUSTOM_MBEDTLS_FUNCTIONS_H
 #include "custom_x509.h"
 
-//asn1.h
+// asn1.h
 /**
  * \brief       Get the tag and length of the element.
  *              Check for the requested tag.
@@ -183,7 +183,7 @@ int mbedtls_asn1_get_bool(unsigned char **p,
  */
 //void mbedtls_asn1_free_named_data_list(mbedtls_asn1_named_data **head);
 
-//asn1write.h
+// asn1write.h
 /**
  * \brief           Create or find a specific named_data entry for writing in a
  *                  sequence or list based on the OID. If not already in there,
@@ -360,7 +360,7 @@ int mbedtls_asn1_write_int(unsigned char **p, const unsigned char *start, int va
 int mbedtls_asn1_write_bool(unsigned char **p, const unsigned char *start,
                             int boolean);
 
-//oid.h
+// oid.h
 /**
  * \brief          Translate md_type and pk_type into SignatureAlgorithm OID
  *
@@ -374,7 +374,7 @@ int mbedtls_asn1_write_bool(unsigned char **p, const unsigned char *start,
 int mbedtls_oid_get_oid_by_sig_alg(mbedtls_pk_type_t pk_alg, mbedtls_md_type_t md_alg,
                                    const char **oid, size_t *olen);
 
-//x509_crt.h
+// x509_crt.h
 /**
  * \brief           Initialize a CRT writing context
  *
@@ -551,7 +551,7 @@ int mbedtls_x509write_crt_set_extension(mbedtls_x509write_cert *ctx,
 /*int mbedtls_x509write_crt_set_issuer_name(mbedtls_x509write_cert *ctx,
                                           const char *issuer_name);*/
 
-//x509.h
+// x509.h
 int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *name);
 
 int mbedtls_x509_write_names(unsigned char **p, unsigned char *start,
@@ -592,7 +592,7 @@ int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *end,
                              mbedtls_md_type_t *md_alg, mbedtls_pk_type_t *pk_alg,
                              void **sig_opts);*/
 
-//pk.h
+// pk.h
 /** \ingroup pk_module */
 /**
  * \brief           Parse a public key in PEM or DER format
@@ -791,10 +791,10 @@ void mbedtls_pk_free(mbedtls_pk_context *ctx);
 int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
                                mbedtls_pk_context *pk);
 
-//custom new_impl
+// custom new_impl
 size_t ed25519_get_bitlen(const void *ctx);
 int ed25519_can_do(mbedtls_pk_type_t type);
-void/* mbedtls_ed25519_context*/ ed25519_alloc_wrap(void);
+void */* mbedtls_ed25519_context*/ ed25519_alloc_wrap(void);
 void ed25519_free_wrap(void *ctx);
 int mbedtls_ed25519_check_pub_priv(unsigned char* priv, unsigned char* pub, unsigned char* seed);
 int ed25519_check_pair_wrap(const void *pub, const void *prv, int (*f_rng)(void *, unsigned char *, size_t), void *p_rng);
@@ -826,14 +826,14 @@ const mbedtls_pk_info_t mbedtls_ed25519_info = {
     ed25519_decrypt_wrap,
     ed25519_encrypt_wrap,
     ed25519_check_pair_wrap,
-    // ed25519_alloc_wrap,
+    ed25519_alloc_wrap,
     ed25519_free_wrap,
 };
 
 void mbedtls_asn1_free_named_data_list_mod(int *ne); //asn1.h
 int mbedtls_asn1_get_alg_mod(unsigned char **p,
                              const unsigned char *end,
-                             mbedtls_asn1_buf_no_arr *alg, mbedtls_asn1_buf *params); //asn1.h
+                             mbedtls_asn1_buf *alg, mbedtls_asn1_buf *params); //asn1.h
 int mbedtls_x509write_crt_set_issuer_name_mod(mbedtls_x509write_cert *ctx, const char *issuer_name); //x509_crt.h
 int mbedtls_x509write_crt_set_subject_name_mod(mbedtls_x509write_cert *ctx, const char *subject_name); //x509_crt.h
 int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data *head, const char *name, int *ne); //x509.h
@@ -1028,7 +1028,7 @@ const oid_sig_alg_t oid_sig_alg[] = // new_impl
             MBEDTLS_PK_ECDSA,
         },
         {
-            OID_DESCRIPTOR("\x2B\x65\x70", "ed25519", "ed25519 with sha3"),
+            OID_DESCRIPTOR("\x2B\x65\x70", "ed25519-with-sha3", "ed25519 with sha3"),
             MBEDTLS_MD_SHA512,
             MBEDTLS_PK_ED25519,
         },

@@ -3,7 +3,7 @@
 #include <stddef.h>
 #include "custom_utils.h"
 
-//asn1.h
+// asn1.h
 /**
  * \name DER constants
  * These constants comply with the DER encoded ASN.1 type tags.
@@ -35,7 +35,6 @@
 #define MBEDTLS_ASN1_PRIMITIVE               0x00
 #define MBEDTLS_ASN1_CONSTRUCTED             0x20
 #define MBEDTLS_ASN1_CONTEXT_SPECIFIC        0x80
-
 /** \} name DER constants */
 
 /** Returns the size of the binary string, without the trailing \\0 */
@@ -63,7 +62,6 @@
 #define MBEDTLS_ERR_ASN1_ALLOC_FAILED                     -0x006A
 /** Buffer too small when writing ASN.1 data structure. */
 #define MBEDTLS_ERR_ASN1_BUF_TOO_SMALL                    -0x006C
-
 /** \} name ASN1 Error codes */
 
 /**
@@ -73,9 +71,10 @@ typedef struct mbedtls_asn1_buf {
     int tag;                /**< ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING. */
     size_t len;             /**< ASN1 length, in octets. */
     unsigned char *p;       /**< ASN1 data, e.g. in ASCII. */
-    unsigned char p_arr[512]; //new_impl
 }
 mbedtls_asn1_buf;
+
+typedef mbedtls_asn1_buf mbedtls_x509_buf_crt; // new_impl
 
 /**
  * Container for a sequence or list of 'named' ASN.1 data items
@@ -119,7 +118,7 @@ typedef struct mbedtls_asn1_sequence {
 }
 mbedtls_asn1_sequence;
 
-//asn1write.h
+// asn1write.h
 #define MBEDTLS_ASN1_CHK_ADD(g, f)                      \
     do                                                  \
     {                                                   \
@@ -128,7 +127,5 @@ mbedtls_asn1_sequence;
         else                                            \
         (g) += ret;                                 \
     } while (0)
-
-
 
 #endif

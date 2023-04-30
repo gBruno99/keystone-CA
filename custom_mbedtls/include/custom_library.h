@@ -4,8 +4,7 @@
 #include "custom_utils.h"
 #include "custom_oid.h"
 
-//alignment.h
-
+// alignment.h
 /** Byte Reading Macros
  *
  * Given a multi-byte integer \p x, MBEDTLS_BYTE_n retrieves the n-th
@@ -20,7 +19,7 @@
 #define MBEDTLS_BYTE_6(x) ((uint8_t) (((x) >> 48) & 0xff))
 #define MBEDTLS_BYTE_7(x) ((uint8_t) (((x) >> 56) & 0xff))
 
-//x509_create.c
+// x509_create.c
 #define ADD_STRLEN(s)     s, sizeof(s) - 1
 
 /* Structure linking OIDs for X.509 DN AttributeTypes to their
@@ -98,7 +97,7 @@ static const x509_attr_descriptor_t x509_attrs[] =
     { NULL, 0, NULL, MBEDTLS_ASN1_NULL }
 };
 
-//x509.c
+// x509.c
 #define CHECK(code) if ((ret = (code)) != 0) { return ret; }
 #define CHECK_RANGE(min, max, val)                      \
     do                                                  \
@@ -109,7 +108,7 @@ static const x509_attr_descriptor_t x509_attrs[] =
         }                                               \
     } while (0)
 
-//oid.c
+// oid.c
 /*
  * Macro to automatically add the size of #define'd OIDs
  */
@@ -147,7 +146,7 @@ typedef struct {
     mbedtls_pk_type_t           pk_alg;
 } oid_sig_alg_t;
 
-//pk_wrap.h
+// pk_wrap.h
 struct mbedtls_pk_info_t {
     /** Public key type */
     mbedtls_pk_type_t type;
@@ -191,7 +190,7 @@ struct mbedtls_pk_info_t {
                            void *p_rng);
 
     /** Allocate a new context */
-    //void * (*ctx_alloc_func)(void);
+    void * (*ctx_alloc_func)(void);
 
     /** Free the given context */
     void (*ctx_free_func)(void *ctx);
