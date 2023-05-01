@@ -2,21 +2,20 @@
 #include "include/custom_string.h"
 #include "ed25519/ed25519.h"
 
-/*
 static inline mbedtls_ed25519_context *mbedtls_pk_ed25519(const mbedtls_pk_context pk)
 {
-    switch (mbedtls_pk_get_type(&pk)) {
-        case MBEDTLS_PK_ED25519:
-            return (mbedtls_ed25519_context *) &((pk).pk_ctx);
-        default:
-            return NULL;
+    switch (mbedtls_pk_get_type(&pk))
+    {
+    case MBEDTLS_PK_ED25519:
+        return (mbedtls_ed25519_context *)&((pk).pk_ctx);
+    default:
+        return NULL;
     }
 }
-*/
 
 size_t ed25519_get_bitlen(const void *ctx)
 {
-    // const mbedtls_ed25519_context *rsa = (const mbedtls_ed25519_context *) ctx;
+    const mbedtls_ed25519_context *ed25519 = (const mbedtls_ed25519_context *)ctx;
     return 8 * 32;
 }
 
@@ -27,32 +26,32 @@ int ed25519_can_do(mbedtls_pk_type_t type)
 
 void mbedtls_ed25519_init(mbedtls_ed25519_context *ctx)
 {
-    // memset(ctx, 0, sizeof(mbedtls_ed25519_context));
-    // ctx->priv_key = mbedtls_calloc(0, 64);
-    // ctx->pub_key = mbedtls_calloc(0, 32);
-
-    // memset(ctx->priv_key, 0, 64);
-    // memset(ctx->pub_key, 0, 32);
+    my_memset(ctx, 0, sizeof(mbedtls_ed25519_context));
+    ctx->priv_key = mbedtls_calloc(1, PRIVATE_KEY_SIZE);
+    ctx->pub_key = mbedtls_calloc(1, PUBLIC_KEY_SIZE);
+    if ((ctx->priv_key == NULL) || (ctx->pub_key == NULL))
+        return;
+    my_memset(ctx->priv_key, 0, 64);
+    my_memset(ctx->pub_key, 0, 32);
 }
 
-/*
-void mbedtls_ed25519_context ed25519_alloc_wrap(void)
+void *ed25519_alloc_wrap(void)
 {
-    //void *ctx = mbedtls_calloc(1, sizeof(mbedtls_ed25519_context));
+    void *ctx = mbedtls_calloc(1, sizeof(mbedtls_ed25519_context));
     struct mbedtls_ed25519_context ctx;
-    //memset(ctx, 0, sizeof(mbedtls_ed25519_context));
-    //return ctx;
-    //if (&ctx != NULL) {
-        mbedtls_ed25519_init((mbedtls_ed25519_context *) &ctx);
-    //}
+    my_memset(ctx, 0, sizeof(mbedtls_ed25519_context));
+    // return ctx;
+    if (ctx != NULL)
+    {
+        mbedtls_ed25519_init((mbedtls_ed25519_context *)&ctx);
+    }
     return ctx;
 }
-*/
 
 void ed25519_free_wrap(void *ctx)
 {
     mbedtls_ed25519_free((mbedtls_ed25519_context *)ctx);
-    // mbedtls_free(ctx);
+    mbedtls_free(ctx);
 }
 
 int ed25519_check_pair_wrap(const void *pub, const void *prv,
@@ -223,15 +222,15 @@ void mbedtls_ed25519_free(mbedtls_ed25519_context *ctx)
     {
         return;
     }
-    // mbedtls_free(ctx->priv_key);
-    // mbedtls_free(ctx->pub_key);
+    mbedtls_free(ctx->priv_key);
+    mbedtls_free(ctx->pub_key);
 }
 
 int mbedtls_ed25519_check_pub_priv(unsigned char *priv, unsigned char *pub, unsigned char *seed)
 {
 
     unsigned char result[32] = {0};
-    //ed25519_create_keypair(seed, priv, result);
+    // ed25519_create_keypair(seed, priv, result);
     for (int i = 0; i < 32; i++)
     {
         if (result[i] != pub[i])
