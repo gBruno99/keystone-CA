@@ -15,7 +15,7 @@ const mbedtls_pk_info_t *mbedtls_pk_info_from_type(mbedtls_pk_type_t pk_type)
 
 int mbedtls_pk_setup(mbedtls_pk_context *ctx, const mbedtls_pk_info_t *info)
 {
-    /*
+   /*
     if (info == NULL || ctx->pk_info != NULL)
     {
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
@@ -71,7 +71,7 @@ int mbedtls_pk_sign_restartable(mbedtls_pk_context *ctx,
     {
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
-
+   
     /*
     if (ctx->pk_info == NULL || pk_hashlen_helper(md_alg, &hash_len) != 0)
     {
@@ -117,7 +117,7 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
     {
         return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
     }
-
+   
     // assegna semplicemente il tipo di pk_info ritornato dalla funzione precedente a quello contenuto in ctx
     //  ctx->pk_info = pk_info;
     /*
@@ -136,14 +136,14 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
 
     if (type_k == 0)
     {
-        pk_set_ed25519pubkey(&p, ctx->pk_ctx); // mbedtls_pk_ed25519(*ctx));
+        pk_set_ed25519pubkey(&p, &ctx->pk_ctx); // mbedtls_pk_ed25519(*ctx));
         /*for(int i = 0; i < 32; i++){
             ctx->pk_ctx->pub_key[i] = p[i];
         }
         ctx->pk_ctx->len = 32;*/
     }
     else
-        pk_set_ed25519privkey(&p, ctx->pk_ctx); // mbedtls_pk_ed25519(*ctx));
+        pk_set_ed25519privkey(&p, &ctx->pk_ctx); // mbedtls_pk_ed25519(*ctx));
     return 0;
 }
 
@@ -175,7 +175,7 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
     //*p = *p -32;
 
     if ((ret = mbedtls_asn1_get_bitstring_null(p, end, &len)) != 0)
-    { 
+    {
         // funzione che estrae la chiave pubblica
         return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_INVALID_PUBKEY, ret);
     }
@@ -196,7 +196,7 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
         return ret;
     }
 
-    ret = pk_set_ed25519pubkey(p, pk->pk_ctx); // mbedtls_pk_ed25519(*pk));
+    ret = pk_set_ed25519pubkey(p, &pk->pk_ctx); // mbedtls_pk_ed25519(*pk));
     // ret = pk_set_ed25519pubkey(&p, &ctx->pk_ctx );//mbedtls_pk_ed25519(*ctx));
 
     *p += 32;
@@ -302,6 +302,6 @@ int mbedtls_pk_write_pubkey(unsigned char **p, unsigned char *start,
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
-    MBEDTLS_ASN1_CHK_ADD(len, pk_write_ed25519_pubkey(p, start, *((mbedtls_ed25519_context*)(key->pk_ctx))));
+    MBEDTLS_ASN1_CHK_ADD(len, pk_write_ed25519_pubkey(p, start, key->pk_ctx));
     return (int)len;
 }

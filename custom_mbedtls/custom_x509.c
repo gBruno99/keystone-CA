@@ -353,8 +353,8 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     {
         /*
         MBEDTLS_ASN1_CHK_ADD(len,
-                             mbedtls_x509_write_extensions(&c,
-                                                          buf, ctx->extensions));
+                            mbedtls_x509_write_extensions(&c,
+                                                        buf, ctx->extensions));
         */
         MBEDTLS_ASN1_CHK_ADD(len,
                              mbedtls_x509_write_extensions_mod(&c,
@@ -389,7 +389,7 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     MBEDTLS_ASN1_CHK_ADD(len,
                          mbedtls_x509_write_names(&c, buf,
                                                   ctx->subject));
-    */
+                                    */
     MBEDTLS_ASN1_CHK_ADD(len,
                          mbedtls_x509_write_names_mod(&c, buf,
                                                       ctx->subject_arr, ctx->ne_subje_arr));
@@ -422,7 +422,7 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     /*
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_x509_write_names(&c, buf,
                                                        ctx->issuer));
-    */
+                                                       */
 
     MBEDTLS_ASN1_CHK_ADD(len,
                          mbedtls_x509_write_names_mod(&c, buf,
@@ -503,7 +503,7 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     for(int i = 0; i < len; i ++)
       test[i] = c[i];
     *l_topass = len;
-    */
+*/
     sha3_init(&hash_ctx, 64);
     sha3_update(&hash_ctx, c, len);
     sha3_final(hash, &hash_ctx);
@@ -520,7 +520,7 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     }
     */
 
-    ed25519_sign(sig, hash, 64, ctx->issuer_key->pk_ctx->pub_key, ctx->issuer_key->pk_ctx->priv_key);
+    ed25519_sign(sig, hash, 64, ctx->issuer_key->pk_ctx.pub_key, ctx->issuer_key->pk_ctx.priv_key);
     sig_len = 64;
 
     /* Move CRT to the front of the buffer to have space
@@ -1231,18 +1231,18 @@ int x509_get_crt_ext(unsigned char **p,
                 continue;
             }
         */
-
+       
         /* No parser found, skip extension */
         //*p = end_ext_octet;
 
         /*
         if (is_critical)
         {
-            // Data is marked as critical: fail
+        // Data is marked as critical: fail
             return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_EXTENSIONS,
                                      MBEDTLS_ERR_ASN1_UNEXPECTED_TAG);
         }
-            continue;
+        continue;
         }
         */
         /* Forbid repeated extensions */
@@ -1314,11 +1314,11 @@ int x509_get_crt_ext(unsigned char **p,
                                                      &crt->certificate_policies)) != 0)
             {
                 // Give the callback (if any) a chance to handle the extension
-                // if it contains unsupported policies
+                 // if it contains unsupported policies
                 if (ret == MBEDTLS_ERR_X509_FEATURE_UNAVAILABLE && cb != NULL &&
                     cb(p_ctx, crt, &extn_oid, is_critical,
                        start_ext_octet, end_ext_octet) == 0)
-                {
+                       {
                     break;
                 }
 
@@ -1327,7 +1327,7 @@ int x509_get_crt_ext(unsigned char **p,
                     return ret;
                 }
                 else
-                 //
+                //
                  // If MBEDTLS_ERR_X509_FEATURE_UNAVAILABLE is returned, then we
                  // cannot interpret or enforce the policy. However, it is up to
                  // the user to choose how to enforce the policies,
@@ -1469,7 +1469,7 @@ int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
     size_t set_len;
     const unsigned char *end_set;
     mbedtls_x509_name *head = cur;
-    
+
     // don't use recursion, we'd risk stack overflow if not optimized
     while (1) {
 
