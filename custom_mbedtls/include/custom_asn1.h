@@ -73,9 +73,10 @@ typedef struct mbedtls_asn1_buf {
     int tag;                /**< ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING. */
     size_t len;             /**< ASN1 length, in octets. */
     unsigned char *p;       /**< ASN1 data, e.g. in ASCII. */
-    unsigned char p_arr[512]; //new_impl
 }
 mbedtls_asn1_buf;
+
+typedef mbedtls_asn1_buf mbedtls_x509_buf_crt; // new_impl
 
 /**
  * Container for a sequence or list of 'named' ASN.1 data items

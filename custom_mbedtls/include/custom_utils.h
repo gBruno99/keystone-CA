@@ -1,6 +1,7 @@
 #ifndef CUSTOM_MBEDTLS_UTILS_H
 #define CUSTOM_MBEDTLS_UTILS_H
 #include <stddef.h>
+#include "app/malloc.h"
 
 //usr
 typedef unsigned char __uint8_t;
@@ -53,6 +54,10 @@ typedef __uint8_t uint8_t;
 //private_access.h
 #define MBEDTLS_PRIVATE(member) member
 
+// platform.h
+#define mbedtls_free       free
+#define mbedtls_calloc     calloc 
+
 //error.h
 /** This is a bug in the library */
 #define MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED -0x006E
@@ -99,9 +104,6 @@ static inline int mbedtls_error_add(int high, int low,
     mbedtls_error_add(high, low, __FILE__, __LINE__)
 
 //pk.h
-
-#define MBEDTLS_PK_SIGNATURE_MAX_SIZE 64 //new_impl
-
 /** Memory allocation failed. */
 #define MBEDTLS_ERR_PK_ALLOC_FAILED        -0x3F80
 /** Type mismatch, eg attempt to encrypt with an ECDSA key */
@@ -183,10 +185,15 @@ typedef struct mbedtls_pk_context {
     void *MBEDTLS_PRIVATE(pk_ctx);                        /**< Underlying public key context  */
 } mbedtls_pk_context;
 
+/**
+ * \brief           Context for resuming operations
+ */
+typedef struct {
+    const mbedtls_pk_info_t *MBEDTLS_PRIVATE(pk_info);    /**< Public key information         */
+    void *MBEDTLS_PRIVATE(rs_ctx);                        /**< Underlying restart context     */
+} mbedtls_pk_restart_ctx;
+
 //md.h
-
-#define MBEDTLS_HASH_MAX_SIZE 64 //new_impl
-
 /**
  * \brief     Supported message digests.
  *
@@ -204,6 +211,7 @@ typedef enum {
     MBEDTLS_MD_SHA384,    /**< The SHA-384 message digest. */
     MBEDTLS_MD_SHA512,    /**< The SHA-512 message digest. */
     MBEDTLS_MD_RIPEMD160, /**< The RIPEMD-160 message digest. */
+    MBEDTLS_MD_SHA3 //new_impl
 } mbedtls_md_type_t;
 
 #define MBEDTLS_MD_CAN_MD5
@@ -213,26 +221,23 @@ typedef enum {
 #define MBEDTLS_ERR_PEM_NO_HEADER_FOOTER_PRESENT          -0x1080
 
 //custom new_impl
+#define PRIVATE_KEY_SIZE  64 // includes public key
+#define PUBLIC_KEY_SIZE 32
+#define MBEDTLS_PK_SIGNATURE_MAX_SIZE 64
+#define MBEDTLS_HASH_MAX_SIZE 64
+
 typedef struct mbedtls_ed25519_context {
     int MBEDTLS_PRIVATE(ver);                    /*!<  Reserved for internal purposes.
                                                   *    Do not set this field in application
                                                   *    code. Its meaning might change without
                                                   *    notice. */
     size_t len;                 /*!<  The size of \p N in Bytes. */
-    unsigned char pub_key[32];
-    unsigned char priv_key[64];
+    unsigned char pub_key[PUBLIC_KEY_SIZE];
+    unsigned char priv_key[PRIVATE_KEY_SIZE];
 
 }
 mbedtls_ed25519_context;
 
-typedef struct mbedtls_asn1_buf_no_arr {
-    int tag;                /**< ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING. */
-    size_t len;             /**< ASN1 length, in octets. */
-    unsigned char *p;       /**< ASN1 data, e.g. in ASCII. */
-}
-mbedtls_asn1_buf_no_arr;
-
-typedef mbedtls_asn1_buf_no_arr mbedtls_x509_buf_crt;
 typedef void mbedtls_ed25519_restart_ctx;
 
 #endif

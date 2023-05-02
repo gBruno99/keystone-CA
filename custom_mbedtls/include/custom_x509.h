@@ -125,14 +125,6 @@ typedef struct mbedtls_x509write_cert {
     char MBEDTLS_PRIVATE(not_before)[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1];
     char MBEDTLS_PRIVATE(not_after)[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1];
     mbedtls_asn1_named_data *MBEDTLS_PRIVATE(extensions);
-
-    //new_impl
-    mbedtls_asn1_named_data issuer_arr[10];
-    mbedtls_asn1_named_data subject_arr[10];
-    int ne_issue_arr;
-    int ne_subje_arr;
-    mbedtls_asn1_named_data extens_arr[2];
-    int ne_ext_arr;
 }
 mbedtls_x509write_cert;
 
@@ -157,13 +149,8 @@ typedef struct mbedtls_x509_crt {
     mbedtls_x509_buf issuer_raw;        /**< The raw issuer data (DER). Used for quick comparison. */
     mbedtls_x509_buf subject_raw;       /**< The raw subject data (DER). Used for quick comparison. */
 
-    //new_impl
-    //mbedtls_x509_name issuer;           /**< The parsed issuer data (named information object). */
-    //mbedtls_x509_name subject;          /**< The parsed subject data (named information object). */
-    mbedtls_asn1_named_data issuer_arr[10];
-    mbedtls_asn1_named_data subject_arr[10];
-    int ne_issue_arr;
-    int ne_subje_arr;
+    mbedtls_x509_name issuer;           /**< The parsed issuer data (named information object). */
+    mbedtls_x509_name subject;          /**< The parsed subject data (named information object). */
 
     mbedtls_x509_time valid_from;       /**< Start time of certificate validity. */
     mbedtls_x509_time valid_to;         /**< End time of certificate validity. */
@@ -174,7 +161,8 @@ typedef struct mbedtls_x509_crt {
     mbedtls_x509_buf issuer_id;         /**< Optional X.509 v2/v3 issuer unique identifier. */
     mbedtls_x509_buf subject_id;        /**< Optional X.509 v2/v3 subject unique identifier. */
     mbedtls_x509_buf v3_ext;            /**< Optional X.509 v3 extensions.  */
-    mbedtls_x509_sequence subject_alt_names;    /**< Optional list of raw entries of Subject Alternative Names extension (currently only dNSName, uniformResourceIdentifier, DirectoryName and OtherName are listed). */
+    mbedtls_x509_buf hash;
+    mbedtls_x509_sequence subject_alt_names;    /**< Optional list of raw entries of Subject Alternative Names extension (currently only dNSName, uniformResourceIdentifier and OtherName are listed). */
 
     mbedtls_x509_sequence certificate_policies; /**< Optional list of certificate policies (Only anyPolicy is printed and enforced, however the rest of the policies are still listed). */
 

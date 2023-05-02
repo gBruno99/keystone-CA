@@ -1,62 +1,62 @@
-#include "custom_string.h"
+#include "include/custom_string.h"
 
-unsigned int my_strlen(const char *s)
+size_t my_strlen(const char *str)
 {
     unsigned int count = 0;
-    while(*s!='\0')
+    while(*str!='\0')
     {
         count++;
-        s++;
+        str++;
     }
     return count;
 }
 
-int my_strncmp( const char * s1, const char * s2, size_t n )
+int my_strncmp(const char *string1, const char *string2, size_t count)
 {
-    while ( n && *s1 && ( *s1 == *s2 ) )
+    while ( count && *string1 && ( *string1 == *string2 ) )
     {
-        ++s1;
-        ++s2;
-        --n;
+        ++string1;
+        ++string2;
+        --count;
     }
-    if ( n == 0 )
+    if ( count == 0 )
     {
         return 0;
     }
     else
     {
-        return ( *(unsigned char *)s1 - *(unsigned char *)s2 );
+        return ( *(unsigned char *)string1 - *(unsigned char *)string2 );
     }
 }
 
 // Function to implement `my_strncpy()` function
-char* my_strncpy(char* destination, const char* source, size_t num)
+char *my_strncpy(char *strDest, const char *strSource, size_t count)
 {
     // return if no memory is allocated to the destination
-    if (destination == NULL) {
+    if (strDest == NULL) {
         return NULL;
     }
  
     // take a pointer pointing to the beginning of the destination string
-    char* ptr = destination;
+    char* ptr = strDest;
  
     // copy first `num` characters of C-string pointed by source
     // into the array pointed by destination
-    while (*source && num--)
+    while (*strSource && count--)
     {
-        *destination = *source;
-        destination++;
-        source++;
+        *strDest = *strSource;
+        strDest++;
+        strSource++;
     }
  
     // null terminate destination string
-    *destination = '\0';
+    *strDest = '\0';
  
     // the destination is returned by standard `my_strncpy()`
     return ptr;
 }
 
-void * my_memmove(void* dest, const void* src, unsigned int n)
+void *my_memmove(void *dest, const void *src, size_t count)
 {
     char *pDest = (char *)dest;
     const char *pSrc =( const char*)src;
@@ -72,7 +72,7 @@ void * my_memmove(void* dest, const void* src, unsigned int n)
       */
     unsigned int i = 0;
     // copy src to tmp array
-    for(i =0; i < n ; ++i)
+    for(i =0; i < count ; ++i)
     {
         *(pDest + i) = *(pSrc + i);
     }
@@ -89,10 +89,10 @@ void * my_memmove(void* dest, const void* src, unsigned int n)
 }
 
 int
-my_memcmp (const void *str1, const void *str2, size_t count)
+my_memcmp(const void *buffer1, const void *buffer2, size_t count)
 {
-    const unsigned char *s1 = (const unsigned char*)str1;
-    const unsigned char *s2 = (const unsigned char*)str2;
+    const unsigned char *s1 = (const unsigned char*)buffer1;
+    const unsigned char *s2 = (const unsigned char*)buffer2;
 
   while (count-- > 0)
     {
@@ -102,40 +102,40 @@ my_memcmp (const void *str1, const void *str2, size_t count)
   return 0;
 }
 
-void* my_memcpy(void* dest, const void* src, size_t len)
+void *my_memcpy(void *dest, const void *src, size_t count)
 {
   const char* s = src;
   char *d = dest;
 
   if ((((uintptr_t)dest | (uintptr_t)src) & (sizeof(uintptr_t)-1)) == 0) {
-    while ((void*)d < (dest + len - (sizeof(uintptr_t)-1))) {
+    while ((void*)d < (dest + count - (sizeof(uintptr_t)-1))) {
       *(uintptr_t*)d = *(const uintptr_t*)s;
       d += sizeof(uintptr_t);
       s += sizeof(uintptr_t);
     }
   }
 
-  while (d < (char*)(dest + len))
+  while (d < (char*)(dest + count))
     *d++ = *s++;
 
   return dest;
 }
 
-void* my_memset(void* dest, int byte, size_t len)
+void *my_memset(void *dest, int c, size_t count)
 {
-  if ((((uintptr_t)dest | len) & (sizeof(uintptr_t)-1)) == 0) {
-    uintptr_t word = byte & 0xFF;
+  if ((((uintptr_t)dest | count) & (sizeof(uintptr_t)-1)) == 0) {
+    uintptr_t word = c & 0xFF;
     word |= word << 8;
     word |= word << 16;
     word |= word << 16 << 16;
 
     uintptr_t *d = dest;
-    while (d < (uintptr_t*)(dest + len))
+    while (d < (uintptr_t*)(dest + count))
       *d++ = word;
   } else {
     char *d = dest;
-    while (d < (char*)(dest + len))
-      *d++ = byte;
+    while (d < (char*)(dest + count))
+      *d++ = c;
   }
   return dest;
 }
