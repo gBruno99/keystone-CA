@@ -7,9 +7,9 @@
 #include "edge/edge_call.h"
 #include "app/syscall.h"
 
-#include "mbedtls/build_info.h"
-#include "mbedtls/platform.h"
-#include "mbedtls/md5.h"
+// #include "mbedtls/build_info.h"
+// #include "mbedtls/platform.h"
+// #include "mbedtls/md5.h"
 
 #include "app/malloc.h"
 
@@ -29,6 +29,7 @@ typedef struct test_s {
 } test;
 
 int main(){
+  /*
   my_printf("Setting exit...\n");
   mbedtls_platform_set_exit(my_exit);
   my_printf("Setting printf...\n");
@@ -54,8 +55,8 @@ int main(){
   }
 
   mbedtls_printf("\n\n");
-
-  /*
+  */
+  
   int i = 10, len;
   ocall_print_string("Hello World");
   len = my_printf("test print in print.h: %d\n", i);
@@ -88,7 +89,6 @@ int main(){
 
   gen_LDevID_kp();
   cert_LDevID_kp();
-  */
 
   EAPP_RETURN(0);
 }
