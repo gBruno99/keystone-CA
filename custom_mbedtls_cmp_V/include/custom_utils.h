@@ -6,7 +6,7 @@
 //usr
 typedef unsigned char __uint8_t;
 typedef __uint8_t uint8_t;
-#define INT_MAX         2147483647
+#define INT_MAX         2147483647 
 
 //mbedtls_config.h
 /**
@@ -55,8 +55,8 @@ typedef __uint8_t uint8_t;
 #define MBEDTLS_PRIVATE(member) member
 
 // platform.h
-#define mbedtls_free       free
-#define mbedtls_calloc     calloc 
+//#define mbedtls_free       free
+//#define mbedtls_calloc     calloc
 
 //error.h
 /** This is a bug in the library */
@@ -83,11 +83,13 @@ typedef __uint8_t uint8_t;
 static inline int mbedtls_error_add(int high, int low,
                                     const char *file, int line)
 {
+/*
 #if defined(MBEDTLS_TEST_HOOKS)
     if (*mbedtls_test_hook_error_add != NULL) {
         (*mbedtls_test_hook_error_add)(high, low, file, line);
     }
 #endif
+*/
     (void) file;
     (void) line;
 
@@ -147,7 +149,7 @@ typedef enum {
     MBEDTLS_PK_RSA_ALT,
     MBEDTLS_PK_RSASSA_PSS,
     MBEDTLS_PK_OPAQUE,
-    MBEDTLS_PK_ED25519 //new_impl
+    MBEDTLS_PK_ED25519
 } mbedtls_pk_type_t;
 
 /**
@@ -181,8 +183,8 @@ typedef struct mbedtls_pk_info_t mbedtls_pk_info_t;
  * \brief           Public key container
  */
 typedef struct mbedtls_pk_context {
-    const mbedtls_pk_info_t *MBEDTLS_PRIVATE(pk_info);    /**< Public key information         */
-    void *MBEDTLS_PRIVATE(pk_ctx);                        /**< Underlying public key context  */
+    const mbedtls_pk_info_t *pk_info;    /**< Public key information         */
+    /*void **/mbedtls_ed25519_context pk_ctx;                        /**< Underlying public key context  */
 } mbedtls_pk_context;
 
 /**
@@ -211,7 +213,6 @@ typedef enum {
     MBEDTLS_MD_SHA384,    /**< The SHA-384 message digest. */
     MBEDTLS_MD_SHA512,    /**< The SHA-512 message digest. */
     MBEDTLS_MD_RIPEMD160, /**< The RIPEMD-160 message digest. */
-    MBEDTLS_MD_SHA3 //new_impl
 } mbedtls_md_type_t;
 
 #define MBEDTLS_MD_CAN_MD5
@@ -232,8 +233,8 @@ typedef struct mbedtls_ed25519_context {
                                                   *    code. Its meaning might change without
                                                   *    notice. */
     size_t len;                 /*!<  The size of \p N in Bytes. */
-    unsigned char pub_key[PUBLIC_KEY_SIZE];
-    unsigned char priv_key[PRIVATE_KEY_SIZE];
+    unsigned char pub_key[32];
+    unsigned char priv_key[64];
 
 }
 mbedtls_ed25519_context;

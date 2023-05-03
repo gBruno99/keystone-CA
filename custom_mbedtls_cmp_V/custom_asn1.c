@@ -2,6 +2,7 @@
 #include "include/custom_string.h"
 
 // asn1parse.c
+/*
 void mbedtls_asn1_free_named_data_list(mbedtls_asn1_named_data **head)
 {
     mbedtls_asn1_named_data *cur;
@@ -14,6 +15,7 @@ void mbedtls_asn1_free_named_data_list(mbedtls_asn1_named_data **head)
         mbedtls_free(cur);
     }
 }
+*/
 
 int mbedtls_asn1_get_tag(unsigned char **p,
                          const unsigned char *end,
@@ -106,15 +108,18 @@ int mbedtls_asn1_get_len(unsigned char **p,
     return 0;
 }
 
+/*
 void mbedtls_asn1_free_named_data_list_shallow(mbedtls_asn1_named_data *name)
 {
     for (mbedtls_asn1_named_data *next; name != NULL; name = next)
     {
         next = name->next;
-        mbedtls_free(name);
+        //mbedtls_free(name);
     }
 }
+*/
 
+/*
 void mbedtls_asn1_sequence_free(mbedtls_asn1_sequence *seq)
 {
     while (seq != NULL)
@@ -124,6 +129,7 @@ void mbedtls_asn1_sequence_free(mbedtls_asn1_sequence *seq)
         seq = next;
     }
 }
+*/
 
 int mbedtls_asn1_get_alg(unsigned char **p,
                          const unsigned char *end,
@@ -157,7 +163,6 @@ int mbedtls_asn1_get_alg(unsigned char **p,
     if (*p == end)
     {
         // mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
-        my_memset(params, 0, sizeof(mbedtls_asn1_buf));
         return 0;
     }
 
@@ -290,6 +295,7 @@ int mbedtls_asn1_get_bool(unsigned char **p,
 }
 
 // asn1write.c
+/*
 mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
     mbedtls_asn1_named_data **head,
     const char *oid, size_t oid_len,
@@ -302,9 +308,9 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
         // Add new entry if not present yet based on OID
         //
         cur = (mbedtls_asn1_named_data *)mbedtls_calloc(1,
-                                                        sizeof(mbedtls_asn1_named_data));
-        // struct mbedtls_asn1_named_data to_be_poit; //new_impl
-        // cur = &to_be_poit; //new_impl
+                                    sizeof(mbedtls_asn1_named_data));
+        // struct mbedtls_asn1_named_data to_be_poit;
+        // cur = &to_be_poit;
         if (cur == NULL)
         {
             return NULL;
@@ -318,7 +324,7 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
             return NULL;
         }
 
-        my_memcpy(cur->oid.p, oid, oid_len);
+        memcpy(cur->oid.p, oid, oid_len);
 
         cur->val.len = val_len;
         if (val_len != 0)
@@ -338,7 +344,7 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
     else if (val_len == 0)
     {
         mbedtls_free(cur->val.p);
-        cur->val.p = NULL;
+        // cur->val.p = NULL;
     }
     else if (cur->val.len != val_len)
     {
@@ -346,23 +352,23 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
         //* Enlarge existing value buffer if needed
         //* Preserve old data until the allocation succeeded, to leave list in
         //* a consistent state in case allocation fails.
-        void *p = mbedtls_calloc(1, val_len);
-        if (p == NULL)
-        {
-            return NULL;
-        }
-        
-        mbedtls_free(cur->val.p);
-        cur->val.p = p;
-        cur->val.len = val_len;
+        // void *p = mbedtls_calloc(1, val_len);
+        // if (p == NULL)
+        // {
+        //   return NULL;
+        // }
+        // mbedtls_free(cur->val.p);
+        // cur->val.p = p;
+        // cur->val.len = val_len;
     }
     if (val != NULL && val_len != 0)
     {
-        my_memcpy(cur->val.p, val, val_len);
+        memcpy(cur->val.p, val, val_len);
     }
 
     return cur;
 }
+*/
 
 mbedtls_asn1_named_data *asn1_find_named_data(
     mbedtls_asn1_named_data *list,
@@ -435,9 +441,11 @@ int mbedtls_asn1_write_len(unsigned char **p, const unsigned char *start, size_t
     }
 
     int len_is_valid = 1;
-#if SIZE_MAX > 0xFFFFFFFF
-    len_is_valid = (len <= 0xFFFFFFFF);
-#endif
+    /*
+    #if SIZE_MAX > 0xFFFFFFFF
+        len_is_valid = (len <= 0xFFFFFFFF);
+    #endif
+    */
     if (len_is_valid)
     {
         if (*p - start < 5)

@@ -2,7 +2,7 @@
 #include "include/custom_string.h"
 
 // asn1parse.c
-void mbedtls_asn1_free_named_data_list_mod(mbedtls_asn1_named_data **head)
+void mbedtls_asn1_free_named_data_list(mbedtls_asn1_named_data **head)
 {
     mbedtls_asn1_named_data *cur;
 
@@ -15,7 +15,7 @@ void mbedtls_asn1_free_named_data_list_mod(mbedtls_asn1_named_data **head)
     }
 }
 
-int mbedtls_asn1_get_alg_mod(unsigned char **p,
+int mbedtls_asn1_get_alg(unsigned char **p,
                          const unsigned char *end,
                          mbedtls_asn1_buf *alg, mbedtls_asn1_buf *params)
 {
@@ -46,8 +46,7 @@ int mbedtls_asn1_get_alg_mod(unsigned char **p,
 
     if (*p == end)
     {
-        // mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
-        my_memset(params, 0, sizeof(mbedtls_asn1_buf));
+        mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
         return 0;
     }
 
@@ -71,7 +70,7 @@ int mbedtls_asn1_get_alg_mod(unsigned char **p,
 }
 
 // asn1write.c
-mbedtls_asn1_named_data *mbedtls_asn1_store_named_data_mod(
+mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
     mbedtls_asn1_named_data **head,
     const char *oid, size_t oid_len,
     const unsigned char *val,
@@ -98,7 +97,7 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data_mod(
             return NULL;
         }
 
-        my_memcpy(cur->oid.p, oid, oid_len);
+        memcpy(cur->oid.p, oid, oid_len);
 
         cur->val.len = val_len;
         if (val_len != 0)
@@ -140,20 +139,20 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data_mod(
 
     if (val != NULL && val_len != 0)
     {
-        my_memcpy(cur->val.p, val, val_len);
+        memcpy(cur->val.p, val, val_len);
     }
 
     return cur;
 }
 
-mbedtls_asn1_named_data *asn1_find_named_data_mod(
+mbedtls_asn1_named_data *asn1_find_named_data(
     mbedtls_asn1_named_data *list,
     const char *oid, size_t len)
 {
     while (list != NULL)
     {
         if (list->oid.len == len &&
-            my_memcmp(list->oid.p, oid, len) == 0)
+            memcmp(list->oid.p, oid, len) == 0)
         {
             break;
         }
@@ -165,7 +164,7 @@ mbedtls_asn1_named_data *asn1_find_named_data_mod(
 }
 
 // x509.c
-int mbedtls_x509_get_alg_mod(unsigned char **p, const unsigned char *end,
+int mbedtls_x509_get_alg(unsigned char **p, const unsigned char *end,
                          mbedtls_x509_buf *alg, mbedtls_x509_buf *params)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
@@ -178,24 +177,60 @@ int mbedtls_x509_get_alg_mod(unsigned char **p, const unsigned char *end,
     return 0;
 }
 
-int mbedtls_x509_get_sig_alg_mod(const mbedtls_x509_buf *sig_oid, const mbedtls_x509_buf *sig_params,
+int mbedtls_x509_get_sig_alg(const mbedtls_x509_buf *sig_oid, const mbedtls_x509_buf *sig_params,
                              mbedtls_md_type_t *md_alg, mbedtls_pk_type_t *pk_alg,
                              void **sig_opts)
 {
-    // int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
     if (*sig_opts != NULL)
     {
         return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
     }
 
-    *pk_alg = MBEDTLS_PK_ED25519;
-    *md_alg = MBEDTLS_MD_SHA384;
+    if ((ret = mbedtls_oid_get_sig_alg(sig_oid, md_alg, pk_alg)) != 0)
+    {
+        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_UNKNOWN_SIG_ALG, ret);
+    }
+
+#if defined(MBEDTLS_X509_RSASSA_PSS_SUPPORT)
+    if (*pk_alg == MBEDTLS_PK_RSASSA_PSS)
+    {
+        mbedtls_pk_rsassa_pss_options *pss_opts;
+
+        pss_opts = mbedtls_calloc(1, sizeof(mbedtls_pk_rsassa_pss_options));
+        if (pss_opts == NULL)
+        {
+            return MBEDTLS_ERR_X509_ALLOC_FAILED;
+        }
+
+        ret = mbedtls_x509_get_rsassa_pss_params(sig_params,
+                                                 md_alg,
+                                                 &pss_opts->mgf1_hash_id,
+                                                 &pss_opts->expected_salt_len);
+        if (ret != 0)
+        {
+            mbedtls_free(pss_opts);
+            return ret;
+        }
+
+        *sig_opts = (void *)pss_opts;
+    }
+    else
+#endif /* MBEDTLS_X509_RSASSA_PSS_SUPPORT */
+    {
+        /* Make sure parameters are absent or NULL */
+        if ((sig_params->tag != MBEDTLS_ASN1_NULL && sig_params->tag != 0) ||
+            sig_params->len != 0)
+        {
+            return MBEDTLS_ERR_X509_INVALID_ALG;
+        }
+    }
 
     return 0;
 }
 
-int mbedtls_x509_get_name_mod(unsigned char **p, const unsigned char *end,
+int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
                           mbedtls_x509_name *cur)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
@@ -271,9 +306,9 @@ error:
     return ret;
 }
 
-int x509_get_attr_type_value_mod(unsigned char **p,
-                                    const unsigned char *end,
-                                    mbedtls_x509_name *cur)
+int x509_get_attr_type_value(unsigned char **p,
+                             const unsigned char *end,
+                             mbedtls_x509_name *cur)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len;
@@ -343,7 +378,7 @@ int x509_get_attr_type_value_mod(unsigned char **p,
 }
 
 // x509_create.c
-int mbedtls_x509_write_extensions_mod(unsigned char **p, unsigned char *start,
+int mbedtls_x509_write_extensions(unsigned char **p, unsigned char *start,
                                   mbedtls_asn1_named_data *first)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
@@ -359,8 +394,8 @@ int mbedtls_x509_write_extensions_mod(unsigned char **p, unsigned char *start,
     return (int)len;
 }
 
-int x509_write_extension_mod(unsigned char **p, unsigned char *start,
-                                mbedtls_asn1_named_data *ext)
+int x509_write_extension(unsigned char **p, unsigned char *start,
+                         mbedtls_asn1_named_data *ext)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
@@ -386,11 +421,11 @@ int x509_write_extension_mod(unsigned char **p, unsigned char *start,
     return (int)len;
 }
 
-int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data **head, const char *name)
+int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *name)
 {
     int ret = 0;
     const char *s = name, *c = s;
-    const char *end = s + my_strlen(s);
+    const char *end = s + strlen(s);
     const char *oid = NULL;
     const x509_attr_descriptor_t *attr_descr = NULL;
     int in_tag = 1;
@@ -430,7 +465,7 @@ int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data **head, const char 
         else if (!in_tag && (*c == ',' || c == end))
         {
             mbedtls_asn1_named_data *cur =
-                mbedtls_asn1_store_named_data(head, oid, my_strlen(oid),
+                mbedtls_asn1_store_named_data(head, oid, strlen(oid),
                                               (unsigned char *)data,
                                               d - data);
 
@@ -470,7 +505,7 @@ exit:
     return ret;
 }
 
-int mbedtls_x509_write_names_mod(unsigned char **p, unsigned char *start,
+int mbedtls_x509_write_names(unsigned char **p, unsigned char *start,
                              mbedtls_asn1_named_data *first)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
@@ -489,9 +524,9 @@ int mbedtls_x509_write_names_mod(unsigned char **p, unsigned char *start,
     return (int)len;
 }
 
-int x509_write_name_mod(unsigned char **p,
-                           unsigned char *start,
-                           mbedtls_asn1_named_data *cur_name)
+int x509_write_name(unsigned char **p,
+                    unsigned char *start,
+                    mbedtls_asn1_named_data *cur_name)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
@@ -524,13 +559,13 @@ int x509_write_name_mod(unsigned char **p,
 }
 
 // x509write_crt.c
-int mbedtls_x509write_crt_set_subject_name_mod(mbedtls_x509write_cert *ctx,
+int mbedtls_x509write_crt_set_subject_name(mbedtls_x509write_cert *ctx,
                                            const char *subject_name)
 {
     return mbedtls_x509_string_to_names(&ctx->subject, subject_name);
 }
 
-int mbedtls_x509write_crt_set_issuer_name_mod(mbedtls_x509write_cert *ctx,
+int mbedtls_x509write_crt_set_issuer_name(mbedtls_x509write_cert *ctx,
                                           const char *issuer_name)
 {
     return mbedtls_x509_string_to_names(&ctx->issuer, issuer_name);

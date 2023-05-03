@@ -2,22 +2,14 @@
 #include "include/custom_string.h"
 
 // asn1parse.c
-void mbedtls_asn1_free_named_data_list_mod(mbedtls_asn1_named_data **head)
+void mbedtls_asn1_free_named_data_list_mod(int *ne)
 {
-    mbedtls_asn1_named_data *cur;
-
-    while ((cur = *head) != NULL)
-    {
-        *head = cur->next;
-        mbedtls_free(cur->oid.p);
-        mbedtls_free(cur->val.p);
-        mbedtls_free(cur);
-    }
+    *ne = 0;
 }
 
 int mbedtls_asn1_get_alg_mod(unsigned char **p,
-                         const unsigned char *end,
-                         mbedtls_asn1_buf *alg, mbedtls_asn1_buf *params)
+                             const unsigned char *end,
+                             mbedtls_asn1_buf_no_arr *alg, mbedtls_asn1_buf *params)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len;
@@ -47,7 +39,6 @@ int mbedtls_asn1_get_alg_mod(unsigned char **p,
     if (*p == end)
     {
         // mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
-        my_memset(params, 0, sizeof(mbedtls_asn1_buf));
         return 0;
     }
 
@@ -71,102 +62,48 @@ int mbedtls_asn1_get_alg_mod(unsigned char **p,
 }
 
 // asn1write.c
-mbedtls_asn1_named_data *mbedtls_asn1_store_named_data_mod(
-    mbedtls_asn1_named_data **head,
+int mbedtls_asn1_store_named_data_mod(
+    mbedtls_asn1_named_data *head,
     const char *oid, size_t oid_len,
     const unsigned char *val,
-    size_t val_len)
+    size_t val_len, int *ne)
 {
-    mbedtls_asn1_named_data *cur;
-
-    if ((cur = asn1_find_named_data(*head, oid, oid_len)) == NULL)
+    int pos;
+    if (asn1_find_named_data_mod(head, oid, oid_len, *ne) == 0)
     {
-        // Add new entry if not present yet based on OID
-        //
-        cur = (mbedtls_asn1_named_data *)mbedtls_calloc(1,
-                                                        sizeof(mbedtls_asn1_named_data));
-        if (cur == NULL)
-        {
-            return NULL;
-        }
-
-        cur->oid.len = oid_len;
-        cur->oid.p = mbedtls_calloc(1, oid_len);
-        if (cur->oid.p == NULL)
-        {
-            mbedtls_free(cur);
-            return NULL;
-        }
-
-        my_memcpy(cur->oid.p, oid, oid_len);
-
-        cur->val.len = val_len;
-        if (val_len != 0)
-        {
-            cur->val.p = mbedtls_calloc(1, val_len);
-            if (cur->val.p == NULL)
-            {
-                mbedtls_free(cur->oid.p);
-                mbedtls_free(cur);
-                return NULL;
-            }
-        }
-
-        cur->next = *head;
-        *head = cur;
+        head[*ne].oid.len = oid_len;
+        my_memcpy(head[*ne].oid.p_arr, oid, oid_len);
+        head[*ne].val.len = val_len;
+        my_memcpy(head[*ne].val.p_arr, val, val_len);
+        *ne = *ne + 1;
+        pos = *ne - 1;
     }
-    else if (val_len == 0)
-    {
-        mbedtls_free(cur->val.p);
-        cur->val.p = NULL;
-    }
-    else if (cur->val.len != val_len)
-    {
-        /*
-         * Enlarge existing value buffer if needed
-         * Preserve old data until the allocation succeeded, to leave list in
-         * a consistent state in case allocation fails.
-         */
-        void *p = mbedtls_calloc(1, val_len);
-        if (p == NULL)
-        {
-            return NULL;
-        }
-
-        mbedtls_free(cur->val.p);
-        cur->val.p = p;
-        cur->val.len = val_len;
-    }
-
-    if (val != NULL && val_len != 0)
-    {
-        my_memcpy(cur->val.p, val, val_len);
-    }
-
-    return cur;
+    return pos;
 }
 
-mbedtls_asn1_named_data *asn1_find_named_data_mod(
+int asn1_find_named_data_mod(
     mbedtls_asn1_named_data *list,
-    const char *oid, size_t len)
+    const char *oid, size_t len, size_t ne)
 {
-    while (list != NULL)
+    int i = 0;
+    while (i != ne)
     {
-        if (list->oid.len == len &&
-            my_memcmp(list->oid.p, oid, len) == 0)
+        if (list[i].oid.len == len &&
+            my_memcmp(list[i].oid.p_arr, oid, len) == 0)
         {
             break;
         }
-
-        list = list->next;
+        i += 1;
     }
-
-    return list;
+    if (i == ne)
+        return 0;
+    return 0;
+    // return list;
 }
 
 // x509.c
 int mbedtls_x509_get_alg_mod(unsigned char **p, const unsigned char *end,
-                         mbedtls_x509_buf *alg, mbedtls_x509_buf *params)
+                             mbedtls_x509_buf *alg, mbedtls_x509_buf *params)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
@@ -178,9 +115,9 @@ int mbedtls_x509_get_alg_mod(unsigned char **p, const unsigned char *end,
     return 0;
 }
 
-int mbedtls_x509_get_sig_alg_mod(const mbedtls_x509_buf *sig_oid, const mbedtls_x509_buf *sig_params,
-                             mbedtls_md_type_t *md_alg, mbedtls_pk_type_t *pk_alg,
-                             void **sig_opts)
+int mbedtls_x509_get_sig_alg_mod(const mbedtls_x509_buf_crt *sig_oid, const mbedtls_x509_buf *sig_params,
+                                 mbedtls_md_type_t *md_alg, mbedtls_pk_type_t *pk_alg,
+                                 void **sig_opts)
 {
     // int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
@@ -196,19 +133,17 @@ int mbedtls_x509_get_sig_alg_mod(const mbedtls_x509_buf *sig_oid, const mbedtls_
 }
 
 int mbedtls_x509_get_name_mod(unsigned char **p, const unsigned char *end,
-                          mbedtls_x509_name *cur)
+                              mbedtls_x509_name *cur, int *ne)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t set_len;
     const unsigned char *end_set;
     mbedtls_x509_name *head = cur;
+    *ne = 0;
 
     /* don't use recursion, we'd risk stack overflow if not optimized */
     while (1)
     {
-        /*
-         * parse SET
-         */
         if ((ret = mbedtls_asn1_get_tag(p, end, &set_len,
                                         MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SET)) != 0)
         {
@@ -220,7 +155,7 @@ int mbedtls_x509_get_name_mod(unsigned char **p, const unsigned char *end,
 
         while (1)
         {
-            if ((ret = x509_get_attr_type_value(p, end_set, cur)) != 0)
+            if ((ret = x509_get_attr_type_value_mod(p, end_set, &head[*ne])) != 0)
             {
                 goto error;
             }
@@ -231,49 +166,28 @@ int mbedtls_x509_get_name_mod(unsigned char **p, const unsigned char *end,
             }
 
             /* Mark this item as being no the only one in a set */
+            /*
             cur->next_merged = 1;
-
-            cur->next = mbedtls_calloc(1, sizeof(mbedtls_x509_name));
-
-            if (cur->next == NULL)
-            {
-                ret = MBEDTLS_ERR_X509_ALLOC_FAILED;
-                goto error;
-            }
-
-            cur = cur->next;
+            */
         }
-
-        /*
-         * continue until end of SEQUENCE is reached
-         */
+        *ne = *ne + 1;
         if (*p == end)
         {
             return 0;
         }
-
-        cur->next = mbedtls_calloc(1, sizeof(mbedtls_x509_name));
-
-        if (cur->next == NULL)
-        {
-            ret = MBEDTLS_ERR_X509_ALLOC_FAILED;
-            goto error;
-        }
-
-        cur = cur->next;
     }
 
 error:
     /* Skip the first element as we did not allocate it */
-    mbedtls_asn1_free_named_data_list_shallow(head->next);
+    // mbedtls_asn1_free_named_data_list_shallow(head->next);
     head->next = NULL;
 
     return ret;
 }
 
 int x509_get_attr_type_value_mod(unsigned char **p,
-                                    const unsigned char *end,
-                                    mbedtls_x509_name *cur)
+                                 const unsigned char *end,
+                                 mbedtls_asn1_named_data *cur)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len;
@@ -336,48 +250,47 @@ int x509_get_attr_type_value_mod(unsigned char **p,
         return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_NAME,
                                  MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
     }
-
-    cur->next = NULL;
-
     return 0;
 }
 
 // x509_create.c
 int mbedtls_x509_write_extensions_mod(unsigned char **p, unsigned char *start,
-                                  mbedtls_asn1_named_data *first)
+                                      mbedtls_asn1_named_data *arr_exte, int ne)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
-    mbedtls_asn1_named_data *cur_ext = first;
+    int i = 0;
+    // mbedtls_asn1_named_data *cur_ext = first;
 
-    while (cur_ext != NULL)
+    while (i != ne)
     {
-        MBEDTLS_ASN1_CHK_ADD(len, x509_write_extension(p, start, cur_ext));
-        cur_ext = cur_ext->next;
+        MBEDTLS_ASN1_CHK_ADD(len, x509_write_extension_mod(p, start, arr_exte[i]));
+        i = i + 1;
     }
 
     return (int)len;
 }
 
 int x509_write_extension_mod(unsigned char **p, unsigned char *start,
-                                mbedtls_asn1_named_data *ext)
+                             mbedtls_asn1_named_data ext)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
 
-    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_raw_buffer(p, start, ext->val.p + 1,
-                                                            ext->val.len - 1));
-    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, ext->val.len - 1));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_raw_buffer(p, start, &ext.val.p_arr[1],
+                                                            ext.val.len - 1));
+
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, ext.val.len - 1));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_OCTET_STRING));
 
-    if (ext->val.p[0] != 0)
+    if (ext.val.p_arr[0] != 0)
     {
         MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_bool(p, start, 1));
     }
 
-    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_raw_buffer(p, start, ext->oid.p,
-                                                            ext->oid.len));
-    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, ext->oid.len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_raw_buffer(p, start, ext.oid.p_arr,
+                                                            ext.oid.len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, ext.oid.len));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_OID));
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
@@ -386,11 +299,11 @@ int x509_write_extension_mod(unsigned char **p, unsigned char *start,
     return (int)len;
 }
 
-int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data **head, const char *name)
+int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data *head, const char *name, int *ne)
 {
     int ret = 0;
     const char *s = name, *c = s;
-    const char *end = s + my_strlen(s);
+    const char *end = s + my_strlen(s); // my_strlen(s);
     const char *oid = NULL;
     const x509_attr_descriptor_t *attr_descr = NULL;
     int in_tag = 1;
@@ -398,7 +311,7 @@ int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data **head, const char 
     char *d = data;
 
     /* Clear existing chain if present */
-    mbedtls_asn1_free_named_data_list(head);
+    mbedtls_asn1_free_named_data_list_mod(ne);
 
     while (c <= end)
     {
@@ -429,18 +342,18 @@ int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data **head, const char 
         }
         else if (!in_tag && (*c == ',' || c == end))
         {
-            mbedtls_asn1_named_data *cur =
-                mbedtls_asn1_store_named_data(head, oid, my_strlen(oid),
-                                              (unsigned char *)data,
-                                              d - data);
-
-            if (cur == NULL)
-            {
+            int pos =
+                mbedtls_asn1_store_named_data_mod(head, oid, my_strlen(oid), // my_strlen(oid),
+                                                  (unsigned char *)data,
+                                                  d - data, ne);
+            /*
+            if (cur == NULL) {
                 return MBEDTLS_ERR_X509_ALLOC_FAILED;
             }
-
+            */
             // set tagType
-            cur->val.tag = attr_descr->default_tag;
+            head[pos].val.tag = attr_descr->default_tag;
+            // cur->val.tag = attr_descr->default_tag;
 
             while (c < end && *(c + 1) == ' ')
             {
@@ -471,16 +384,14 @@ exit:
 }
 
 int mbedtls_x509_write_names_mod(unsigned char **p, unsigned char *start,
-                             mbedtls_asn1_named_data *first)
+                                 mbedtls_asn1_named_data *arr, int ne)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
-    mbedtls_asn1_named_data *cur = first;
 
-    while (cur != NULL)
+    for (int i = 0; i < ne; i++)
     {
-        MBEDTLS_ASN1_CHK_ADD(len, x509_write_name(p, start, cur));
-        cur = cur->next;
+        MBEDTLS_ASN1_CHK_ADD(len, x509_write_name_mod(p, start, arr[i]));
     }
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
@@ -490,19 +401,19 @@ int mbedtls_x509_write_names_mod(unsigned char **p, unsigned char *start,
 }
 
 int x509_write_name_mod(unsigned char **p,
-                           unsigned char *start,
-                           mbedtls_asn1_named_data *cur_name)
+                        unsigned char *start,
+                        mbedtls_asn1_named_data cur_name)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
-    const char *oid = (const char *)cur_name->oid.p;
-    size_t oid_len = cur_name->oid.len;
-    const unsigned char *name = cur_name->val.p;
-    size_t name_len = cur_name->val.len;
+    const char *oid = (const char *)cur_name.oid.p_arr;
+    size_t oid_len = cur_name.oid.len;
+    const unsigned char *name = cur_name.val.p_arr;
+    size_t name_len = cur_name.val.len;
 
     // Write correct string tag and value
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tagged_string(p, start,
-                                                               cur_name->val.tag,
+                                                               cur_name.val.tag,
                                                                (const char *)name,
                                                                name_len));
     // Write OID
@@ -524,14 +435,14 @@ int x509_write_name_mod(unsigned char **p,
 }
 
 // x509write_crt.c
-int mbedtls_x509write_crt_set_subject_name_mod(mbedtls_x509write_cert *ctx,
-                                           const char *subject_name)
+int mbedtls_x509write_crt_set_subject_name_mod(mbedtls_x509write_cert *ctx, const char *subject_name)
 {
-    return mbedtls_x509_string_to_names(&ctx->subject, subject_name);
+    ctx->ne_subje_arr = 0;
+    return mbedtls_x509_string_to_names_mod(ctx->subject_arr, subject_name, &ctx->ne_subje_arr);
 }
 
-int mbedtls_x509write_crt_set_issuer_name_mod(mbedtls_x509write_cert *ctx,
-                                          const char *issuer_name)
+int mbedtls_x509write_crt_set_issuer_name_mod(mbedtls_x509write_cert *ctx, const char *issuer_name)
 {
-    return mbedtls_x509_string_to_names(&ctx->issuer, issuer_name);
+    ctx->ne_issue_arr = 0;
+    return mbedtls_x509_string_to_names_mod(ctx->issuer_arr, issuer_name, &ctx->ne_issue_arr);
 }

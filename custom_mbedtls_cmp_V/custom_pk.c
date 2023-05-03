@@ -11,7 +11,7 @@ const mbedtls_pk_info_t mbedtls_ed25519_info = {
     ed25519_decrypt_wrap,
     ed25519_encrypt_wrap,
     ed25519_check_pair_wrap,
-    ed25519_alloc_wrap,
+    // ed25519_alloc_wrap,
     ed25519_free_wrap,
 };
 
@@ -37,6 +37,7 @@ const mbedtls_pk_info_t *mbedtls_pk_info_from_type(mbedtls_pk_type_t pk_type)
 
 int mbedtls_pk_setup(mbedtls_pk_context *ctx, const mbedtls_pk_info_t *info)
 {
+    /*
     if (info == NULL || ctx->pk_info != NULL)
     {
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
@@ -46,7 +47,9 @@ int mbedtls_pk_setup(mbedtls_pk_context *ctx, const mbedtls_pk_info_t *info)
     {
         return MBEDTLS_ERR_PK_ALLOC_FAILED;
     }
+    */
 
+    // ctx->pk_ctx = info->ctx_alloc_func();
     ctx->pk_info = info;
 
     return 0;
@@ -54,10 +57,12 @@ int mbedtls_pk_setup(mbedtls_pk_context *ctx, const mbedtls_pk_info_t *info)
 
 mbedtls_pk_type_t mbedtls_pk_get_type(const mbedtls_pk_context *ctx)
 {
+    /*
     if (ctx == NULL || ctx->pk_info == NULL)
     {
         return MBEDTLS_PK_NONE;
     }
+    */
 
     return ctx->pk_info->type;
 }
@@ -65,7 +70,7 @@ mbedtls_pk_type_t mbedtls_pk_get_type(const mbedtls_pk_context *ctx)
 void mbedtls_pk_init(mbedtls_pk_context *ctx)
 {
     ctx->pk_info = NULL;
-    ctx->pk_ctx = NULL;
+    // ctx->pk_ctx = NULL;
 }
 
 int mbedtls_pk_sign(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg,
@@ -75,7 +80,7 @@ int mbedtls_pk_sign(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg,
 {
     return mbedtls_pk_sign_restartable(ctx, md_alg, hash, hash_len,
                                        sig, sig_size, sig_len,
-                                       f_rng, p_rng, NULL);
+                                       f_rng, p_rng); //, NULL);
 }
 
 int pk_hashlen_helper(mbedtls_md_type_t md_alg, size_t *hash_len)
@@ -99,26 +104,26 @@ int mbedtls_pk_sign_restartable(mbedtls_pk_context *ctx,
                                 mbedtls_md_type_t md_alg,
                                 const unsigned char *hash, size_t hash_len,
                                 unsigned char *sig, size_t sig_size, size_t *sig_len,
-                                int (*f_rng)(void *, unsigned char *, size_t), void *p_rng,
-                                mbedtls_pk_restart_ctx *rs_ctx)
+                                int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
+// mbedtls_pk_restart_ctx *rs_ctx)
 {
     if ((md_alg != MBEDTLS_MD_NONE || hash_len != 0) && hash == NULL)
     {
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
-
+    /*
     if (ctx->pk_info == NULL || pk_hashlen_helper(md_alg, &hash_len) != 0)
     {
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
+    */
 
-    (void)rs_ctx;
     if (ctx->pk_info->sign_func == NULL)
     {
         return MBEDTLS_ERR_PK_TYPE_MISMATCH;
     }
 
-    return ctx->pk_info->sign_func(ctx->pk_ctx, md_alg,
+    return ctx->pk_info->sign_func(&(ctx->pk_ctx), md_alg,
                                    hash, hash_len,
                                    sig, sig_size, sig_len,
                                    f_rng, p_rng);
@@ -133,18 +138,17 @@ void mbedtls_pk_free(mbedtls_pk_context *ctx)
 
     if (ctx->pk_info != NULL)
     {
-        ctx->pk_info->ctx_free_func(ctx->pk_ctx);
+        ctx->pk_info->ctx_free_func(&(ctx->pk_ctx));
     }
 
     // mbedtls_platform_zeroize(ctx, sizeof(mbedtls_pk_context));
-    my_memset(ctx, 0, sizeof(mbedtls_pk_context));
 }
 
 // pkparse.c
 int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
                                 const unsigned char *key, size_t keylen, int type_k)
 {
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    // int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     unsigned char *p;
     const mbedtls_pk_info_t *pk_info;
     if ((pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_ED25519)) == NULL)
@@ -154,10 +158,12 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
     // assegna semplicemente il tipo di pk_info ritornato dalla funzione precedente a quello contenuto in ctx
     //  ctx->pk_info = pk_info;
 
+    /*
     if ((ret = mbedtls_pk_setup(ctx, pk_info)) != 0)
     {
         return ret;
     }
+    */
     // mbedtls_ed25519_context pk_ctx;
     // mbedtls_ed25519_context *pk_ctx_point = &pk_ctx;
     // ctx->pk_ctx = pk_ctx_point;
@@ -167,14 +173,14 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
 
     if (type_k == 0)
     {
-        pk_set_ed25519pubkey(&p, ctx->pk_ctx); // mbedtls_pk_ed25519(*ctx));
+        pk_set_ed25519pubkey(&p, &ctx->pk_ctx); // mbedtls_pk_ed25519(*ctx));
         /*for(int i = 0; i < 32; i++){
             ctx->pk_ctx->pub_key[i] = p[i];
         }
         ctx->pk_ctx->len = 32;*/
     }
     else
-        pk_set_ed25519privkey(&p, ctx->pk_ctx); // mbedtls_pk_ed25519(*ctx));
+        pk_set_ed25519privkey(&p, &ctx->pk_ctx); // mbedtls_pk_ed25519(*ctx));
     return 0;
 }
 
@@ -227,10 +233,10 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
         return ret;
     }
 
-    ret = pk_set_ed25519pubkey(p, pk->pk_ctx); // mbedtls_pk_ed25519(*pk));
+    ret = pk_set_ed25519pubkey(p, &pk->pk_ctx); // mbedtls_pk_ed25519(*pk));
     // ret = pk_set_ed25519pubkey(&p, &ctx->pk_ctx );//mbedtls_pk_ed25519(*ctx));
 
-    *p += PUBLIC_KEY_SIZE;
+    *p += 32;
     if (ret == 0 && *p != end)
     {
         ret = MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_INVALID_PUBKEY,
@@ -333,6 +339,6 @@ int mbedtls_pk_write_pubkey(unsigned char **p, unsigned char *start,
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
-    MBEDTLS_ASN1_CHK_ADD(len, pk_write_ed25519_pubkey(p, start, *(mbedtls_pk_ed25519(*key))));
+    MBEDTLS_ASN1_CHK_ADD(len, pk_write_ed25519_pubkey(p, start, key->pk_ctx));
     return (int)len;
 }

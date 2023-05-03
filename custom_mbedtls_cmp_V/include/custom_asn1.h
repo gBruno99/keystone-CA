@@ -73,10 +73,18 @@ typedef struct mbedtls_asn1_buf {
     int tag;                /**< ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING. */
     size_t len;             /**< ASN1 length, in octets. */
     unsigned char *p;       /**< ASN1 data, e.g. in ASCII. */
+    unsigned char p_arr[512];
 }
 mbedtls_asn1_buf;
 
-typedef mbedtls_asn1_buf mbedtls_x509_buf_crt; // new_impl
+typedef struct mbedtls_asn1_buf_no_arr {
+    int tag;                /**< ASN1 type, e.g. MBEDTLS_ASN1_UTF8_STRING. */
+    size_t len;             /**< ASN1 length, in octets. */
+    unsigned char *p;       /**< ASN1 data, e.g. in ASCII. */
+}
+mbedtls_asn1_buf_no_arr;
+
+typedef mbedtls_asn1_buf_no_arr mbedtls_x509_buf_crt;
 
 /**
  * Container for a sequence or list of 'named' ASN.1 data items
@@ -128,7 +136,7 @@ mbedtls_asn1_sequence;
         return ret;                              \
         else                                            \
         (g) += ret;                                 \
-    } while (0)
+    } while (0);
 
 
 

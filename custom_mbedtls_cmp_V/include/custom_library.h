@@ -172,8 +172,8 @@ struct mbedtls_pk_info_t {
                      unsigned char *sig, size_t sig_size, size_t *sig_len,
                      int (*f_rng)(void *, unsigned char *, size_t),
                      void *p_rng);
-
-    /** Decrypt message */
+    
+     /** Decrypt message */
     int (*decrypt_func)(void *ctx, const unsigned char *input, size_t ilen,
                         unsigned char *output, size_t *olen, size_t osize,
                         int (*f_rng)(void *, unsigned char *, size_t),
@@ -191,7 +191,7 @@ struct mbedtls_pk_info_t {
                            void *p_rng);
 
     /** Allocate a new context */
-    void * (*ctx_alloc_func)(void);
+    /*void *  mbedtls_ed25519_context (*ctx_alloc_func)(void); //(void) */
 
     /** Free the given context */
     void (*ctx_free_func)(void *ctx);

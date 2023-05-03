@@ -125,6 +125,15 @@ typedef struct mbedtls_x509write_cert {
     char MBEDTLS_PRIVATE(not_before)[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1];
     char MBEDTLS_PRIVATE(not_after)[MBEDTLS_X509_RFC5280_UTC_TIME_LEN + 1];
     mbedtls_asn1_named_data *MBEDTLS_PRIVATE(extensions);
+
+    //Changes
+    mbedtls_asn1_named_data issuer_arr[10];
+    mbedtls_asn1_named_data subject_arr[10];
+    int ne_issue_arr;
+    int ne_subje_arr;
+    mbedtls_asn1_named_data extens_arr[2];
+    int ne_ext_arr;
+
 }
 mbedtls_x509write_cert;
 
@@ -139,18 +148,25 @@ mbedtls_x509write_cert;
 typedef struct mbedtls_x509_crt {
     int MBEDTLS_PRIVATE(own_buffer);                     /**< Indicates if \c raw is owned
                                                           *   by the structure or not.        */
-    mbedtls_x509_buf raw;               /**< The raw certificate data (DER). */
-    mbedtls_x509_buf tbs;               /**< The raw certificate body (DER). The part that is To Be Signed. */
+    mbedtls_x509_buf_crt raw;               /**< The raw certificate data (DER). */
+    mbedtls_x509_buf_crt tbs;               /**< The raw certificate body (DER). The part that is To Be Signed. */
 
     int version;                /**< The X.509 version. (1=v1, 2=v2, 3=v3) */
-    mbedtls_x509_buf serial;            /**< Unique id for certificate issued by a specific CA. */
-    mbedtls_x509_buf sig_oid;           /**< Signature algorithm, e.g. sha1RSA */
+    mbedtls_x509_buf_crt serial;            /**< Unique id for certificate issued by a specific CA. */
+    mbedtls_x509_buf_crt sig_oid;           /**< Signature algorithm, e.g. sha1RSA */
 
-    mbedtls_x509_buf issuer_raw;        /**< The raw issuer data (DER). Used for quick comparison. */
-    mbedtls_x509_buf subject_raw;       /**< The raw subject data (DER). Used for quick comparison. */
+    mbedtls_x509_buf_crt issuer_raw;        /**< The raw issuer data (DER). Used for quick comparison. */
+    mbedtls_x509_buf_crt subject_raw;       /**< The raw subject data (DER). Used for quick comparison. */
 
-    mbedtls_x509_name issuer;           /**< The parsed issuer data (named information object). */
-    mbedtls_x509_name subject;          /**< The parsed subject data (named information object). */
+    //mbedtls_x509_name issuer;           /**< The parsed issuer data (named information object). */
+    //mbedtls_x509_name subject;          /**< The parsed subject data (named information object). */
+    //mbedtls_asn1_named_data issuer_name[10];
+    //mbedtls_asn1_named_data subject_name[10];
+    mbedtls_asn1_named_data issuer_arr[10];
+    mbedtls_asn1_named_data subject_arr[10];
+    int ne_issue_arr;
+    int ne_subje_arr;
+
 
     mbedtls_x509_time valid_from;       /**< Start time of certificate validity. */
     mbedtls_x509_time valid_to;         /**< End time of certificate validity. */

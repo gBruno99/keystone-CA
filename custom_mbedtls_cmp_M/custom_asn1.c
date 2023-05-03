@@ -156,8 +156,7 @@ int mbedtls_asn1_get_alg(unsigned char **p,
 
     if (*p == end)
     {
-        // mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
-        my_memset(params, 0, sizeof(mbedtls_asn1_buf));
+        mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
         return 0;
     }
 
@@ -213,8 +212,8 @@ int mbedtls_asn1_get_int(unsigned char **p,
 }
 
 int asn1_get_tagged_int(unsigned char **p,
-                        const unsigned char *end,
-                        int tag, int *val)
+                               const unsigned char *end,
+                               int tag, int *val)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len;
@@ -303,8 +302,6 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
         //
         cur = (mbedtls_asn1_named_data *)mbedtls_calloc(1,
                                                         sizeof(mbedtls_asn1_named_data));
-        // struct mbedtls_asn1_named_data to_be_poit; //new_impl
-        // cur = &to_be_poit; //new_impl
         if (cur == NULL)
         {
             return NULL;
@@ -318,7 +315,7 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
             return NULL;
         }
 
-        my_memcpy(cur->oid.p, oid, oid_len);
+        memcpy(cur->oid.p, oid, oid_len);
 
         cur->val.len = val_len;
         if (val_len != 0)
@@ -342,23 +339,24 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
     }
     else if (cur->val.len != val_len)
     {
-
-        //* Enlarge existing value buffer if needed
-        //* Preserve old data until the allocation succeeded, to leave list in
-        //* a consistent state in case allocation fails.
+        /*
+         * Enlarge existing value buffer if needed
+         * Preserve old data until the allocation succeeded, to leave list in
+         * a consistent state in case allocation fails.
+         */
         void *p = mbedtls_calloc(1, val_len);
         if (p == NULL)
         {
             return NULL;
         }
-        
+
         mbedtls_free(cur->val.p);
         cur->val.p = p;
         cur->val.len = val_len;
     }
     if (val != NULL && val_len != 0)
     {
-        my_memcpy(cur->val.p, val, val_len);
+        memcpy(cur->val.p, val, val_len);
     }
 
     return cur;
@@ -371,7 +369,7 @@ mbedtls_asn1_named_data *asn1_find_named_data(
     while (list != NULL)
     {
         if (list->oid.len == len &&
-            my_memcmp(list->oid.p, oid, len) == 0)
+            memcmp(list->oid.p, oid, len) == 0)
         {
             break;
         }
@@ -533,7 +531,7 @@ int mbedtls_asn1_write_raw_buffer(unsigned char **p, const unsigned char *start,
 
     len = size;
     (*p) -= len;
-    my_memcpy(*p, buf, len);
+    memcpy(*p, buf, len);
 
     return (int)len;
 }
