@@ -383,7 +383,7 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     if (ctx->version == MBEDTLS_X509_CRT_VERSION_3)
     {
         MBEDTLS_ASN1_CHK_ADD(len,
-                             mbedtls_x509_write_extensions(&c,
+                             mbedtls_x509_write_extensions_mod(&c,
                                                            buf, ctx->extensions));
         /*
         MBEDTLS_ASN1_CHK_ADD(len,
@@ -417,7 +417,7 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
      *  Subject  ::=  Name
      */
     MBEDTLS_ASN1_CHK_ADD(len,
-                         mbedtls_x509_write_names(&c, buf,
+                         mbedtls_x509_write_names_mod(&c, buf,
                                                   ctx->subject));
     /*
     MBEDTLS_ASN1_CHK_ADD(len,
@@ -450,7 +450,7 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     /*
      *  Issuer  ::=  Name
      */
-    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_x509_write_names(&c, buf,
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_x509_write_names_mod(&c, buf,
                                                        ctx->issuer));
     /*
     MBEDTLS_ASN1_CHK_ADD(len,

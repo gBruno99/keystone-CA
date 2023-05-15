@@ -79,7 +79,7 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data_mod(
 {
     mbedtls_asn1_named_data *cur;
 
-    if ((cur = asn1_find_named_data(*head, oid, oid_len)) == NULL)
+    if ((cur = asn1_find_named_data_mod(*head, oid, oid_len)) == NULL)
     {
         // Add new entry if not present yet based on OID
         //
@@ -220,7 +220,7 @@ int mbedtls_x509_get_name_mod(unsigned char **p, const unsigned char *end,
 
         while (1)
         {
-            if ((ret = x509_get_attr_type_value(p, end_set, cur)) != 0)
+            if ((ret = x509_get_attr_type_value_mod(p, end_set, cur)) != 0)
             {
                 goto error;
             }
@@ -352,7 +352,7 @@ int mbedtls_x509_write_extensions_mod(unsigned char **p, unsigned char *start,
 
     while (cur_ext != NULL)
     {
-        MBEDTLS_ASN1_CHK_ADD(len, x509_write_extension(p, start, cur_ext));
+        MBEDTLS_ASN1_CHK_ADD(len, x509_write_extension_mod(p, start, cur_ext));
         cur_ext = cur_ext->next;
     }
 
@@ -398,7 +398,7 @@ int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data **head, const char 
     char *d = data;
 
     /* Clear existing chain if present */
-    mbedtls_asn1_free_named_data_list(head);
+    mbedtls_asn1_free_named_data_list_mod(head);
 
     while (c <= end)
     {
@@ -430,7 +430,7 @@ int mbedtls_x509_string_to_names_mod(mbedtls_asn1_named_data **head, const char 
         else if (!in_tag && (*c == ',' || c == end))
         {
             mbedtls_asn1_named_data *cur =
-                mbedtls_asn1_store_named_data(head, oid, my_strlen(oid),
+                mbedtls_asn1_store_named_data_mod(head, oid, my_strlen(oid),
                                               (unsigned char *)data,
                                               d - data);
 
@@ -479,7 +479,7 @@ int mbedtls_x509_write_names_mod(unsigned char **p, unsigned char *start,
 
     while (cur != NULL)
     {
-        MBEDTLS_ASN1_CHK_ADD(len, x509_write_name(p, start, cur));
+        MBEDTLS_ASN1_CHK_ADD(len, x509_write_name_mod(p, start, cur));
         cur = cur->next;
     }
 
@@ -527,11 +527,11 @@ int x509_write_name_mod(unsigned char **p,
 int mbedtls_x509write_crt_set_subject_name_mod(mbedtls_x509write_cert *ctx,
                                            const char *subject_name)
 {
-    return mbedtls_x509_string_to_names(&ctx->subject, subject_name);
+    return mbedtls_x509_string_to_names_mod(&ctx->subject, subject_name);
 }
 
 int mbedtls_x509write_crt_set_issuer_name_mod(mbedtls_x509write_cert *ctx,
                                           const char *issuer_name)
 {
-    return mbedtls_x509_string_to_names(&ctx->issuer, issuer_name);
+    return mbedtls_x509_string_to_names_mod(&ctx->issuer, issuer_name);
 }

@@ -383,7 +383,7 @@ int mbedtls_oid_get_oid_by_sig_alg(mbedtls_pk_type_t pk_alg, mbedtls_md_type_t m
  *
  * \return          The output length in bytes, or 0 if not known.
  */
- unsigned char mbedtls_hash_info_get_size(mbedtls_md_type_t md_type);
+unsigned char mbedtls_hash_info_get_size(mbedtls_md_type_t md_type);
 
 //x509_crt.h
 /**

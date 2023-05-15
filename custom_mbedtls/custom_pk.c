@@ -166,7 +166,7 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
     // mbedtls_ed25519_context pk_ctx;
     // mbedtls_ed25519_context *pk_ctx_point = &pk_ctx;
     // ctx->pk_ctx = pk_ctx_point;
-    ctx->pk_info = pk_info;
+    // ctx->pk_info = pk_info;
 
     p = (unsigned char *)key;
 
