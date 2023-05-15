@@ -91,12 +91,14 @@ mkdir -p build
 cd build
 cmake ..
 make
-make hello-package
-make client-package
+#make hello-package
+#make client-package
+make hello-native-package
 
 # copy enclave packages - only for me
-cp hello/hello.ke ../../keystone/build/overlay/root/
-cp client/client.ke ../../keystone/build/overlay/root/
+#cp hello/hello.ke ../../keystone/build/overlay/root/
+#cp client/client.ke ../../keystone/build/overlay/root/
+cp hello-native/hello-native.ke ../../keystone/build/overlay/root/
 
 # Done!
 echo -e "************ Demo binaries built and copied into overlay directory. ***************

@@ -54,7 +54,7 @@ set(MBEDTLS_LIB_X509_HOST ${MBEDTLS_DIR_HOST}/build/library/libmbedx509.a)
 find_program(MAKESELF makeself)
 
 # enclave
-add_subdirectory(client)
-add_subdirectory(hello)
-
+# add_subdirectory(client)
+# add_subdirectory(hello)
+add_subdirectory(hello-native)
 
