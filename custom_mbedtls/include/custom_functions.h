@@ -374,9 +374,16 @@ int mbedtls_asn1_write_bool(unsigned char **p, const unsigned char *start,
 int mbedtls_oid_get_oid_by_sig_alg(mbedtls_pk_type_t pk_alg, mbedtls_md_type_t md_alg,
                                    const char **oid, size_t *olen);
 
-// hash_info.c
-/* Get size from MD type */
-unsigned char mbedtls_hash_info_get_size(mbedtls_md_type_t md_type);
+// hash_info.h
+/** Get the output length of the given hash type from its MD type.
+ *
+ * \note To get the output length from the PSA alg, use \c PSA_HASH_LENGTH().
+ *
+ * \param md_type   The hash MD type.
+ *
+ * \return          The output length in bytes, or 0 if not known.
+ */
+ unsigned char mbedtls_hash_info_get_size(mbedtls_md_type_t md_type);
 
 //x509_crt.h
 /**
@@ -597,7 +604,6 @@ int mbedtls_x509_get_sig_alg(const mbedtls_x509_buf *sig_oid, const mbedtls_x509
                              void **sig_opts);
 
 //pk.h
-/** \ingroup pk_module */
 /**
  * \brief           Parse a public key in PEM or DER format
  *

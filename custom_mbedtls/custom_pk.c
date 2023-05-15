@@ -147,6 +147,11 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     unsigned char *p;
     const mbedtls_pk_info_t *pk_info;
+    if (keylen == 0)
+    {
+        return MBEDTLS_ERR_PK_KEY_INVALID_FORMAT;
+    }
+    
     if ((pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_ED25519)) == NULL)
     {
         return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
