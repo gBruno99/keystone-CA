@@ -103,6 +103,22 @@ static inline int mbedtls_error_add(int high, int low,
 #define MBEDTLS_ERROR_ADD(high, low) \
     mbedtls_error_add(high, low, __FILE__, __LINE__)
 
+//alignment.h
+
+/** Byte Reading Macros
+ *
+ * Given a multi-byte integer \p x, MBEDTLS_BYTE_n retrieves the n-th
+ * byte from x, where byte 0 is the least significant byte.
+ */
+#define MBEDTLS_BYTE_0(x) ((uint8_t) ((x)         & 0xff))
+#define MBEDTLS_BYTE_1(x) ((uint8_t) (((x) >>  8) & 0xff))
+#define MBEDTLS_BYTE_2(x) ((uint8_t) (((x) >> 16) & 0xff))
+#define MBEDTLS_BYTE_3(x) ((uint8_t) (((x) >> 24) & 0xff))
+#define MBEDTLS_BYTE_4(x) ((uint8_t) (((x) >> 32) & 0xff))
+#define MBEDTLS_BYTE_5(x) ((uint8_t) (((x) >> 40) & 0xff))
+#define MBEDTLS_BYTE_6(x) ((uint8_t) (((x) >> 48) & 0xff))
+#define MBEDTLS_BYTE_7(x) ((uint8_t) (((x) >> 56) & 0xff))
+
 //pk.h
 /** Memory allocation failed. */
 #define MBEDTLS_ERR_PK_ALLOC_FAILED        -0x3F80
@@ -215,6 +231,60 @@ typedef enum {
 } mbedtls_md_type_t;
 
 #define MBEDTLS_MD_CAN_MD5
+
+//pk_wrap.h
+struct mbedtls_pk_info_t {
+    /** Public key type */
+    mbedtls_pk_type_t type;
+
+    /** Type name */
+    const char *name;
+
+    /** Get key size in bits */
+    size_t (*get_bitlen)(const void *);
+
+    /** Tell if the context implements this type (e.g. ECKEY can do ECDSA) */
+    int (*can_do)(mbedtls_pk_type_t type);
+
+    /** Verify signature */
+    int (*verify_func)(void *ctx, mbedtls_md_type_t md_alg,
+                       const unsigned char *hash, size_t hash_len,
+                       const unsigned char *sig, size_t sig_len);
+
+    /** Make signature */
+    int (*sign_func)(void *ctx, mbedtls_md_type_t md_alg,
+                     const unsigned char *hash, size_t hash_len,
+                     unsigned char *sig, size_t sig_size, size_t *sig_len,
+                     int (*f_rng)(void *, unsigned char *, size_t),
+                     void *p_rng);
+
+    /** Decrypt message */
+    int (*decrypt_func)(void *ctx, const unsigned char *input, size_t ilen,
+                        unsigned char *output, size_t *olen, size_t osize,
+                        int (*f_rng)(void *, unsigned char *, size_t),
+                        void *p_rng);
+
+    /** Encrypt message */
+    int (*encrypt_func)(void *ctx, const unsigned char *input, size_t ilen,
+                        unsigned char *output, size_t *olen, size_t osize,
+                        int (*f_rng)(void *, unsigned char *, size_t),
+                        void *p_rng);
+
+    /** Check public-private key pair */
+    int (*check_pair_func)(const void *pub, const void *prv,
+                           int (*f_rng)(void *, unsigned char *, size_t),
+                           void *p_rng);
+
+    /** Allocate a new context */
+    void * (*ctx_alloc_func)(void);
+
+    /** Free the given context */
+    void (*ctx_free_func)(void *ctx);
+
+    /** Interface with the debug module */
+    void (*debug_func)(const void *ctx, mbedtls_pk_debug_item *items);
+
+};
 
 //pem.h
 /** No PEM header or footer found. */

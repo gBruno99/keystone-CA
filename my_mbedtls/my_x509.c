@@ -1,4 +1,14 @@
 // x509.c
+#define CHECK(code) if ((ret = (code)) != 0) { return ret; }
+#define CHECK_RANGE(min, max, val)                      \
+    do                                                  \
+    {                                                   \
+        if ((val) < (min) || (val) > (max))    \
+        {                                               \
+            return ret;                              \
+        }                                               \
+    } while (0)
+
 int mbedtls_x509_get_serial(unsigned char **p, const unsigned char *end,
                             mbedtls_x509_buf *serial)
 {
@@ -421,6 +431,83 @@ int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *end,
 }
 
 // x509_create.c
+#define ADD_STRLEN(s)     s, sizeof(s) - 1
+
+/* Structure linking OIDs for X.509 DN AttributeTypes to their
+ * string representations and default string encodings used by Mbed TLS. */
+typedef struct {
+    const char *name; /* String representation of AttributeType, e.g.
+                       * "CN" or "emailAddress". */
+    size_t name_len; /* Length of 'name', without trailing 0 byte. */
+    const char *oid; /* String representation of OID of AttributeType,
+                      * as per RFC 5280, Appendix A.1. */
+    int default_tag; /* The default character encoding used for the
+                      * given attribute type, e.g.
+                      * MBEDTLS_ASN1_UTF8_STRING for UTF-8. */
+} x509_attr_descriptor_t;
+
+/* X.509 DN attributes from RFC 5280, Appendix A.1. */
+static const x509_attr_descriptor_t x509_attrs[] =
+{
+    { ADD_STRLEN("CN"),
+      MBEDTLS_OID_AT_CN, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("commonName"),
+      MBEDTLS_OID_AT_CN, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("C"),
+      MBEDTLS_OID_AT_COUNTRY, MBEDTLS_ASN1_PRINTABLE_STRING },
+    { ADD_STRLEN("countryName"),
+      MBEDTLS_OID_AT_COUNTRY, MBEDTLS_ASN1_PRINTABLE_STRING },
+    { ADD_STRLEN("O"),
+      MBEDTLS_OID_AT_ORGANIZATION, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("organizationName"),
+      MBEDTLS_OID_AT_ORGANIZATION, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("L"),
+      MBEDTLS_OID_AT_LOCALITY, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("locality"),
+      MBEDTLS_OID_AT_LOCALITY, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("R"),
+      MBEDTLS_OID_PKCS9_EMAIL, MBEDTLS_ASN1_IA5_STRING },
+    { ADD_STRLEN("OU"),
+      MBEDTLS_OID_AT_ORG_UNIT, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("organizationalUnitName"),
+      MBEDTLS_OID_AT_ORG_UNIT, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("ST"),
+      MBEDTLS_OID_AT_STATE, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("stateOrProvinceName"),
+      MBEDTLS_OID_AT_STATE, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("emailAddress"),
+      MBEDTLS_OID_PKCS9_EMAIL, MBEDTLS_ASN1_IA5_STRING },
+    { ADD_STRLEN("serialNumber"),
+      MBEDTLS_OID_AT_SERIAL_NUMBER, MBEDTLS_ASN1_PRINTABLE_STRING },
+    { ADD_STRLEN("postalAddress"),
+      MBEDTLS_OID_AT_POSTAL_ADDRESS, MBEDTLS_ASN1_PRINTABLE_STRING },
+    { ADD_STRLEN("postalCode"),
+      MBEDTLS_OID_AT_POSTAL_CODE, MBEDTLS_ASN1_PRINTABLE_STRING },
+    { ADD_STRLEN("dnQualifier"),
+      MBEDTLS_OID_AT_DN_QUALIFIER, MBEDTLS_ASN1_PRINTABLE_STRING },
+    { ADD_STRLEN("title"),
+      MBEDTLS_OID_AT_TITLE, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("surName"),
+      MBEDTLS_OID_AT_SUR_NAME, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("SN"),
+      MBEDTLS_OID_AT_SUR_NAME, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("givenName"),
+      MBEDTLS_OID_AT_GIVEN_NAME, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("GN"),
+      MBEDTLS_OID_AT_GIVEN_NAME, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("initials"),
+      MBEDTLS_OID_AT_INITIALS, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("pseudonym"),
+      MBEDTLS_OID_AT_PSEUDONYM, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("generationQualifier"),
+      MBEDTLS_OID_AT_GENERATION_QUALIFIER, MBEDTLS_ASN1_UTF8_STRING },
+    { ADD_STRLEN("domainComponent"),
+      MBEDTLS_OID_DOMAIN_COMPONENT, MBEDTLS_ASN1_IA5_STRING },
+    { ADD_STRLEN("DC"),
+      MBEDTLS_OID_DOMAIN_COMPONENT,   MBEDTLS_ASN1_IA5_STRING },
+    { NULL, 0, NULL, MBEDTLS_ASN1_NULL }
+};
+
 static const x509_attr_descriptor_t *x509_attr_descr_from_name(const char *name, size_t name_len)
 {
     const x509_attr_descriptor_t *cur;
