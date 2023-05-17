@@ -1,5 +1,4 @@
 const mbedtls_pk_info_t mbedtls_ed25519_info = {
-    // new_impl
     MBEDTLS_PK_ED25519,
     "ED25519",
     ed25519_get_bitlen,
@@ -9,7 +8,7 @@ const mbedtls_pk_info_t mbedtls_ed25519_info = {
     ed25519_decrypt_wrap,
     ed25519_encrypt_wrap,
     ed25519_check_pair_wrap,
-    ed25519_alloc_wrap,
+    // ed25519_alloc_wrap,
     ed25519_free_wrap,
 };
 
@@ -17,7 +16,7 @@ const mbedtls_pk_info_t mbedtls_ed25519_info = {
 void mbedtls_pk_init(mbedtls_pk_context *ctx)
 {
     ctx->pk_info = NULL;
-    ctx->pk_ctx = NULL;
+    // ctx->pk_ctx = NULL;
 }
 
 void mbedtls_pk_free(mbedtls_pk_context *ctx)
@@ -29,10 +28,10 @@ void mbedtls_pk_free(mbedtls_pk_context *ctx)
 
     if (ctx->pk_info != NULL)
     {
-        ctx->pk_info->ctx_free_func(ctx->pk_ctx);
+        ctx->pk_info->ctx_free_func(&(ctx->pk_ctx));
     }
 
-    mbedtls_platform_zeroize(ctx, sizeof(mbedtls_pk_context));
+    // mbedtls_platform_zeroize(ctx, sizeof(mbedtls_pk_context));
 }
 
 const mbedtls_pk_info_t *mbedtls_pk_info_from_type(mbedtls_pk_type_t pk_type)
@@ -48,16 +47,14 @@ const mbedtls_pk_info_t *mbedtls_pk_info_from_type(mbedtls_pk_type_t pk_type)
 
 int mbedtls_pk_setup(mbedtls_pk_context *ctx, const mbedtls_pk_info_t *info)
 {
-    if (info == NULL || ctx->pk_info != NULL)
-    {
+    /**
+    if (info == NULL || ctx->pk_info != NULL) {
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
-
-    if ((ctx->pk_ctx = info->ctx_alloc_func()) == NULL)
-    {
+    if ((ctx->pk_ctx = info->ctx_alloc_func()) == NULL) {
         return MBEDTLS_ERR_PK_ALLOC_FAILED;
-    }
-
+    }*/
+    // ctx->pk_ctx = info->ctx_alloc_func();
     ctx->pk_info = info;
 
     return 0;
@@ -84,27 +81,25 @@ int mbedtls_pk_sign_restartable(mbedtls_pk_context *ctx,
                                 mbedtls_md_type_t md_alg,
                                 const unsigned char *hash, size_t hash_len,
                                 unsigned char *sig, size_t sig_size, size_t *sig_len,
-                                int (*f_rng)(void *, unsigned char *, size_t), void *p_rng,
-                                mbedtls_pk_restart_ctx *rs_ctx)
+                                int (*f_rng)(void *, unsigned char *, size_t), void *p_rng)
+// mbedtls_pk_restart_ctx *rs_ctx)
 {
+
     if ((md_alg != MBEDTLS_MD_NONE || hash_len != 0) && hash == NULL)
     {
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
-
-    if (ctx->pk_info == NULL || pk_hashlen_helper(md_alg, &hash_len) != 0)
-    {
+    /*
+    if (ctx->pk_info == NULL || pk_hashlen_helper(md_alg, &hash_len) != 0) {
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
-    }
-
-    (void)rs_ctx;
+    }*/
 
     if (ctx->pk_info->sign_func == NULL)
     {
         return MBEDTLS_ERR_PK_TYPE_MISMATCH;
     }
 
-    return ctx->pk_info->sign_func(ctx->pk_ctx, md_alg,
+    return ctx->pk_info->sign_func(&(ctx->pk_ctx), md_alg,
                                    hash, hash_len,
                                    sig, sig_size, sig_len,
                                    f_rng, p_rng);
@@ -117,28 +112,28 @@ int mbedtls_pk_sign(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg,
 {
     return mbedtls_pk_sign_restartable(ctx, md_alg, hash, hash_len,
                                        sig, sig_size, sig_len,
-                                       f_rng, p_rng, NULL);
+                                       f_rng, p_rng); //, NULL);
 }
 
 mbedtls_pk_type_t mbedtls_pk_get_type(const mbedtls_pk_context *ctx)
 {
-    if (ctx == NULL || ctx->pk_info == NULL)
-    {
+    /*
+    if (ctx == NULL || ctx->pk_info == NULL) {
         return MBEDTLS_PK_NONE;
-    }
+    }*/
 
     return ctx->pk_info->type;
 }
 
 // pkparse.c
-static int pk_get_pk_alg(unsigned char **p,
-                         const unsigned char *end,
-                         mbedtls_pk_type_t *pk_alg, mbedtls_asn1_buf *params)
+int pk_get_pk_alg(unsigned char **p,
+                  const unsigned char *end,
+                  mbedtls_pk_type_t *pk_alg, mbedtls_asn1_buf *params)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     mbedtls_asn1_buf alg_oid;
 
-    memset(params, 0, sizeof(mbedtls_asn1_buf));
+    my_memset(params, 0, sizeof(mbedtls_asn1_buf));
 
     if ((ret = mbedtls_asn1_get_alg(p, end, &alg_oid, params)) != 0)
     {
@@ -150,8 +145,7 @@ static int pk_get_pk_alg(unsigned char **p,
     if (mbedtls_oid_get_pk_alg(&alg_oid, pk_alg) != 0) {
         return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
     }
-    */
-
+\   */
     /*
      * No parameters with RSA (only for EC)
      */
@@ -165,8 +159,7 @@ static int pk_get_pk_alg(unsigned char **p,
     return 0;
 }
 
-int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
-                               mbedtls_pk_context *pk)
+int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end, mbedtls_pk_context *pk)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len;
@@ -181,14 +174,19 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
     }
 
     end = *p + len;
+    // pk_alg = MBEDTLS_PK_ED25519;
 
     if ((ret = pk_get_pk_alg(p, end, &pk_alg, &alg_params)) != 0)
     {
         return ret;
     }
 
+    // end = *p - 32;
+    // len = 32;
+    //*p = *p -32;
+
     if ((ret = mbedtls_asn1_get_bitstring_null(p, end, &len)) != 0)
-    {
+    { // funzione che estrae la chiave pubblica
         return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_PK_INVALID_PUBKEY, ret);
     }
 
@@ -226,26 +224,26 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
     return ret;
 }
 
-int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
-                                const unsigned char *key, size_t keylen, int type_k)
+int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx, const unsigned char *key, size_t keylen, int type_k)
 {
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+    // int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     unsigned char *p;
     const mbedtls_pk_info_t *pk_info;
-    if (keylen == 0)
-    {
-        return MBEDTLS_ERR_PK_KEY_INVALID_FORMAT;
-    }
-
     if ((pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_ED25519)) == NULL)
     {
         return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
     }
-
-    if ((ret = mbedtls_pk_setup(ctx, pk_info)) != 0)
-    {
+    // assegna semplicemente il tipo di pk_info ritornato dalla funzione precedente a quello contenuto in ctx
+    //  ctx->pk_info = pk_info;
+    /*
+    if ((ret = mbedtls_pk_setup(ctx, pk_info)) != 0) {
         return ret;
-    }
+    }*/
+    // mbedtls_ed25519_context pk_ctx;
+    // mbedtls_ed25519_context *pk_ctx_point = &pk_ctx;
+    // ctx->pk_ctx = pk_ctx_point;
+    ctx->pk_info = pk_info;
 
     p = (unsigned char *)key;
 
@@ -263,8 +261,7 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
 }
 
 // pkwrite.c
-int mbedtls_pk_write_pubkey(unsigned char **p, unsigned char *start,
-                            const mbedtls_pk_context *key)
+int mbedtls_pk_write_pubkey(unsigned char **p, unsigned char *start, const mbedtls_pk_context *key)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
@@ -310,12 +307,6 @@ int mbedtls_pk_write_pubkey_der(const mbedtls_pk_context *key, unsigned char *bu
 
     oid = "{0x2B, 0x65, 0x70}";
     oid_len = 3;
-    /*
-    if ((ret = mbedtls_oid_get_oid_by_pk_alg(pk_type, &oid,
-                                             &oid_len)) != 0) {
-        return ret;
-    }
-    */
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_algorithm_identifier(&c, buf, oid, oid_len,
                                                                       par_len));

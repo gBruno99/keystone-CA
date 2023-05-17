@@ -42,7 +42,7 @@ typedef struct
     mbedtls_pk_type_t pk_alg;
 } oid_sig_alg_t;
 
-const oid_sig_alg_t oid_sig_alg[] = // new_impl
+static const oid_sig_alg_t oid_sig_alg[] =
     {
         {
             OID_DESCRIPTOR(MBEDTLS_OID_PKCS1_MD5, "md5WithRSAEncryption", "RSA with MD5"),
