@@ -1,3 +1,5 @@
+#include "custom_functions.h"
+
 // x509.c
 #define CHECK(code) if ((ret = (code)) != 0) { return ret; }
 #define CHECK_RANGE(min, max, val)                      \
@@ -351,46 +353,16 @@ int mbedtls_x509_get_sig(unsigned char **p, const unsigned char *end, mbedtls_x5
 
 int mbedtls_x509_get_sig_alg(const mbedtls_x509_buf *sig_oid, const mbedtls_x509_buf *sig_params,
                              mbedtls_md_type_t *md_alg, mbedtls_pk_type_t *pk_alg,
-                             void **sig_opts)
+                             void **sig_opts) // new_impl
 {
-    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    // int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
 
     if (*sig_opts != NULL) {
         return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
     }
 
-    if ((ret = mbedtls_oid_get_sig_alg(sig_oid, md_alg, pk_alg)) != 0) {
-        return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_UNKNOWN_SIG_ALG, ret);
-    }
-
-#if defined(MBEDTLS_X509_RSASSA_PSS_SUPPORT)
-    if (*pk_alg == MBEDTLS_PK_RSASSA_PSS) {
-        mbedtls_pk_rsassa_pss_options *pss_opts;
-
-        pss_opts = mbedtls_calloc(1, sizeof(mbedtls_pk_rsassa_pss_options));
-        if (pss_opts == NULL) {
-            return MBEDTLS_ERR_X509_ALLOC_FAILED;
-        }
-
-        ret = mbedtls_x509_get_rsassa_pss_params(sig_params,
-                                                 md_alg,
-                                                 &pss_opts->mgf1_hash_id,
-                                                 &pss_opts->expected_salt_len);
-        if (ret != 0) {
-            mbedtls_free(pss_opts);
-            return ret;
-        }
-
-        *sig_opts = (void *) pss_opts;
-    } else
-#endif /* MBEDTLS_X509_RSASSA_PSS_SUPPORT */
-    {
-        /* Make sure parameters are absent or NULL */
-        if ((sig_params->tag != MBEDTLS_ASN1_NULL && sig_params->tag != 0) ||
-            sig_params->len != 0) {
-            return MBEDTLS_ERR_X509_INVALID_ALG;
-        }
-    }
+    *pk_alg = MBEDTLS_PK_ED25519;
+    *md_alg = MBEDTLS_MD_SHA384;
 
     return 0;
 }
@@ -514,7 +486,7 @@ static const x509_attr_descriptor_t *x509_attr_descr_from_name(const char *name,
 
     for (cur = x509_attrs; cur->name != NULL; cur++) {
         if (cur->name_len == name_len &&
-            strncmp(cur->name, name, name_len) == 0) {
+            my_strncmp(cur->name, name, name_len) == 0) {
             break;
         }
     }
@@ -530,7 +502,7 @@ int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *nam
 {
     int ret = 0;
     const char *s = name, *c = s;
-    const char *end = s + strlen(s);
+    const char *end = s + my_strlen(s);
     const char *oid = NULL;
     const x509_attr_descriptor_t *attr_descr = NULL;
     int in_tag = 1;
@@ -563,7 +535,7 @@ int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *nam
             }
         } else if (!in_tag && (*c == ',' || c == end)) {
             mbedtls_asn1_named_data *cur =
-                mbedtls_asn1_store_named_data(head, oid, strlen(oid),
+                mbedtls_asn1_store_named_data(head, oid, my_strlen(oid),
                                               (unsigned char *) data,
                                               d - data);
 
@@ -610,7 +582,7 @@ int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, 
     }
 
     cur->val.p[0] = critical;
-    memcpy(cur->val.p + 1, val, val_len);
+    my_memcpy(cur->val.p + 1, val, val_len);
 
     return 0;
 }
@@ -681,7 +653,7 @@ int mbedtls_x509_write_sig(unsigned char **p, unsigned char *start,
 
     len = size;
     (*p) -= len;
-    memcpy(*p, sig, len);
+    my_memcpy(*p, sig, len);
 
     if (*p - start < 1) {
         return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;

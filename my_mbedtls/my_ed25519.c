@@ -1,3 +1,6 @@
+#include "custom_functions.h"
+#include "ed25519/ed25519.h"
+
 mbedtls_ed25519_context *mbedtls_pk_ed25519(const mbedtls_pk_context pk)
 {
     switch (mbedtls_pk_get_type(&pk))

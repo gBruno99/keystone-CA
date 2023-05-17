@@ -1,3 +1,5 @@
+#include "custom_functions.h"
+
 // asn1parse.c
 int mbedtls_asn1_get_len(unsigned char **p,
                          const unsigned char *end,
@@ -211,7 +213,8 @@ int mbedtls_asn1_get_alg(unsigned char **p,
     *p += alg->len;
 
     if (*p == end) {
-        mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
+        // mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
+        my_memset(params, 0x00, sizeof(mbedtls_asn1_buf));
         return 0;
     }
 
@@ -298,9 +301,11 @@ int mbedtls_asn1_write_len(unsigned char **p, const unsigned char *start, size_t
     }
 
     int len_is_valid = 1;
+    /* // new_impl
 #if SIZE_MAX > 0xFFFFFFFF
     len_is_valid = (len <= 0xFFFFFFFF);
 #endif
+    */
     if (len_is_valid) {
         if (*p - start < 5) {
             return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
@@ -339,7 +344,7 @@ int mbedtls_asn1_write_raw_buffer(unsigned char **p, const unsigned char *start,
 
     len = size;
     (*p) -= len;
-    memcpy(*p, buf, len);
+    my_memcpy(*p, buf, len);
 
     return (int) len;
 }
@@ -467,7 +472,7 @@ static mbedtls_asn1_named_data *asn1_find_named_data(
 {
     while (list != NULL) {
         if (list->oid.len == len &&
-            memcmp(list->oid.p, oid, len) == 0) {
+            my_memcmp(list->oid.p, oid, len) == 0) {
             break;
         }
 
@@ -501,7 +506,7 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
             return NULL;
         }
 
-        memcpy(cur->oid.p, oid, oid_len);
+        my_memcpy(cur->oid.p, oid, oid_len);
 
         cur->val.len = val_len;
         if (val_len != 0) {
@@ -535,7 +540,7 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
     }
 
     if (val != NULL && val_len != 0) {
-        memcpy(cur->val.p, val, val_len);
+        my_memcpy(cur->val.p, val, val_len);
     }
 
     return cur;
