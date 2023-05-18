@@ -340,6 +340,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
             return MBEDTLS_ERR_X509_ALLOC_FAILED;
         }
 
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("x509_crt_parse_der_core - calloc: %lu\n", crt->raw.len);
+        #endif
         my_memcpy(crt->raw.p, buf, crt->raw.len);
         crt->own_buffer = 1;
 
@@ -560,6 +563,9 @@ static int mbedtls_x509_crt_parse_der_internal(mbedtls_x509_crt *chain,
             return MBEDTLS_ERR_X509_ALLOC_FAILED;
         }
 
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_x509_crt_parse_der_internal - calloc: %lu\n", sizeof(mbedtls_x509_crt));
+        #endif
         prev = crt;
         mbedtls_x509_crt_init(crt->next);
         crt = crt->next;
@@ -573,6 +579,9 @@ static int mbedtls_x509_crt_parse_der_internal(mbedtls_x509_crt *chain,
 
         if (crt != chain) {
             mbedtls_free(crt);
+            #if MBEDTLS_DEBUG_PRINTS
+            my_printf("mbedtls_x509_crt_parse_der_internal - free: %lu\n", sizeof(mbedtls_x509_crt));
+            #endif
         }
 
         return ret;
@@ -615,6 +624,9 @@ void mbedtls_x509_crt_free(mbedtls_x509_crt *crt)
             // mbedtls_platform_zeroize(cert_cur->raw.p, cert_cur->raw.len);
             my_memset(cert_cur->raw.p, 0x00, cert_cur->raw.len);
             mbedtls_free(cert_cur->raw.p);
+            #if MBEDTLS_DEBUG_PRINTS
+            my_printf("mbedtls_x509_crt_free - free: %lu\n", cert_cur->raw.len);
+            #endif
         }
 
         cert_prv = cert_cur;
@@ -624,6 +636,9 @@ void mbedtls_x509_crt_free(mbedtls_x509_crt *crt)
         my_memset(cert_prv, 0x00, sizeof(mbedtls_x509_crt));
         if (cert_prv != crt) {
             mbedtls_free(cert_prv);
+            #if MBEDTLS_DEBUG_PRINTS
+            my_printf("mbedtls_x509_crt_free - free: %lu\n", sizeof(mbedtls_x509_crt));
+            #endif
         }
     }
 }
@@ -634,6 +649,16 @@ void mbedtls_x509write_crt_init(mbedtls_x509write_cert *ctx)
     my_memset(ctx, 0, sizeof(mbedtls_x509write_cert));
 
     ctx->version = MBEDTLS_X509_CRT_VERSION_3;
+}
+
+void mbedtls_x509write_crt_free(mbedtls_x509write_cert *ctx)
+{
+    mbedtls_asn1_free_named_data_list(&ctx->subject);
+    mbedtls_asn1_free_named_data_list(&ctx->issuer);
+    mbedtls_asn1_free_named_data_list(&ctx->extensions);
+
+    // mbedtls_platform_zeroize(ctx, sizeof(mbedtls_x509write_cert));
+    my_memset(ctx, 0x00, sizeof(mbedtls_x509write_cert));
 }
 
 void mbedtls_x509write_crt_set_md_alg(mbedtls_x509write_cert *ctx,
@@ -729,6 +754,9 @@ static int x509_write_time(unsigned char **p, unsigned char *start,
                                                          MBEDTLS_ASN1_GENERALIZED_TIME));
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_write_time - len = %d\n", len);
+    #endif
     return (int) len;
 }
 
@@ -763,6 +791,9 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     pk_alg = MBEDTLS_PK_ED25519;
     //    id-Ed25519   OBJECT IDENTIFIER ::= { 1 3 101 112 }
     mbedtls_oid_get_oid_by_sig_alg(pk_alg, ctx->md_alg, &sig_oid, &sig_oid_len);
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("sig_oid", (unsigned char*) sig_oid, sig_oid_len);
+    #endif
     // sig_oid = "{0x2B, 0x65, 0x70}";
     // sig_oid_len = 3;
 
@@ -787,6 +818,9 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
                                                     MBEDTLS_ASN1_CONSTRUCTED | 3));
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("len - extensions: %d\n", len);
+    #endif
     /*
      *  SubjectPublicKeyInfo
      */
@@ -796,6 +830,9 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     c -= pub_len;
     len += pub_len;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("len - subPKInfo: %d\n", len);
+    #endif
     /*
      *  Subject  ::=  Name
      */
@@ -803,6 +840,9 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
                          mbedtls_x509_write_names(&c, buf,
                                                   ctx->subject));
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("len - subject: %d\n", len);
+    #endif
     /*
      *  Validity ::= SEQUENCE {
      *       notBefore      Time,
@@ -825,19 +865,28 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
                                                 MBEDTLS_ASN1_CONSTRUCTED |
                                                 MBEDTLS_ASN1_SEQUENCE));
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("len - validity: %d\n", len);
+    #endif
     /*
      *  Issuer  ::=  Name
      */
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_x509_write_names(&c, buf,
                                                        ctx->issuer));
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("len - issuer: %d\n", len);
+    #endif
     /*
      *  Signature   ::=  AlgorithmIdentifier
      */
     MBEDTLS_ASN1_CHK_ADD(len,
                          mbedtls_asn1_write_algorithm_identifier(&c, buf,
-                                                                 sig_oid, my_strlen(sig_oid), 0));
+                                                                 sig_oid, sig_oid_len, 0));
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("len - aId: %d\n", len);
+    #endif
     /*
      *  Serial   ::=  INTEGER
      *
@@ -864,6 +913,9 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(&c, buf,
                                                      MBEDTLS_ASN1_INTEGER));
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("len - serial: %d\n", len);
+    #endif
     /*
      *  Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
      */
@@ -887,6 +939,9 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
                          mbedtls_asn1_write_tag(&c, buf, MBEDTLS_ASN1_CONSTRUCTED |
                                                 MBEDTLS_ASN1_SEQUENCE));
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("len - version: %d\n", len);
+    #endif
     /* *
      *
      * Fase di firma, svolta con le funzioni già presenti in keystone
@@ -952,6 +1007,9 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
                                                      MBEDTLS_ASN1_CONSTRUCTED |
                                                      MBEDTLS_ASN1_SEQUENCE));
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("len - signature: %d\n", len);
+    #endif
     return (int) len;
 }
 

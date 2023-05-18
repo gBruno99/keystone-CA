@@ -182,6 +182,9 @@ void mbedtls_asn1_sequence_free(mbedtls_asn1_sequence *seq)
     while (seq != NULL) {
         mbedtls_asn1_sequence *next = seq->next;
         mbedtls_free(seq);
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_sequence_free - free: %lu\n", sizeof(mbedtls_asn1_sequence));
+        #endif
         seq = next;
     }
 }
@@ -242,8 +245,17 @@ void mbedtls_asn1_free_named_data_list(mbedtls_asn1_named_data **head)
     while ((cur = *head) != NULL) {
         *head = cur->next;
         mbedtls_free(cur->oid.p);
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_free_named_data_list - free: %lu\n", cur->oid.len);
+        #endif
         mbedtls_free(cur->val.p);
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_free_named_data_list - free: %lu\n", cur->val.len);
+        #endif
         mbedtls_free(cur);
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_free_named_data_list - free: %lu\n", sizeof(mbedtls_asn1_named_data));
+        #endif
     }
 }
 
@@ -252,12 +264,18 @@ void mbedtls_asn1_free_named_data_list_shallow(mbedtls_asn1_named_data *name)
     for (mbedtls_asn1_named_data *next; name != NULL; name = next) {
         next = name->next;
         mbedtls_free(name);
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_free_named_data_list_shallow - free: %lu\n", sizeof(mbedtls_asn1_named_data));
+        #endif
     }
 }
 
 // asn1write.c
 int mbedtls_asn1_write_len(unsigned char **p, const unsigned char *start, size_t len)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_write_len - len = %lu\n", len);
+    #endif
     if (len < 0x80) {
         if (*p - start < 1) {
             return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
@@ -324,6 +342,9 @@ int mbedtls_asn1_write_len(unsigned char **p, const unsigned char *start, size_t
 
 int mbedtls_asn1_write_tag(unsigned char **p, const unsigned char *start, unsigned char tag)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_write_tag - tag = %02x\n", tag);
+    #endif
     if (*p - start < 1) {
         return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
     }
@@ -336,6 +357,9 @@ int mbedtls_asn1_write_tag(unsigned char **p, const unsigned char *start, unsign
 int mbedtls_asn1_write_raw_buffer(unsigned char **p, const unsigned char *start,
                                   const unsigned char *buf, size_t size)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("mbedtls_asn1_write_raw_buffer - buf", (unsigned char *) buf, (int)size);
+    #endif
     size_t len = 0;
 
     if (*p < start || (size_t) (*p - start) < size) {
@@ -351,6 +375,9 @@ int mbedtls_asn1_write_raw_buffer(unsigned char **p, const unsigned char *start,
 
 int mbedtls_asn1_write_null(unsigned char **p, const unsigned char *start)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_write_null\n");
+    #endif
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
 
@@ -365,6 +392,9 @@ int mbedtls_asn1_write_null(unsigned char **p, const unsigned char *start)
 int mbedtls_asn1_write_oid(unsigned char **p, const unsigned char *start,
                            const char *oid, size_t oid_len)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("mbedtls_asn1_write_oid - buf", (unsigned char *)oid, (int)oid_len);
+    #endif
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
 
@@ -380,6 +410,9 @@ int mbedtls_asn1_write_algorithm_identifier(unsigned char **p, const unsigned ch
                                             const char *oid, size_t oid_len,
                                             size_t par_len)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_write_algorithm_identifier\n");
+    #endif
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
 
@@ -401,6 +434,9 @@ int mbedtls_asn1_write_algorithm_identifier(unsigned char **p, const unsigned ch
 
 int mbedtls_asn1_write_bool(unsigned char **p, const unsigned char *start, int boolean)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_write_bool - bool = %d\n", boolean);
+    #endif
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
 
@@ -419,6 +455,9 @@ int mbedtls_asn1_write_bool(unsigned char **p, const unsigned char *start, int b
 
 static int asn1_write_tagged_int(unsigned char **p, const unsigned char *start, int val, int tag)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("asn1_write_tagged_int - val = %d, tag = %d\n", val, tag);
+    #endif
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
 
@@ -447,12 +486,19 @@ static int asn1_write_tagged_int(unsigned char **p, const unsigned char *start, 
 
 int mbedtls_asn1_write_int(unsigned char **p, const unsigned char *start, int val)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_write_int - val = %d\n", val);
+    #endif
     return asn1_write_tagged_int(p, start, val, MBEDTLS_ASN1_INTEGER);
 }
 
 int mbedtls_asn1_write_tagged_string(unsigned char **p, const unsigned char *start, int tag,
                                      const char *text, size_t text_len)
 {
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("mbedtls_asn1_write_tagged_string - buf", (unsigned char*)text, text_len);
+    my_printf("mbedtls_asn1_write_tagged_string - tag = %d\n", tag);
+    #endif
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
 
@@ -499,12 +545,23 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
             return NULL;
         }
 
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_store_named_data - calloc: %lu\n", sizeof(mbedtls_asn1_named_data));
+        #endif
+
         cur->oid.len = oid_len;
         cur->oid.p = mbedtls_calloc(1, oid_len);
         if (cur->oid.p == NULL) {
             mbedtls_free(cur);
+            #if MBEDTLS_DEBUG_PRINTS
+            my_printf("mbedtls_asn1_store_named_data - free: %lu\n", sizeof(mbedtls_asn1_named_data));
+            #endif
             return NULL;
         }
+
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_store_named_data - calloc: %lu\n", oid_len);
+        #endif
 
         my_memcpy(cur->oid.p, oid, oid_len);
 
@@ -513,15 +570,27 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
             cur->val.p = mbedtls_calloc(1, val_len);
             if (cur->val.p == NULL) {
                 mbedtls_free(cur->oid.p);
+                #if MBEDTLS_DEBUG_PRINTS
+                my_printf("mbedtls_asn1_store_named_data - free: %lu\n", cur->val.len);
+                #endif
                 mbedtls_free(cur);
+                #if MBEDTLS_DEBUG_PRINTS
+                my_printf("mbedtls_asn1_store_named_data - free: %lu\n", sizeof(mbedtls_asn1_named_data));
+                #endif
                 return NULL;
             }
+            #if MBEDTLS_DEBUG_PRINTS
+            my_printf("mbedtls_asn1_store_named_data - calloc: %lu\n", val_len);
+            #endif
         }
 
         cur->next = *head;
         *head = cur;
     } else if (val_len == 0) {
         mbedtls_free(cur->val.p);
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_store_named_data - free: %lu\n", cur->val.len);
+        #endif
         cur->val.p = NULL;
     } else if (cur->val.len != val_len) {
         /*
@@ -534,7 +603,13 @@ mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(
             return NULL;
         }
 
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_store_named_data - calloc: %lu\n", val_len);
+        #endif
         mbedtls_free(cur->val.p);
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("mbedtls_asn1_store_named_data - free: %lu\n", cur->val.len);
+        #endif
         cur->val.p = p;
         cur->val.len = val_len;
     }

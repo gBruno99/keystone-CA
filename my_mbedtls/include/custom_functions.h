@@ -2,6 +2,8 @@
 #define CUSTOM_MBEDTLS_FUNCTIONS_H
 #include "custom_x509.h"
 #include "custom_string.h"
+#include "printf.h"
+#define MBEDTLS_DEBUG_PRINTS 1
 
 // asn1.h
 int mbedtls_asn1_get_len(unsigned char **p, const unsigned char *end, size_t *len);
@@ -82,6 +84,7 @@ void mbedtls_x509_crt_init(mbedtls_x509_crt *crt);
 void mbedtls_x509_crt_free(mbedtls_x509_crt *crt);
 
 void mbedtls_x509write_crt_init(mbedtls_x509write_cert *ctx);
+void mbedtls_x509write_crt_free(mbedtls_x509write_cert *ctx);
 void mbedtls_x509write_crt_set_md_alg(mbedtls_x509write_cert *ctx, mbedtls_md_type_t md_alg);
 void mbedtls_x509write_crt_set_subject_key(mbedtls_x509write_cert *ctx, mbedtls_pk_context *key);
 void mbedtls_x509write_crt_set_issuer_key(mbedtls_x509write_cert *ctx, mbedtls_pk_context *key);

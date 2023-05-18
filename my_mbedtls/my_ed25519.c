@@ -101,6 +101,10 @@ int pk_write_ed25519_pubkey(unsigned char **p, unsigned char *start, mbedtls_ed2
     }
     *p -= len;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("pk_write_ed25519_pubkey - pk", buf, len);
+    my_printf("pk_write_ed25519_pubkey - len = %d\n", len);
+    #endif
     my_memcpy(*p, buf, len);
     return (int)len;
 }
@@ -265,6 +269,9 @@ void *ed25519_alloc_wrap(void)
     {
         mbedtls_ed25519_init((mbedtls_ed25519_context *)ctx);
     }
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("ed25519_alloc_wrap - calloc: %lu\n", sizeof(mbedtls_ed25519_context));
+    #endif
     return ctx;
 }
 
@@ -272,4 +279,7 @@ void ed25519_free_wrap(void *ctx)
 {
     mbedtls_ed25519_free((mbedtls_ed25519_context *)ctx);
     mbedtls_free(ctx);
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("ed25519_free_wrap - free: %lu\n", sizeof(mbedtls_ed25519_context));
+    #endif
 }

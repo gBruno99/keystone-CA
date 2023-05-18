@@ -49,10 +49,16 @@ const mbedtls_pk_info_t *mbedtls_pk_info_from_type(mbedtls_pk_type_t pk_type) //
 int mbedtls_pk_setup(mbedtls_pk_context *ctx, const mbedtls_pk_info_t *info)
 {
     if (info == NULL || ctx->pk_info != NULL) {
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("PK - pk setup: err 1\n");
+        #endif
         return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
     }
 
     if ((ctx->pk_ctx = info->ctx_alloc_func()) == NULL) {
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("PK - pk setup: err 2\n");
+        #endif
         return MBEDTLS_ERR_PK_ALLOC_FAILED;
     }
 
@@ -217,14 +223,27 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
     unsigned char *p;
     const mbedtls_pk_info_t *pk_info;
     if (keylen == 0) {
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("PK - parse pk: err 1\n");
+        #endif
         return MBEDTLS_ERR_PK_KEY_INVALID_FORMAT;
     }
 
     if ((pk_info = mbedtls_pk_info_from_type(MBEDTLS_PK_ED25519)) == NULL) {
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("PK - parse pk: err 2\n");
+        #endif
         return MBEDTLS_ERR_PK_UNKNOWN_PK_ALG;
     }
 
-    if ((ret = mbedtls_pk_setup(ctx, pk_info)) != 0) {
+    if(ctx->pk_info != NULL && ctx->pk_info != pk_info) {
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    }
+
+    if (ctx->pk_info == NULL && (ret = mbedtls_pk_setup(ctx, pk_info)) != 0) {
+        #if MBEDTLS_DEBUG_PRINTS
+        my_printf("PK - parse pk: err 3\n");
+        #endif
         return ret;
     }
 
@@ -255,6 +274,9 @@ int mbedtls_pk_write_pubkey(unsigned char **p, unsigned char *start,
         return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
 
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_pk_write_pubkey - len = %d\n", len);
+    #endif
 
     return (int) len;
 }
@@ -308,6 +330,9 @@ int mbedtls_pk_write_pubkey_der(const mbedtls_pk_context *key, unsigned char *bu
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(&c, buf, MBEDTLS_ASN1_CONSTRUCTED |
                                                      MBEDTLS_ASN1_SEQUENCE));
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_pk_write_pubkey_der - len = %d\n", len);
+    #endif
     return (int) len;
 }
 
