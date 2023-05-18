@@ -98,6 +98,10 @@ int vsnprintf(char* buffer, size_t count, const char* format, va_list va);
 int fctprintf(void (*out)(char character, void* arg), void* arg, const char* format, ...);
 
 
+int my_printf(const char* format, ...);
+
+int print_hex_string(char* name, unsigned char* value, int size);
+
 #ifdef __cplusplus
 }
 #endif

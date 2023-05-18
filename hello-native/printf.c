@@ -33,6 +33,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "printf.h"
+#include "app/syscall.h"
 //#include "call/sbi.h"
 
 // ntoa conversion buffer size, this must be big enough to hold
@@ -722,4 +723,26 @@ int fctprintf(void (*out)(char character, void* arg), void* arg, const char* for
   const int ret = _vsnprintf(_out_fct, (char*)&out_fct_wrap, (size_t)-1, format, va);
   va_end(va);
   return ret;
+}
+
+int my_printf(const char* format, ...){
+  int len;
+  va_list va;
+  va_start(va, format);
+  char buffer[512];
+  len = vsnprintf(buffer, 512, format, va);
+  va_end(va);
+  rt_print_string(buffer, len+1);
+  return len;
+}
+
+int print_hex_string(char* name, unsigned char* value, int size){
+  my_printf("%s: 0x", name);
+  for(int i = 0; i< size; i++){
+    my_printf("%02x", value[i]);
+  }
+  my_printf("\n");
+  my_printf("%s_len: %d\n", name, size);
+  my_printf("\n");
+  return 0;
 }
