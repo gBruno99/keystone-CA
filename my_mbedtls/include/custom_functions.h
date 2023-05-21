@@ -3,7 +3,7 @@
 #include "custom_x509.h"
 #include "custom_string.h"
 #include "printf.h"
-#define MBEDTLS_DEBUG_PRINTS 1
+#define MBEDTLS_DEBUG_PRINTS 0
 
 // asn1.h
 int mbedtls_asn1_get_len(unsigned char **p, const unsigned char *end, size_t *len);

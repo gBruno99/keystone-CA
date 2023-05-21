@@ -159,6 +159,9 @@ static int pk_get_pk_alg(unsigned char **p,
         return MBEDTLS_ERR_PK_INVALID_ALG;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("pk_get_pk_alg\n");
+    #endif
     return 0;
 }
 
@@ -213,6 +216,10 @@ int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
         mbedtls_pk_free(pk);
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_pk_parse_subpubkey - %s\n", pk->pk_info->name);
+    print_hex_string("mbedtls_pk_parse_subpubkey - pk",mbedtls_pk_ed25519(*pk)->pub_key, PUBLIC_KEY_SIZE);
+    #endif 
     return ret;
 }
 

@@ -32,6 +32,9 @@ static int x509_get_version(unsigned char **p,
                                  MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_get_version - int = %d\n", *ver);
+    #endif
     return 0;
 }
 
@@ -63,6 +66,12 @@ static int x509_get_dates(unsigned char **p,
                                  MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_get_dates - from\n- year: %d, mon: %d, day: %d\n- hour: %d, min: %d, sec: %d\n", 
+        from->year, from->mon, from->day, from->hour, from->min, from->sec);
+    my_printf("x509_get_dates - to\n- year: %d, mon: %d, day: %d\n- hour: %d, min: %d, sec: %d\n", 
+        to->year, to->mon, to->day, to->hour, to->min, to->sec);
+    #endif
     return 0;
 }
 
@@ -91,6 +100,10 @@ static int x509_get_uid(unsigned char **p,
     uid->p = *p;
     *p += uid->len;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("x509_get_uid - uid", uid->p, uid->len);
+    my_printf("x509_get_uid - uid_tag = %02x\n", uid->tag);
+    #endif
     return 0;
 }
 
@@ -104,6 +117,9 @@ static int x509_get_crt_ext(unsigned char **p,
     size_t len;
     unsigned char *end_ext_data /**start_ext_octet*/, *end_ext_octet;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_get_crt_ext\n");
+    #endif
     if (*p == end) {
         return 0;
     }
@@ -319,6 +335,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
     len = buflen;
     end = p + len;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_crt_parse_der_core - certificate\n");
+    #endif
     /*
      * Certificate  ::=  SEQUENCE  {
      *      tbsCertificate       TBSCertificate,
@@ -353,6 +372,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
         crt->own_buffer = 0;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_crt_parse_der_core - tbs cert\n");
+    #endif
     /*
      * TBSCertificate  ::=  SEQUENCE  {
      */
@@ -367,6 +389,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
     end = p + len;
     crt->tbs.len = end - crt->tbs.p;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_crt_parse_der_core - version\n");
+    #endif
     /*
      * Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
      *
@@ -396,6 +421,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
         return ret;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_crt_parse_der_core - issuer\n");
+    #endif
     /*
      * issuer               Name
      */
@@ -414,6 +442,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
 
     crt->issuer_raw.len = p - crt->issuer_raw.p;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_crt_parse_der_core - validity\n");
+    #endif
     /*
      * Validity ::= SEQUENCE {
      *      notBefore      Time,
@@ -426,6 +457,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
         return ret;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_crt_parse_der_core - subject\n");
+    #endif
     /*
      * subject              Name
      */
@@ -444,6 +478,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
 
     crt->subject_raw.len = p - crt->subject_raw.p;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_crt_parse_der_core - subPKInfo\n");
+    #endif
     /*
      * SubjectPublicKeyInfo
      */
@@ -454,6 +491,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
     }
     crt->pk_raw.len = p - crt->pk_raw.p;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_crt_parse_der_core - uid and exts\n");
+    #endif
     /*
      *  issuerUniqueID  [1]  IMPLICIT UniqueIdentifier OPTIONAL,
      *                       -- If present, version shall be v2 or v3
@@ -494,6 +534,9 @@ static int x509_crt_parse_der_core(mbedtls_x509_crt *crt,
 
     end = crt_end;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_crt_parse_der_core - signature\n");
+    #endif
     /*
      *  }
      *  -- end of TBSCertificate

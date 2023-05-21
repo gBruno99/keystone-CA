@@ -227,7 +227,7 @@ typedef enum {
     MBEDTLS_MD_SHA384,    /**< The SHA-384 message digest. */
     MBEDTLS_MD_SHA512,    /**< The SHA-512 message digest. */
     MBEDTLS_MD_RIPEMD160, /**< The RIPEMD-160 message digest. */
-    MBEDTLS_MD_SHA3 //new_impl
+    MBEDTLS_MD_KEYSTONE_SHA3 //new_impl
 } mbedtls_md_type_t;
 
 #define MBEDTLS_MD_CAN_MD5

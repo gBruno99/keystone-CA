@@ -36,6 +36,10 @@ int mbedtls_x509_get_serial(unsigned char **p, const unsigned char *end,
     serial->p = *p;
     *p += serial->len;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("mbedtls_x509_get_serial - serial", serial->p, serial->len);
+    my_printf("mbedtls_x509_get_serial - serial_tag = %02x\n", serial->tag);
+    #endif
     return 0;
 }
 
@@ -48,6 +52,12 @@ int mbedtls_x509_get_alg(unsigned char **p, const unsigned char *end,
         return MBEDTLS_ERROR_ADD(MBEDTLS_ERR_X509_INVALID_ALG, ret);
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("mbedtls_x509_get_alg - alg", alg->p, alg->len);
+    my_printf("mbedtls_x509_get_alg - alg_tag = %02x\n", alg->tag);
+    print_hex_string("mbedtls_x509_get_alg - params", params->p, params->len);
+    my_printf("mbedtls_x509_get_alg - params_tag = %02x\n", params->tag);
+    #endif
     return 0;
 }
 
@@ -112,6 +122,14 @@ static int x509_get_attr_type_value(unsigned char **p,
 
     cur->next = NULL;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("x509_get_attr_type_value - cur->oid", cur->oid.p, cur->oid.len);
+    my_printf("x509_get_attr_type_value - cur->oid_tag = %02x\n", cur->oid.tag);
+    print_hex_string("x509_get_attr_type_value - cur->val", cur->val.p, cur->val.len);
+    my_printf("x509_get_attr_type_value - cur->val = %02x\n", cur->val.tag);
+    my_printf("x509_get_attr_type_value - cur->val_next = %p\n", cur->next);
+    #endif
+
     return 0;
 }
 
@@ -165,6 +183,13 @@ int mbedtls_x509_get_name(unsigned char **p, const unsigned char *end,
          * continue until end of SEQUENCE is reached
          */
         if (*p == end) {
+            #if MBEDTLS_DEBUG_PRINTS
+            print_hex_string("mbedtls_x509_get_name - cur->oid", cur->oid.p, cur->oid.len);
+            my_printf("mbedtls_x509_get_name - cur->oid_tag = %02x\n", cur->oid.tag);
+            print_hex_string("mbedtls_x509_get_name - cur->val", cur->val.p, cur->val.len);
+            my_printf("mbedtls_x509_get_name - cur->val = %02x\n", cur->val.tag);
+            my_printf("mbedtls_x509_get_name - cur->val_next = %p\n", cur->next);
+            #endif
             return 0;
         }
 
@@ -202,6 +227,9 @@ static int x509_parse_int(unsigned char **p, size_t n, int *res)
         *res += (*(*p)++ - '0');
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_parse_int - int: %d\n", *res);
+    #endif
     return 0;
 }
 
@@ -295,6 +323,10 @@ static int x509_parse_time(unsigned char **p, size_t len, size_t yearlen,
 
     CHECK(x509_date_is_valid(tm));
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("x509_parse_time - tm\n- year: %d, mon: %d, day: %d\n- hour: %d, min: %d, sec: %d\n", 
+        tm->year, tm->mon, tm->day, tm->hour, tm->min, tm->sec);
+    #endif
     return 0;
 }
 
@@ -354,6 +386,10 @@ int mbedtls_x509_get_sig(unsigned char **p, const unsigned char *end, mbedtls_x5
 
     *p += len;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("mbedtls_x509_get_sig - sig", sig->p, sig->len);
+    my_printf("mbedtls_x509_get_sig - sig_tag = %02x\n", sig->tag);
+    #endif
     return 0;
 }
 
@@ -368,8 +404,11 @@ int mbedtls_x509_get_sig_alg(const mbedtls_x509_buf *sig_oid, const mbedtls_x509
     }
 
     *pk_alg = MBEDTLS_PK_ED25519;
-    *md_alg = MBEDTLS_MD_SHA384;
+    *md_alg = MBEDTLS_MD_KEYSTONE_SHA3;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_x509_get_sig_alg\n");
+    #endif
     return 0;
 }
 
@@ -405,6 +444,10 @@ int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *end,
                                  MBEDTLS_ERR_ASN1_LENGTH_MISMATCH);
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("mbedtls_x509_get_ext - ext", ext->p, ext->len);
+    my_printf("mbedtls_x509_get_ext - ext_tag = %02x\n", ext->tag);
+    #endif
     return 0;
 }
 

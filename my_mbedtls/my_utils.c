@@ -20,7 +20,7 @@ const oid_sig_alg_t oid_sig_alg[] = // new_impl
         },
         {
             OID_DESCRIPTOR("\x2B\x65\x70", "ed25519", "ed25519 with sha3"),
-            MBEDTLS_MD_SHA512,
+            MBEDTLS_MD_KEYSTONE_SHA3,
             MBEDTLS_PK_ED25519,
         },
 };
@@ -36,7 +36,7 @@ FN_OID_GET_OID_BY_ATTR2(mbedtls_oid_get_oid_by_sig_alg,
 // hash_info.c
 unsigned char mbedtls_hash_info_get_size(mbedtls_md_type_t md_type) // new_impl
 {
-    if (md_type == MBEDTLS_MD_SHA3) // MBEDTLS_MD_SHA512 ??
+    if (md_type == MBEDTLS_MD_KEYSTONE_SHA3) // MBEDTLS_MD_SHA512 ??
         return MBEDTLS_HASH_MAX_SIZE;
     return 0;
 }

@@ -60,6 +60,9 @@ int mbedtls_asn1_get_len(unsigned char **p,
         return MBEDTLS_ERR_ASN1_OUT_OF_DATA;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_get_len - len = %lu\n", *len);
+    #endif
     return 0;
 }
 
@@ -77,6 +80,9 @@ int mbedtls_asn1_get_tag(unsigned char **p,
 
     (*p)++;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_get_tag - tag = %02x\n", tag);
+    #endif
     return mbedtls_asn1_get_len(p, end, len);
 }
 
@@ -98,6 +104,9 @@ int mbedtls_asn1_get_bool(unsigned char **p,
     *val = (**p != 0) ? 1 : 0;
     (*p)++;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_get_bool - bool = %d\n", *val);
+    #endif
     return 0;
 }
 
@@ -145,6 +154,9 @@ static int asn1_get_tagged_int(unsigned char **p,
         (*p)++;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("asn1_get_tagged_int - int = %d\n", *val);
+    #endif
     return 0;
 }
 
@@ -173,6 +185,10 @@ int mbedtls_asn1_get_bitstring_null(unsigned char **p, const unsigned char *end,
         return MBEDTLS_ERR_ASN1_INVALID_DATA;
     }
     ++(*p);
+
+    #if MBEDTLS_DEBUG_PRINTS
+    my_printf("mbedtls_asn1_get_bitstring_null - len = %lu\n", *len);
+    #endif
 
     return 0;
 }
@@ -215,6 +231,11 @@ int mbedtls_asn1_get_alg(unsigned char **p,
     alg->p = *p;
     *p += alg->len;
 
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("mbedtls_asn1_get_alg - alg", alg->p, alg->len);
+    my_printf("mbedtls_asn1_get_alg - alg_tag = %02x\n", alg->tag);
+    #endif
+
     if (*p == end) {
         // mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
         my_memset(params, 0x00, sizeof(mbedtls_asn1_buf));
@@ -234,6 +255,11 @@ int mbedtls_asn1_get_alg(unsigned char **p,
     if (*p != end) {
         return MBEDTLS_ERR_ASN1_LENGTH_MISMATCH;
     }
+
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("mbedtls_asn1_get_alg - params", params->p, params->len);
+    my_printf("mbedtls_asn1_get_alg - params_tag = %02x\n", params->tag);
+    #endif
 
     return 0;
 }
