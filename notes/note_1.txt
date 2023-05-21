@@ -1,0 +1,195 @@
+// generated
+0x3081e8
+  308199a003020102
+  020400ffffff
+  300706032b65700500
+  301731153013060355040a0c0c4d616e756661637475726572
+  301e170d3232303130313030303030305a170d3233303130313030303030305a
+  301831163014060355040a
+  0c0d526f6f74206f66207472757374 (<- wrong)
+  302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4c
+  a3023000
+  300706032b65700500034100
+  974e19209bf718db62660954facf19fda94d7c5d9bdb3cd5b46c9796babc1d22e7d0b7df8a2e1211f41ebb7b72e9474c7c9799512893b58f08388136bf773506
+
+// cert man
+0x3081e7
+  308198a003020102
+  020400ffffff
+  300706032b65700500
+  301731153013060355040a0c0c4d616e756661637475726572
+  301e170d3232303130313030303030305a170d3233303130313030303030305a
+  301731153013060355040a 
+  0c0c4d616e7566616374726572
+  302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4c
+  a3023000 
+  300706032b65700500034100
+  1c1850aa2ce64471a51b142770b29048df9deffe9308d69d56d694b6f4843db049428bfdfaf6dce8d00237913865857519d2d316a7cc99de09834546ecd4c00a
+
+
+// output
+cert_3: 0x3081e7308198a003020102020400ffffff300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301731153013060355040a0c0c4d616e756661637475726572302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000300706032b657005000341001c1850aa2ce64471a51b142770b29048df9deffe9308d69d56d694b6f4843db049428bfdfaf6dce8d00237913865857519d2d316a7cc99de09834546ecd4c00a
+cert_3_len: 234
+
+
+sig_oid: 0x2b6570
+sig_oid_len: 3
+
+buf: ||30|81e8
+     ||30|8199|a0|03|02|01|02
+     ||02|04|00|ffffff
+     ||30|07|06|03|2b6570|05|00
+     ||30|17|31|15|30|13|06|03|55040a|0c|0c|4d616e756661637475726572
+     ||30|1e|17|0d|3232303130313030303030305a|17|0d|3233303130313030303030305a
+     ||30|18|31|16|30|14|06|03|55040a|0c|0d|526f6f74206f66207472757374
+     ||30|2c|30|07|06|03|7b3078|05|00|03|21|00|0faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4c
+     ||a3|02|30|00
+     ||30|07|06|03|2b6570|05|00|03|41|00|sig
+
+mbedtls_x509_write_extensions - len = 0
+mbedtls_asn1_write_len - len = 0
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_asn1_write_len - len = 2
+mbedtls_asn1_write_tag - tag = a3
+len - extensions: 4
+
+pk_write_ed25519_pubkey - pk: 0x0faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4c
+pk_write_ed25519_pubkey - pk_len: 32
+pk_write_ed25519_pubkey - len = 32
+mbedtls_pk_write_pubkey - len = 32
+mbedtls_asn1_write_len - len = 33
+mbedtls_asn1_write_tag - tag = 03
+mbedtls_asn1_write_algorithm_identifier
+mbedtls_asn1_write_null
+mbedtls_asn1_write_len - len = 0
+mbedtls_asn1_write_tag - tag = 05
+mbedtls_asn1_write_oid - buf: 0x7b3078
+mbedtls_asn1_write_oid - buf_len: 3
+mbedtls_asn1_write_raw_buffer - buf: 0x7b3078
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = 06
+mbedtls_asn1_write_len - len = 7
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_asn1_write_len - len = 44
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_pk_write_pubkey_der - len = 46
+len - subPKInfo: 50
+
+mbedtls_asn1_write_tagged_string - buf: 0x526f6f74206f66207472757374
+mbedtls_asn1_write_tagged_string - buf_len: 13
+mbedtls_asn1_write_tagged_string - tag = 12
+mbedtls_asn1_write_raw_buffer - buf: 0x526f6f74206f66207472757374
+mbedtls_asn1_write_raw_buffer - buf_len: 13
+mbedtls_asn1_write_len - len = 13
+mbedtls_asn1_write_tag - tag = 0c
+mbedtls_asn1_write_oid - buf: 0x55040a
+mbedtls_asn1_write_oid - buf_len: 3
+mbedtls_asn1_write_raw_buffer - buf: 0x55040a
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = 06
+mbedtls_asn1_write_len - len = 20
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_asn1_write_len - len = 22
+mbedtls_asn1_write_tag - tag = 31
+x509_write_name - len = 24
+mbedtls_asn1_write_len - len = 24
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_x509_write_names - len = 26
+len - subject: 76
+
+mbedtls_asn1_write_raw_buffer - buf: 0x3233303130313030303030305a
+mbedtls_asn1_write_raw_buffer - buf_len: 13
+mbedtls_asn1_write_len - len = 13
+mbedtls_asn1_write_tag - tag = 17
+x509_write_time - len = 15
+mbedtls_asn1_write_raw_buffer - buf: 0x3232303130313030303030305a
+mbedtls_asn1_write_raw_buffer - buf_len: 13
+mbedtls_asn1_write_len - len = 13
+mbedtls_asn1_write_tag - tag = 17
+x509_write_time - len = 15
+mbedtls_asn1_write_len - len = 30
+mbedtls_asn1_write_tag - tag = 30
+len - validity: 108
+
+mbedtls_asn1_write_tagged_string - buf: 0x4d616e756661637475726572
+mbedtls_asn1_write_tagged_string - buf_len: 12
+mbedtls_asn1_write_tagged_string - tag = 12
+mbedtls_asn1_write_raw_buffer - buf: 0x4d616e756661637475726572
+mbedtls_asn1_write_raw_buffer - buf_len: 12
+mbedtls_asn1_write_len - len = 12
+mbedtls_asn1_write_tag - tag = 0c
+mbedtls_asn1_write_oid - buf: 0x55040a
+mbedtls_asn1_write_oid - buf_len: 3
+mbedtls_asn1_write_raw_buffer - buf: 0x55040a
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = 06
+mbedtls_asn1_write_len - len = 19
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_asn1_write_len - len = 21
+mbedtls_asn1_write_tag - tag = 31
+x509_write_name - len = 23
+mbedtls_asn1_write_len - len = 23
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_x509_write_names - len = 25
+len - issuer: 133
+
+mbedtls_asn1_write_algorithm_identifier
+mbedtls_asn1_write_null
+mbedtls_asn1_write_len - len = 0
+mbedtls_asn1_write_tag - tag = 05
+mbedtls_asn1_write_oid - buf: 0x2b6570
+mbedtls_asn1_write_oid - buf_len: 3
+mbedtls_asn1_write_raw_buffer - buf: 0x2b6570
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = 06
+mbedtls_asn1_write_len - len = 7
+mbedtls_asn1_write_tag - tag = 30
+len - aId: 142
+
+mbedtls_asn1_write_raw_buffer - buf: 0xffffff
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 4
+mbedtls_asn1_write_tag - tag = 02
+len - serial: 148
+
+mbedtls_asn1_write_int - val = 2
+asn1_write_tagged_int - val = 2, tag = 2
+mbedtls_asn1_write_len - len = 1
+mbedtls_asn1_write_tag - tag = 02
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = a0
+mbedtls_asn1_write_len - len = 153
+mbedtls_asn1_write_tag - tag = 30
+len - version: 156
+
+mbedtls_asn1_write_len - len = 65
+mbedtls_asn1_write_tag - tag = 03
+mbedtls_asn1_write_algorithm_identifier
+mbedtls_asn1_write_null
+mbedtls_asn1_write_len - len = 0
+mbedtls_asn1_write_tag - tag = 05
+mbedtls_asn1_write_oid - buf: 0x2b6570
+mbedtls_asn1_write_oid - buf_len: 3
+mbedtls_asn1_write_raw_buffer - buf: 0x2b6570
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = 06
+mbedtls_asn1_write_len - len = 7
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_x509_write_sig - len = 76
+
+mbedtls_asn1_write_len - len = 232
+mbedtls_asn1_write_tag - tag = 30
+len - signature: 235
+
+
+Cert generated: 0x3081e8308199a003020102020400ffffff300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301831163014060355040a0c0d526f6f74206f66207472757374302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000300706032b65700500034100974e19209bf718db62660954facf19fda94d7c5d9bdb3cd5b46c9796babc1d22e7d0b7df8a2e1211f41ebb7b72e9474c7c9799512893b58f08388136bf773506
+Cert generated_len: 235
+
+
+0x3081e7308198a003020102020400ffffff300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301731153013060355040a0c0c4d616e756661637475726572302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000300706032b657005000341001c1850aa2ce64471a51b142770b29048df9deffe9308d69d56d694b6f4843db049428bfdfaf6dce8d00237913865857519d2d316a7cc99de09834546ecd4c00a
+0x3081e7308198a003020102020400ffffff300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301731153013060355040a0c0c4d616e756661637475726572302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000300706032b657005000341001c1850aa2ce64471a51b142770b29048df9deffe9308d69d56d694b6f4843db049428bfdfaf6dce8d00237913865857519d2d316a7cc99de09834546ecd4c00a

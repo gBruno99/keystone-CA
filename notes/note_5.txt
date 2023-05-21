@@ -1,0 +1,171 @@
+cert_1: 0x308201343081e5a0030201020203000001300706032b65700500301831163014060355040a0c0d526f6f74206f66205472757374301e170d3232303130313030303030305a170d3233303130313030303030305a301b31193017060355040a0c105365637572697479204d6f6e69746f72302c300706037b3078050003210021542a4631476f24971ddea8e8f32569c039181ee06648648009144245ad7fd9a34b304930470603ff20ff04400793eabb15cf1dddcddf4b50e6977e3b24a1c8ca5df03a69e677471a305d2c092134cbec966e980870d46fdc19508c7f5f1d2564dbdd578914a8cf48d92759f5300706032b65700500034100228f99dfcdcfc61a9d2702dfac35e2e73c8751d3a1d3eac2a56248e4b2bd998bdf4d4627c50cef729ac26a33e77149f8bcf4872a167bb10b2558228391611509
+cert_1_len: 312
+cert_2: 0x3081e7308198a0030201020203000000300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301831163014060355040a0c0d526f6f74206f66205472757374302c300706037b30780500032100887c4106ddcd0154cb0b5561dfdef0db875b4017b4b78e441008d2020d311da7a3023000300706032b65700500034100cd017a3119a53a54f7e35dd9a6dd2ce9b669b5af605e2d6bc2d28ab019cd8b27e9e188576983143ff50042813e769c0f5cacf102e063d96ffd277b2738d7c20f
+cert_2_len: 234
+cert_3: 0x3081e7308198a003020102020400ffffff300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301731153013060355040a0c0c4d616e756661637475726572302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000300706032b657005000341001c1850aa2ce64471a51b142770b29048df9deffe9308d69d56d694b6f4843db049428bfdfaf6dce8d00237913865857519d2d316a7cc99de09834546ecd4c00a
+cert_3_len: 234
+outbuf: 0xaceb68de10ec688d769af9819a82953c3b60115f74bd0bda8da21e2c46697919945280456706d4d0c6f572604956eee5584f09f51f9e08ef9754e2ff2fb54708
+outbuf_len: 64
+mbedtls_x509_string_to_names - name: O=Manufacturer
+mbedtls_asn1_store_named_data - calloc: 64
+mbedtls_asn1_store_named_data - calloc: 3
+mbedtls_asn1_store_named_data - calloc: 12
+stored:
+- oid: U
+
+- oid_len: 3
+- data: Manufacturer
+- data_len: 12
+mbedtls_x509_string_to_names - name: O=Manufacturer
+mbedtls_asn1_store_named_data - calloc: 64
+mbedtls_asn1_store_named_data - calloc: 3
+mbedtls_asn1_store_named_data - calloc: 12
+stored:
+- oid: U
+
+- oid_len: 3
+- data: Manufacturer
+- data_len: 12
+ed25519_alloc_wrap - calloc: 112
+ed25519_alloc_wrap - calloc: 112
+sig_oid: 0x
+sig_oid_len: 0
+
+mbedtls_x509_write_extensions - len = 0
+mbedtls_asn1_write_len - len = 0
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_asn1_write_len - len = 2
+mbedtls_asn1_write_tag - tag = a3
+len - extensions: 4
+
+pk_write_ed25519_pubkey - pk: 0x0faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4c
+pk_write_ed25519_pubkey - pk_len: 32
+pk_write_ed25519_pubkey - len = 32
+mbedtls_pk_write_pubkey - len = 32
+mbedtls_asn1_write_len - len = 33
+mbedtls_asn1_write_tag - tag = 03
+mbedtls_asn1_write_algorithm_identifier
+mbedtls_asn1_write_null
+mbedtls_asn1_write_len - len = 0
+mbedtls_asn1_write_tag - tag = 05
+mbedtls_asn1_write_oid - buf: 0x7b3078
+mbedtls_asn1_write_oid - buf_len: 3
+mbedtls_asn1_write_raw_buffer - buf: 0x7b3078
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = 06
+mbedtls_asn1_write_len - len = 7
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_asn1_write_len - len = 44
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_pk_write_pubkey_der - len = 46
+len - subPKInfo: 50
+
+mbedtls_asn1_write_tagged_string - buf: 0x4d616e756661637475726572
+mbedtls_asn1_write_tagged_string - buf_len: 12
+mbedtls_asn1_write_tagged_string - tag = 12
+mbedtls_asn1_write_raw_buffer - buf: 0x4d616e756661637475726572
+mbedtls_asn1_write_raw_buffer - buf_len: 12
+mbedtls_asn1_write_len - len = 12
+mbedtls_asn1_write_tag - tag = 0c
+mbedtls_asn1_write_oid - buf: 0x55040a
+mbedtls_asn1_write_oid - buf_len: 3
+mbedtls_asn1_write_raw_buffer - buf: 0x55040a
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = 06
+mbedtls_asn1_write_len - len = 19
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_asn1_write_len - len = 21
+mbedtls_asn1_write_tag - tag = 31
+x509_write_name - len = 23
+mbedtls_asn1_write_len - len = 23
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_x509_write_names - len = 25
+len - subject: 75
+mbedtls_asn1_write_raw_buffer - buf: 0x3233303130313030303030305a
+mbedtls_asn1_write_raw_buffer - buf_len: 13
+mbedtls_asn1_write_len - len = 13
+mbedtls_asn1_write_tag - tag = 17
+x509_write_time - len = 15
+mbedtls_asn1_write_raw_buffer - buf: 0x3232303130313030303030305a
+mbedtls_asn1_write_raw_buffer - buf_len: 13
+mbedtls_asn1_write_len - len = 13
+mbedtls_asn1_write_tag - tag = 17
+x509_write_time - len = 15
+mbedtls_asn1_write_len - len = 30
+mbedtls_asn1_write_tag - tag = 30
+len - validity: 107
+
+mbedtls_asn1_write_tagged_string - buf: 0x4d616e756661637475726572
+mbedtls_asn1_write_tagged_string - buf_len: 12
+mbedtls_asn1_write_tagged_string - tag = 12
+mbedtls_asn1_write_raw_buffer - buf: 0x4d616e756661637475726572
+mbedtls_asn1_write_raw_buffer - buf_len: 12
+mbedtls_asn1_write_len - len = 12
+mbedtls_asn1_write_tag - tag = 0c
+mbedtls_asn1_write_oid - buf: 0x55040a
+mbedtls_asn1_write_oid - buf_len: 3
+mbedtls_asn1_write_raw_buffer - buf: 0x55040a
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = 06
+mbedtls_asn1_write_len - len = 19
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_asn1_write_len - len = 21
+mbedtls_asn1_write_tag - tag = 31
+x509_write_name - len = 23
+mbedtls_asn1_write_len - len = 23
+mbedtls_asn1_write_tag - tag = 30
+mbedtls_x509_write_names - len = 25
+len - issuer: 132
+
+mbedtls_asn1_write_algorithm_identifier
+mbedtls_asn1_write_null
+mbedtls_asn1_write_len - len = 0
+mbedtls_asn1_write_tag - tag = 05
+mbedtls_asn1_write_oid - buf: 0x
+mbedtls_asn1_write_oid - buf_len: 0
+mbedtls_asn1_write_raw_buffer - buf: 0x
+mbedtls_asn1_write_raw_buffer - buf_len: 0
+mbedtls_asn1_write_len - len = 0
+mbedtls_asn1_write_tag - tag = 06
+mbedtls_asn1_write_len - len = 4
+mbedtls_asn1_write_tag - tag = 30
+len - aId: 138
+
+mbedtls_asn1_write_raw_buffer - buf: 0xffffff
+mbedtls_asn1_write_raw_buffer - buf_len: 3
+mbedtls_asn1_write_len - len = 4
+mbedtls_asn1_write_tag - tag = 02
+len - serial: 144
+
+mbedtls_asn1_write_int - val = 2
+asn1_write_tagged_int - val = 2, tag = 2
+mbedtls_asn1_write_len - len = 1
+mbedtls_asn1_write_tag - tag = 02
+mbedtls_asn1_write_len - len = 3
+mbedtls_asn1_write_tag - tag = a0
+mbedtls_asn1_write_len - len = 149
+mbedtls_asn1_write_tag - tag = 30
+len - version: 152
+
+mbedtls_asn1_write_len - len = 152
+mbedtls_asn1_write_tag - tag = 30
+len - signature: 155
+ed25519_free_wrap - free: 112
+ed25519_free_wrap - free: 112
+mbedtls_asn1_free_named_data_list - free: 3
+mbedtls_asn1_free_named_data_list - free: 12
+mbedtls_asn1_free_named_data_list - free: 64
+mbedtls_asn1_free_named_data_list - free: 3
+mbedtls_asn1_free_named_data_list - free: 12
+mbedtls_asn1_free_named_data_list - free: 64
+Cert generated: 0x308198308195a003020102020400ffffff300406000500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301731153013060355040a0c0c4d616e756661637475726572302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000
+Cert generated_len: 155
+
+0x3081e7308198a003020102020400ffffff300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301731153013060355040a0c0c4d616e756661637475726572302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000300706032b657005000341001c1850aa2ce64471a51b142770b29048df9deffe9308d69d56d694b6f4843db049428bfdfaf6dce8d00237913865857519d2d316a7cc99de09834546ecd4c00a
+0x3081e7308198a003020102020400ffffff300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301731153013060355040a0c0c4d616e756661637475726572302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000300706032b657005000341001c1850aa2ce64471a51b142770b29048df9deffe9308d69d56d694b6f4843db049428bfdfaf6dce8d00237913865857519d2d316a7cc99de09834546ecd4c00a
+
+0x3081e7308198a003020102020400ffffff300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301731153013060355040a0c0c4d616e756661637475726572302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000300706032b657005000341001c1850aa2ce64471a51b142770b29048df9deffe9308d69d56d694b6f4843db049428bfdfaf6dce8d00237913865857519d2d316a7cc99de09834546ecd4c00a
+0x3081e7308198a003020102020400ffffff300706032b65700500301731153013060355040a0c0c4d616e756661637475726572301e170d3232303130313030303030305a170d3233303130313030303030305a301731153013060355040a0c0c4d616e756661637475726572302c300706037b307805000321000faad4ff01178583baa588966f7c1ff32564dd17d7dc2b46cb50a84a69270b4ca3023000300706032b657005000341001c1850aa2ce64471a51b142770b29048df9deffe9308d69d56d694b6f4843db049428bfdfaf6dce8d00237913865857519d2d316a7cc99de09834546ecd4c00a
