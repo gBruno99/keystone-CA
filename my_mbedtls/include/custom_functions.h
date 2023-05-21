@@ -3,6 +3,7 @@
 #include "custom_x509.h"
 #include "custom_string.h"
 #include "printf.h"
+#include "app/syscall.h"
 #define MBEDTLS_DEBUG_PRINTS 0
 
 // asn1.h

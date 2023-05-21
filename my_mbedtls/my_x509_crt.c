@@ -1015,9 +1015,14 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
     }
     */
 
-    ed25519_sign(sig, hash, 64, mbedtls_pk_ed25519(*(ctx->issuer_key))->pub_key, mbedtls_pk_ed25519(*(ctx->issuer_key))->priv_key);
-    sig_len = 64;
-
+    mbedtls_ed25519_context *ed25519 = mbedtls_pk_ed25519(*(ctx->issuer_key));
+    if(ed25519->no_priv_key == 0) {
+        ed25519_sign(sig, hash, 64, ed25519->pub_key, ed25519->priv_key);
+        sig_len = 64;
+    } else {
+        crypto_interface(3, (void*) hash, MBEDTLS_HASH_MAX_SIZE, sig, &sig_len, ed25519->pub_key);
+    }
+    
     /* Move CRT to the front of the buffer to have space
      * for the signature. */
     my_memmove(buf, c, len);

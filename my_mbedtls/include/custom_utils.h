@@ -304,6 +304,7 @@ typedef struct mbedtls_ed25519_context {
     size_t len;                 /*!<  The size of \p N in Bytes. */
     unsigned char pub_key[PUBLIC_KEY_SIZE];
     unsigned char priv_key[PRIVATE_KEY_SIZE];
+    int no_priv_key;
 
 }
 mbedtls_ed25519_context;

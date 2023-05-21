@@ -15,6 +15,7 @@ mbedtls_ed25519_context *mbedtls_pk_ed25519(const mbedtls_pk_context pk)
 void mbedtls_ed25519_init(mbedtls_ed25519_context *ctx)
 {
     my_memset(ctx, 0, sizeof(mbedtls_ed25519_context));
+    ctx->no_priv_key = 1;
     // ctx->priv_key = mbedtls_calloc(1, PRIVATE_KEY_SIZE);
     // ctx->pub_key = mbedtls_calloc(1, PUBLIC_KEY_SIZE);
     // if((ctx->priv_key==NULL)||(ctx->pub_key==NULL))
@@ -59,6 +60,7 @@ int pk_set_ed25519privkey(unsigned char **p, mbedtls_ed25519_context *ed25519)
         ed25519->priv_key[i] = (*p)[i];
     }
     ed25519->len = PRIVATE_KEY_SIZE;
+    ed25519->no_priv_key = 0;
     /*
     printf("Stampa dopo inserimento privata interno\n");
     for(int i =0; i <64; i ++){
@@ -156,8 +158,12 @@ int mbedtls_ed25519_write_signature_restartable(mbedtls_ed25519_context *ctx,
     }
     printf("\n");
     */
-    ed25519_sign(sig, hash, sizeof(hash), ctx->pub_key, ctx->priv_key);
-    *slen = MBEDTLS_PK_SIGNATURE_MAX_SIZE;
+    if(ctx->no_priv_key == 0) {
+        ed25519_sign(sig, hash, sizeof(hash), ctx->pub_key, ctx->priv_key);
+        *slen = MBEDTLS_PK_SIGNATURE_MAX_SIZE;
+    } else {
+        return crypto_interface(3, (void*) hash, hlen, sig, slen, ctx->pub_key);
+    }
     return 0;
 }
 
@@ -257,9 +263,11 @@ int ed25519_check_pair_wrap(const void *pub, const void *prv,
      */
     (void)f_rng;
     (void)p_rng;
-    return mbedtls_ed25519_check_pub_priv(((mbedtls_ed25519_context *)pub)->priv_key,
-                                          ((mbedtls_ed25519_context *)pub)->pub_key,
-                                          (unsigned char *)prv);
+    if(((mbedtls_ed25519_context *)pub)->no_priv_key == 0)  
+        return mbedtls_ed25519_check_pub_priv(((mbedtls_ed25519_context *)pub)->priv_key,
+                                            ((mbedtls_ed25519_context *)pub)->pub_key,
+                                            (unsigned char *)prv);
+    return -1;
 }
 
 void *ed25519_alloc_wrap(void)
