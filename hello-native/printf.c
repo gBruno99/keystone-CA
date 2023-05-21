@@ -743,6 +743,5 @@ int print_hex_string(char* name, unsigned char* value, int size){
   }
   my_printf("\n");
   my_printf("%s_len: %d\n", name, size);
-  my_printf("\n");
   return 0;
 }

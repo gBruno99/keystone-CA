@@ -29,6 +29,8 @@ static const unsigned char sanctum_dev_public_key[] = {
 
 unsigned long ocall_print_string(char* string);
 
+void print_mbedtls_x509_cert(char *name, mbedtls_x509_crt crt);
+
 int main(){
 
   unsigned char pk[PUBLIC_KEY_SIZE] = {0};
@@ -115,7 +117,7 @@ int main(){
   mbedtls_x509write_crt_set_serial_raw(&cert_root, serial_root, 3);
   
   // The algoithm used to do the hash for the signature is specified
-  mbedtls_x509write_crt_set_md_alg(&cert_root, MBEDTLS_MD_SHA512);
+  mbedtls_x509write_crt_set_md_alg(&cert_root, MBEDTLS_MD_KEYSTONE_SHA3);
   
   // The validity of the crt is specified
   ret = mbedtls_x509write_crt_set_validity(&cert_root, "20220101000000", "20230101000000");
@@ -149,6 +151,25 @@ int main(){
   mbedtls_x509write_crt_free(&cert_root);
   print_hex_string("Cert generated", cert_real_root, effe_len_cert_der_root);
 
+
+  mbedtls_x509_crt cert_sm_p, cert_root_p, cert_man_p;
+  mbedtls_x509_crt_init(&cert_sm_p);
+  mbedtls_x509_crt_init(&cert_root_p);
+  mbedtls_x509_crt_init(&cert_man_p);
+  ret = mbedtls_x509_crt_parse_der(&cert_sm_p, certs[0], sizes[0]);
+  my_printf("Parsing cert_sm - ret: %d\n", ret);
+  ret = mbedtls_x509_crt_parse_der(&cert_root_p, certs[1], sizes[1]);
+  my_printf("Parsing cert_root - ret: %d\n", ret);
+  ret = mbedtls_x509_crt_parse_der(&cert_man_p, certs[2], sizes[2]);
+  my_printf("Parsing cert_man - ret: %d\n", ret);
+  my_printf("\n");
+  print_mbedtls_x509_cert("cert_sm", cert_sm_p);
+  print_mbedtls_x509_cert("cert_root", cert_root_p);
+  print_mbedtls_x509_cert("cert_man", cert_man_p);
+  mbedtls_x509_crt_free(&cert_sm_p);
+  mbedtls_x509_crt_free(&cert_root_p);
+  mbedtls_x509_crt_free(&cert_man_p);
+
   EAPP_RETURN(0);
 }
 
@@ -156,4 +177,68 @@ unsigned long ocall_print_string(char* string){
   unsigned long retval;
   ocall(OCALL_PRINT_STRING, string, strlen(string)+1, &retval ,sizeof(unsigned long));
   return retval;
+}
+
+int print_mbedtls_asn1_buf(char *name, mbedtls_asn1_buf buf){
+  my_printf("%s_tag: %02x\n", name, buf.tag);
+  print_hex_string(name, buf.p, buf.len);
+  return 0;
+}
+
+int print_mbedtls_asn1_named_data(char *name, mbedtls_asn1_named_data buf){
+  char tmp[128] = {0};
+  sprintf(tmp, "%s_oid", name);
+  print_mbedtls_asn1_buf(tmp, buf.oid);
+  sprintf(tmp, "%s_val", name);
+  print_mbedtls_asn1_buf(name, buf.val);
+  my_printf("%s_next: %p\n", name, buf.next);
+  return 0;
+}
+
+int print_mbedtls_x509_time(char *name, mbedtls_x509_time tm){
+  my_printf("%s:\n- year=%d, mon=%d, day=%d\n- hour=%d, min=%d, sec=%d\n",
+    name, tm.year, tm.mon, tm.day, tm.hour, tm.min, tm.sec);
+  return 0;
+}
+
+int print_mbedtls_pk_context(char *name, mbedtls_pk_context pk){
+  char tmp[128] = {0};
+  sprintf(tmp, "%s - pk", name);
+  my_printf("%s: %s\n", name, pk.pk_info->name);
+  print_hex_string(tmp, mbedtls_pk_ed25519(pk)->pub_key, PUBLIC_KEY_SIZE);
+  return 0;
+}
+
+void print_mbedtls_x509_cert(char *name, mbedtls_x509_crt crt){
+  my_printf("%s:\n", name);
+  print_mbedtls_asn1_buf("raw", crt.raw);
+  print_mbedtls_asn1_buf("tbs", crt.tbs);
+  my_printf("\n");
+  my_printf("version: %d\n", crt.version);
+  print_mbedtls_asn1_buf("serial", crt.serial);
+  print_mbedtls_asn1_buf("sig_oid", crt.sig_oid);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("issuer_raw", crt.issuer_raw);
+  print_mbedtls_asn1_buf("subject_raw", crt.subject_raw);
+  my_printf("\n");
+  print_mbedtls_asn1_named_data("issuer", crt.issuer);
+  print_mbedtls_asn1_named_data("subject", crt.subject);
+  my_printf("\n");
+  print_mbedtls_x509_time("valid_from", crt.valid_from);
+  print_mbedtls_x509_time("valid_to", crt.valid_to);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("pk_raw", crt.pk_raw);
+  print_mbedtls_pk_context("pk", crt.pk);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("issuer_id", crt.issuer_id);
+  print_mbedtls_asn1_buf("subject_id", crt.subject_id);
+  print_mbedtls_asn1_buf("v3_ext", crt.v3_ext);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("hash", crt.hash);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("sig", crt.sig);
+  my_printf("sig_md: %d\n", crt.sig_md);
+  my_printf("sig_pk: %d\n", crt.sig_pk);
+  my_printf("\n\n");
+  return;
 }
