@@ -451,6 +451,112 @@ int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *end,
     return 0;
 }
 
+#if defined(MBEDTLS_HAVE_TIME_DATE)
+
+static int x509_get_current_time(mbedtls_x509_time *now)
+{
+    struct tm *lt, tm_buf;
+    mbedtls_time_t tt;
+    int ret = 0;
+
+    tt = mbedtls_time(NULL);
+    lt = mbedtls_platform_gmtime_r(&tt, &tm_buf);
+
+    if (lt == NULL) {
+        ret = -1;
+    } else {
+        now->year = lt->tm_year + 1900;
+        now->mon  = lt->tm_mon  + 1;
+        now->day  = lt->tm_mday;
+        now->hour = lt->tm_hour;
+        now->min  = lt->tm_min;
+        now->sec  = lt->tm_sec;
+    }
+
+    return ret;
+}
+
+static int x509_check_time(const mbedtls_x509_time *before, const mbedtls_x509_time *after)
+{
+    if (before->year  > after->year) {
+        return 1;
+    }
+
+    if (before->year == after->year &&
+        before->mon   > after->mon) {
+        return 1;
+    }
+
+    if (before->year == after->year &&
+        before->mon  == after->mon  &&
+        before->day   > after->day) {
+        return 1;
+    }
+
+    if (before->year == after->year &&
+        before->mon  == after->mon  &&
+        before->day  == after->day  &&
+        before->hour  > after->hour) {
+        return 1;
+    }
+
+    if (before->year == after->year &&
+        before->mon  == after->mon  &&
+        before->day  == after->day  &&
+        before->hour == after->hour &&
+        before->min   > after->min) {
+        return 1;
+    }
+
+    if (before->year == after->year &&
+        before->mon  == after->mon  &&
+        before->day  == after->day  &&
+        before->hour == after->hour &&
+        before->min  == after->min  &&
+        before->sec   > after->sec) {
+        return 1;
+    }
+
+    return 0;
+}
+
+int mbedtls_x509_time_is_past(const mbedtls_x509_time *to)
+{
+    mbedtls_x509_time now;
+
+    if (x509_get_current_time(&now) != 0) {
+        return 1;
+    }
+
+    return x509_check_time(&now, to);
+}
+
+int mbedtls_x509_time_is_future(const mbedtls_x509_time *from)
+{
+    mbedtls_x509_time now;
+
+    if (x509_get_current_time(&now) != 0) {
+        return 1;
+    }
+
+    return x509_check_time(from, &now);
+}
+
+#else  /* MBEDTLS_HAVE_TIME_DATE */
+
+int mbedtls_x509_time_is_past(const mbedtls_x509_time *to)
+{
+    ((void) to);
+    return 0;
+}
+
+int mbedtls_x509_time_is_future(const mbedtls_x509_time *from)
+{
+    ((void) from);
+    return 0;
+}
+#endif /* MBEDTLS_HAVE_TIME_DATE */
+
 // x509_create.c
 #define ADD_STRLEN(s)     s, sizeof(s) - 1
 

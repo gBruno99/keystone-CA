@@ -3,6 +3,217 @@
 #include "ed25519/ed25519.h"
 
 // x509_crt.c
+
+const mbedtls_x509_crt_profile mbedtls_x509_crt_profile_default =
+{
+    /* Hashes from SHA-256 and above. Note that this selection
+     * should be aligned with ssl_preset_default_hashes in ssl_tls.c. */
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_MD_SHA256) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_MD_SHA384) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_MD_SHA512),
+    0xFFFFFFF, /* Any PK alg    */
+#if defined(MBEDTLS_ECP_LIGHT)
+    /* Curves at or above 128-bit security level. Note that this selection
+     * should be aligned with ssl_preset_default_curves in ssl_tls.c. */
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_ECP_DP_SECP256R1) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_ECP_DP_SECP384R1) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_ECP_DP_SECP521R1) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_ECP_DP_BP256R1) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_ECP_DP_BP384R1) |
+    MBEDTLS_X509_ID_FLAG(MBEDTLS_ECP_DP_BP512R1) |
+    0,
+#else /* MBEDTLS_ECP_LIGHT */
+    0,
+#endif /* MBEDTLS_ECP_LIGHT */
+    2048,
+};
+
+static int x509_profile_check_md_alg(const mbedtls_x509_crt_profile *profile,
+                                     mbedtls_md_type_t md_alg)
+{
+    if (md_alg == MBEDTLS_MD_NONE) {
+        return -1;
+    }
+
+    if ((profile->allowed_mds & MBEDTLS_X509_ID_FLAG(md_alg)) != 0) {
+        return 0;
+    }
+
+    return -1;
+}
+
+static int x509_profile_check_pk_alg(const mbedtls_x509_crt_profile *profile,
+                                     mbedtls_pk_type_t pk_alg)
+{
+    if (pk_alg == MBEDTLS_PK_NONE) {
+        return -1;
+    }
+
+    if ((profile->allowed_pks & MBEDTLS_X509_ID_FLAG(pk_alg)) != 0) {
+        return 0;
+    }
+
+    return -1;
+}
+
+static int x509_profile_check_key(const mbedtls_x509_crt_profile *profile,
+                                  const mbedtls_pk_context *pk)
+{
+    const mbedtls_pk_type_t pk_alg = mbedtls_pk_get_type(pk);
+
+#if defined(MBEDTLS_RSA_C)
+    if (pk_alg == MBEDTLS_PK_RSA || pk_alg == MBEDTLS_PK_RSASSA_PSS) {
+        if (mbedtls_pk_get_bitlen(pk) >= profile->rsa_min_bitlen) {
+            return 0;
+        }
+
+        return -1;
+    }
+#endif /* MBEDTLS_RSA_C */
+
+#if defined(MBEDTLS_ECP_LIGHT)
+    if (pk_alg == MBEDTLS_PK_ECDSA ||
+        pk_alg == MBEDTLS_PK_ECKEY ||
+        pk_alg == MBEDTLS_PK_ECKEY_DH) {
+        const mbedtls_ecp_group_id gid = mbedtls_pk_ec(*pk)->grp.id;
+
+        if (gid == MBEDTLS_ECP_DP_NONE) {
+            return -1;
+        }
+
+        if ((profile->allowed_curves & MBEDTLS_X509_ID_FLAG(gid)) != 0) {
+            return 0;
+        }
+
+        return -1;
+    }
+#endif /* MBEDTLS_ECP_LIGHT */
+
+    return -1;
+}
+
+static int x509_memcasecmp(const void *s1, const void *s2, size_t len)
+{
+    size_t i;
+    unsigned char diff;
+    const unsigned char *n1 = s1, *n2 = s2;
+
+    for (i = 0; i < len; i++) {
+        diff = n1[i] ^ n2[i];
+
+        if (diff == 0) {
+            continue;
+        }
+
+        if (diff == 32 &&
+            ((n1[i] >= 'a' && n1[i] <= 'z') ||
+             (n1[i] >= 'A' && n1[i] <= 'Z'))) {
+            continue;
+        }
+
+        return -1;
+    }
+
+    return 0;
+}
+
+static int x509_check_wildcard(const char *cn, const mbedtls_x509_buf *name)
+{
+    size_t i;
+    size_t cn_idx = 0, cn_len = strlen(cn);
+
+    /* We can't have a match if there is no wildcard to match */
+    if (name->len < 3 || name->p[0] != '*' || name->p[1] != '.') {
+        return -1;
+    }
+
+    for (i = 0; i < cn_len; ++i) {
+        if (cn[i] == '.') {
+            cn_idx = i;
+            break;
+        }
+    }
+
+    if (cn_idx == 0) {
+        return -1;
+    }
+
+    if (cn_len - cn_idx == name->len - 1 &&
+        x509_memcasecmp(name->p + 1, cn + cn_idx, name->len - 1) == 0) {
+        return 0;
+    }
+
+    return -1;
+}
+
+static int x509_string_cmp(const mbedtls_x509_buf *a, const mbedtls_x509_buf *b)
+{
+    if (a->tag == b->tag &&
+        a->len == b->len &&
+        memcmp(a->p, b->p, b->len) == 0) {
+        return 0;
+    }
+
+    if ((a->tag == MBEDTLS_ASN1_UTF8_STRING || a->tag == MBEDTLS_ASN1_PRINTABLE_STRING) &&
+        (b->tag == MBEDTLS_ASN1_UTF8_STRING || b->tag == MBEDTLS_ASN1_PRINTABLE_STRING) &&
+        a->len == b->len &&
+        x509_memcasecmp(a->p, b->p, b->len) == 0) {
+        return 0;
+    }
+
+    return -1;
+}
+
+static int x509_name_cmp(const mbedtls_x509_name *a, const mbedtls_x509_name *b)
+{
+    /* Avoid recursion, it might not be optimised by the compiler */
+    while (a != NULL || b != NULL) {
+        if (a == NULL || b == NULL) {
+            return -1;
+        }
+
+        /* type */
+        if (a->oid.tag != b->oid.tag ||
+            a->oid.len != b->oid.len ||
+            memcmp(a->oid.p, b->oid.p, b->oid.len) != 0) {
+            return -1;
+        }
+
+        /* value */
+        if (x509_string_cmp(&a->val, &b->val) != 0) {
+            return -1;
+        }
+
+        /* structure of the list of sets */
+        if (a->next_merged != b->next_merged) {
+            return -1;
+        }
+
+        a = a->next;
+        b = b->next;
+    }
+
+    /* a == NULL == b */
+    return 0;
+}
+
+static void x509_crt_verify_chain_reset(
+    mbedtls_x509_crt_verify_chain *ver_chain)
+{
+    size_t i;
+
+    for (i = 0; i < MBEDTLS_X509_MAX_VERIFY_CHAIN_SIZE; i++) {
+        ver_chain->items[i].crt = NULL;
+        ver_chain->items[i].flags = (uint32_t) -1;
+    }
+
+    ver_chain->len = 0;
+
+#if defined(MBEDTLS_X509_TRUSTED_CERTIFICATE_CALLBACK)
+    ver_chain->trust_ca_cb_result = NULL;
+#endif /* MBEDTLS_X509_TRUSTED_CERTIFICATE_CALLBACK */
+}
+
 static int x509_get_version(unsigned char **p,
                             const unsigned char *end,
                             int *ver)
@@ -638,6 +849,662 @@ int mbedtls_x509_crt_parse_der(mbedtls_x509_crt *chain,
                                size_t buflen)
 {
     return mbedtls_x509_crt_parse_der_internal(chain, buf, buflen, 1, NULL, NULL);
+}
+
+int mbedtls_x509_crt_check_key_usage(const mbedtls_x509_crt *crt,
+                                     unsigned int usage)
+{
+    unsigned int usage_must, usage_may;
+    unsigned int may_mask = MBEDTLS_X509_KU_ENCIPHER_ONLY
+                            | MBEDTLS_X509_KU_DECIPHER_ONLY;
+
+    if ((crt->ext_types & MBEDTLS_X509_EXT_KEY_USAGE) == 0) {
+        return 0;
+    }
+
+    usage_must = usage & ~may_mask;
+
+    if (((crt->key_usage & ~may_mask) & usage_must) != usage_must) {
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+    }
+
+    usage_may = usage & may_mask;
+
+    if (((crt->key_usage & may_mask) | usage_may) != usage_may) {
+        return MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+    }
+
+    return 0;
+}
+
+static int x509_crt_check_signature(const mbedtls_x509_crt *child,
+                                    mbedtls_x509_crt *parent,
+                                    mbedtls_x509_crt_restart_ctx *rs_ctx)
+{
+    size_t hash_len;
+    unsigned char hash[MBEDTLS_HASH_MAX_SIZE];
+#if !defined(MBEDTLS_USE_PSA_CRYPTO)
+    const mbedtls_md_info_t *md_info;
+    md_info = mbedtls_md_info_from_type(child->sig_md);
+    hash_len = mbedtls_md_get_size(md_info);
+
+    /* Note: hash errors can happen only after an internal error */
+    if (mbedtls_md(md_info, child->tbs.p, child->tbs.len, hash) != 0) {
+        return -1;
+    }
+#else
+    psa_algorithm_t hash_alg = mbedtls_hash_info_psa_from_md(child->sig_md);
+    psa_status_t status = PSA_ERROR_CORRUPTION_DETECTED;
+
+    status = psa_hash_compute(hash_alg,
+                              child->tbs.p,
+                              child->tbs.len,
+                              hash,
+                              sizeof(hash),
+                              &hash_len);
+    if (status != PSA_SUCCESS) {
+        return MBEDTLS_ERR_PLATFORM_HW_ACCEL_FAILED;
+    }
+
+#endif /* MBEDTLS_USE_PSA_CRYPTO */
+    /* Skip expensive computation on obvious mismatch */
+    if (!mbedtls_pk_can_do(&parent->pk, child->sig_pk)) {
+        return -1;
+    }
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+    if (rs_ctx != NULL && child->sig_pk == MBEDTLS_PK_ECDSA) {
+        return mbedtls_pk_verify_restartable(&parent->pk,
+                                             child->sig_md, hash, hash_len,
+                                             child->sig.p, child->sig.len, &rs_ctx->pk);
+    }
+#else
+    (void) rs_ctx;
+#endif
+
+    return mbedtls_pk_verify_ext(child->sig_pk, child->sig_opts, &parent->pk,
+                                 child->sig_md, hash, hash_len,
+                                 child->sig.p, child->sig.len);
+}
+
+static int x509_crt_check_parent(const mbedtls_x509_crt *child,
+                                 const mbedtls_x509_crt *parent,
+                                 int top)
+{
+    int need_ca_bit;
+
+    /* Parent must be the issuer */
+    if (x509_name_cmp(&child->issuer, &parent->subject) != 0) {
+        return -1;
+    }
+
+    /* Parent must have the basicConstraints CA bit set as a general rule */
+    need_ca_bit = 1;
+
+    /* Exception: v1/v2 certificates that are locally trusted. */
+    if (top && parent->version < 3) {
+        need_ca_bit = 0;
+    }
+
+    if (need_ca_bit && !parent->ca_istrue) {
+        return -1;
+    }
+
+    if (need_ca_bit &&
+        mbedtls_x509_crt_check_key_usage(parent, MBEDTLS_X509_KU_KEY_CERT_SIGN) != 0) {
+        return -1;
+    }
+
+    return 0;
+}
+
+static int x509_crt_find_parent_in(
+    mbedtls_x509_crt *child,
+    mbedtls_x509_crt *candidates,
+    mbedtls_x509_crt **r_parent,
+    int *r_signature_is_good,
+    int top,
+    unsigned path_cnt,
+    unsigned self_cnt,
+    mbedtls_x509_crt_restart_ctx *rs_ctx)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    mbedtls_x509_crt *parent, *fallback_parent;
+    int signature_is_good = 0, fallback_signature_is_good;
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+    /* did we have something in progress? */
+    if (rs_ctx != NULL && rs_ctx->parent != NULL) {
+        /* restore saved state */
+        parent = rs_ctx->parent;
+        fallback_parent = rs_ctx->fallback_parent;
+        fallback_signature_is_good = rs_ctx->fallback_signature_is_good;
+
+        /* clear saved state */
+        rs_ctx->parent = NULL;
+        rs_ctx->fallback_parent = NULL;
+        rs_ctx->fallback_signature_is_good = 0;
+
+        /* resume where we left */
+        goto check_signature;
+    }
+#endif
+
+    fallback_parent = NULL;
+    fallback_signature_is_good = 0;
+
+    for (parent = candidates; parent != NULL; parent = parent->next) {
+        /* basic parenting skills (name, CA bit, key usage) */
+        if (x509_crt_check_parent(child, parent, top) != 0) {
+            continue;
+        }
+
+        /* +1 because stored max_pathlen is 1 higher that the actual value */
+        if (parent->max_pathlen > 0 &&
+            (size_t) parent->max_pathlen < 1 + path_cnt - self_cnt) {
+            continue;
+        }
+
+        /* Signature */
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+check_signature:
+#endif
+        ret = x509_crt_check_signature(child, parent, rs_ctx);
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+        if (rs_ctx != NULL && ret == MBEDTLS_ERR_ECP_IN_PROGRESS) {
+            /* save state */
+            rs_ctx->parent = parent;
+            rs_ctx->fallback_parent = fallback_parent;
+            rs_ctx->fallback_signature_is_good = fallback_signature_is_good;
+
+            return ret;
+        }
+#else
+        (void) ret;
+#endif
+
+        signature_is_good = ret == 0;
+        if (top && !signature_is_good) {
+            continue;
+        }
+
+        /* optional time check */
+        if (mbedtls_x509_time_is_past(&parent->valid_to) ||
+            mbedtls_x509_time_is_future(&parent->valid_from)) {
+            if (fallback_parent == NULL) {
+                fallback_parent = parent;
+                fallback_signature_is_good = signature_is_good;
+            }
+
+            continue;
+        }
+
+        *r_parent = parent;
+        *r_signature_is_good = signature_is_good;
+
+        break;
+    }
+
+    if (parent == NULL) {
+        *r_parent = fallback_parent;
+        *r_signature_is_good = fallback_signature_is_good;
+    }
+
+    return 0;
+}
+
+static int x509_crt_find_parent(
+    mbedtls_x509_crt *child,
+    mbedtls_x509_crt *trust_ca,
+    mbedtls_x509_crt **parent,
+    int *parent_is_trusted,
+    int *signature_is_good,
+    unsigned path_cnt,
+    unsigned self_cnt,
+    mbedtls_x509_crt_restart_ctx *rs_ctx)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    mbedtls_x509_crt *search_list;
+
+    *parent_is_trusted = 1;
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+    /* restore then clear saved state if we have some stored */
+    if (rs_ctx != NULL && rs_ctx->parent_is_trusted != -1) {
+        *parent_is_trusted = rs_ctx->parent_is_trusted;
+        rs_ctx->parent_is_trusted = -1;
+    }
+#endif
+
+    while (1) {
+        search_list = *parent_is_trusted ? trust_ca : child->next;
+
+        ret = x509_crt_find_parent_in(child, search_list,
+                                      parent, signature_is_good,
+                                      *parent_is_trusted,
+                                      path_cnt, self_cnt, rs_ctx);
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+        if (rs_ctx != NULL && ret == MBEDTLS_ERR_ECP_IN_PROGRESS) {
+            /* save state */
+            rs_ctx->parent_is_trusted = *parent_is_trusted;
+            return ret;
+        }
+#else
+        (void) ret;
+#endif
+
+        /* stop here if found or already in second iteration */
+        if (*parent != NULL || *parent_is_trusted == 0) {
+            break;
+        }
+
+        /* prepare second iteration */
+        *parent_is_trusted = 0;
+    }
+
+    /* extra precaution against mistakes in the caller */
+    if (*parent == NULL) {
+        *parent_is_trusted = 0;
+        *signature_is_good = 0;
+    }
+
+    return 0;
+}
+
+static int x509_crt_check_ee_locally_trusted(
+    mbedtls_x509_crt *crt,
+    mbedtls_x509_crt *trust_ca)
+{
+    mbedtls_x509_crt *cur;
+
+    /* must be self-issued */
+    if (x509_name_cmp(&crt->issuer, &crt->subject) != 0) {
+        return -1;
+    }
+
+    /* look for an exact match with trusted cert */
+    for (cur = trust_ca; cur != NULL; cur = cur->next) {
+        if (crt->raw.len == cur->raw.len &&
+            memcmp(crt->raw.p, cur->raw.p, crt->raw.len) == 0) {
+            return 0;
+        }
+    }
+
+    /* too bad */
+    return -1;
+}
+
+static int x509_crt_verify_chain(
+    mbedtls_x509_crt *crt,
+    mbedtls_x509_crt *trust_ca,
+    mbedtls_x509_crl *ca_crl,
+    mbedtls_x509_crt_ca_cb_t f_ca_cb,
+    void *p_ca_cb,
+    const mbedtls_x509_crt_profile *profile,
+    mbedtls_x509_crt_verify_chain *ver_chain,
+    mbedtls_x509_crt_restart_ctx *rs_ctx)
+{
+    /* Don't initialize any of those variables here, so that the compiler can
+     * catch potential issues with jumping ahead when restarting */
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    uint32_t *flags;
+    mbedtls_x509_crt_verify_chain_item *cur;
+    mbedtls_x509_crt *child;
+    mbedtls_x509_crt *parent;
+    int parent_is_trusted;
+    int child_is_trusted;
+    int signature_is_good;
+    unsigned self_cnt;
+    mbedtls_x509_crt *cur_trust_ca = NULL;
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+    /* resume if we had an operation in progress */
+    if (rs_ctx != NULL && rs_ctx->in_progress == x509_crt_rs_find_parent) {
+        /* restore saved state */
+        *ver_chain = rs_ctx->ver_chain; /* struct copy */
+        self_cnt = rs_ctx->self_cnt;
+
+        /* restore derived state */
+        cur = &ver_chain->items[ver_chain->len - 1];
+        child = cur->crt;
+        flags = &cur->flags;
+
+        goto find_parent;
+    }
+#endif /* MBEDTLS_ECDSA_C && MBEDTLS_ECP_RESTARTABLE */
+
+    child = crt;
+    self_cnt = 0;
+    parent_is_trusted = 0;
+    child_is_trusted = 0;
+
+    while (1) {
+        /* Add certificate to the verification chain */
+        cur = &ver_chain->items[ver_chain->len];
+        cur->crt = child;
+        cur->flags = 0;
+        ver_chain->len++;
+        flags = &cur->flags;
+
+        /* Check time-validity (all certificates) */
+        if (mbedtls_x509_time_is_past(&child->valid_to)) {
+            *flags |= MBEDTLS_X509_BADCERT_EXPIRED;
+        }
+
+        if (mbedtls_x509_time_is_future(&child->valid_from)) {
+            *flags |= MBEDTLS_X509_BADCERT_FUTURE;
+        }
+
+        /* Stop here for trusted roots (but not for trusted EE certs) */
+        if (child_is_trusted) {
+            return 0;
+        }
+
+        /* Check signature algorithm: MD & PK algs */
+        if (x509_profile_check_md_alg(profile, child->sig_md) != 0) {
+            *flags |= MBEDTLS_X509_BADCERT_BAD_MD;
+        }
+
+        if (x509_profile_check_pk_alg(profile, child->sig_pk) != 0) {
+            *flags |= MBEDTLS_X509_BADCERT_BAD_PK;
+        }
+
+        /* Special case: EE certs that are locally trusted */
+        if (ver_chain->len == 1 &&
+            x509_crt_check_ee_locally_trusted(child, trust_ca) == 0) {
+            return 0;
+        }
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+find_parent:
+#endif
+
+        /* Obtain list of potential trusted signers from CA callback,
+         * or use statically provided list. */
+#if defined(MBEDTLS_X509_TRUSTED_CERTIFICATE_CALLBACK)
+        if (f_ca_cb != NULL) {
+            mbedtls_x509_crt_free(ver_chain->trust_ca_cb_result);
+            mbedtls_free(ver_chain->trust_ca_cb_result);
+            ver_chain->trust_ca_cb_result = NULL;
+
+            ret = f_ca_cb(p_ca_cb, child, &ver_chain->trust_ca_cb_result);
+            if (ret != 0) {
+                return MBEDTLS_ERR_X509_FATAL_ERROR;
+            }
+
+            cur_trust_ca = ver_chain->trust_ca_cb_result;
+        } else
+#endif /* MBEDTLS_X509_TRUSTED_CERTIFICATE_CALLBACK */
+        {
+            ((void) f_ca_cb);
+            ((void) p_ca_cb);
+            cur_trust_ca = trust_ca;
+        }
+
+        /* Look for a parent in trusted CAs or up the chain */
+        ret = x509_crt_find_parent(child, cur_trust_ca, &parent,
+                                   &parent_is_trusted, &signature_is_good,
+                                   ver_chain->len - 1, self_cnt, rs_ctx);
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+        if (rs_ctx != NULL && ret == MBEDTLS_ERR_ECP_IN_PROGRESS) {
+            /* save state */
+            rs_ctx->in_progress = x509_crt_rs_find_parent;
+            rs_ctx->self_cnt = self_cnt;
+            rs_ctx->ver_chain = *ver_chain; /* struct copy */
+
+            return ret;
+        }
+#else
+        (void) ret;
+#endif
+
+        /* No parent? We're done here */
+        if (parent == NULL) {
+            *flags |= MBEDTLS_X509_BADCERT_NOT_TRUSTED;
+            return 0;
+        }
+
+        /* Count intermediate self-issued (not necessarily self-signed) certs.
+         * These can occur with some strategies for key rollover, see [SIRO],
+         * and should be excluded from max_pathlen checks. */
+        if (ver_chain->len != 1 &&
+            x509_name_cmp(&child->issuer, &child->subject) == 0) {
+            self_cnt++;
+        }
+
+        /* path_cnt is 0 for the first intermediate CA,
+         * and if parent is trusted it's not an intermediate CA */
+        if (!parent_is_trusted &&
+            ver_chain->len > MBEDTLS_X509_MAX_INTERMEDIATE_CA) {
+            /* return immediately to avoid overflow the chain array */
+            return MBEDTLS_ERR_X509_FATAL_ERROR;
+        }
+
+        /* signature was checked while searching parent */
+        if (!signature_is_good) {
+            *flags |= MBEDTLS_X509_BADCERT_NOT_TRUSTED;
+        }
+
+        /* check size of signing key */
+        if (x509_profile_check_key(profile, &parent->pk) != 0) {
+            *flags |= MBEDTLS_X509_BADCERT_BAD_KEY;
+        }
+
+#if defined(MBEDTLS_X509_CRL_PARSE_C)
+        /* Check trusted CA's CRL for the given crt */
+        *flags |= x509_crt_verifycrl(child, parent, ca_crl, profile);
+#else
+        (void) ca_crl;
+#endif
+
+        /* prepare for next iteration */
+        child = parent;
+        parent = NULL;
+        child_is_trusted = parent_is_trusted;
+        signature_is_good = 0;
+    }
+}
+
+static int x509_crt_check_cn(const mbedtls_x509_buf *name,
+                             const char *cn, size_t cn_len)
+{
+    /* try exact match */
+    if (name->len == cn_len &&
+        x509_memcasecmp(cn, name->p, cn_len) == 0) {
+        return 0;
+    }
+
+    /* try wildcard match */
+    if (x509_check_wildcard(cn, name) == 0) {
+        return 0;
+    }
+
+    return -1;
+}
+
+static int x509_crt_check_san(const mbedtls_x509_buf *name,
+                              const char *cn, size_t cn_len)
+{
+    const unsigned char san_type = (unsigned char) name->tag &
+                                   MBEDTLS_ASN1_TAG_VALUE_MASK;
+
+    /* dNSName */
+    if (san_type == MBEDTLS_X509_SAN_DNS_NAME) {
+        return x509_crt_check_cn(name, cn, cn_len);
+    }
+
+    /* (We may handle other types here later.) */
+
+    /* Unrecognized type */
+    return -1;
+}
+
+static void x509_crt_verify_name(const mbedtls_x509_crt *crt,
+                                 const char *cn,
+                                 uint32_t *flags)
+{
+    const mbedtls_x509_name *name;
+    const mbedtls_x509_sequence *cur;
+    size_t cn_len = strlen(cn);
+
+    if (crt->ext_types & MBEDTLS_X509_EXT_SUBJECT_ALT_NAME) {
+        for (cur = &crt->subject_alt_names; cur != NULL; cur = cur->next) {
+            if (x509_crt_check_san(&cur->buf, cn, cn_len) == 0) {
+                break;
+            }
+        }
+
+        if (cur == NULL) {
+            *flags |= MBEDTLS_X509_BADCERT_CN_MISMATCH;
+        }
+    } else {
+        for (name = &crt->subject; name != NULL; name = name->next) {
+            if (MBEDTLS_OID_CMP(MBEDTLS_OID_AT_CN, &name->oid) == 0 &&
+                x509_crt_check_cn(&name->val, cn, cn_len) == 0) {
+                break;
+            }
+        }
+
+        if (name == NULL) {
+            *flags |= MBEDTLS_X509_BADCERT_CN_MISMATCH;
+        }
+    }
+}
+
+static int x509_crt_merge_flags_with_cb(
+    uint32_t *flags,
+    const mbedtls_x509_crt_verify_chain *ver_chain,
+    int (*f_vrfy)(void *, mbedtls_x509_crt *, int, uint32_t *),
+    void *p_vrfy)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    unsigned i;
+    uint32_t cur_flags;
+    const mbedtls_x509_crt_verify_chain_item *cur;
+
+    for (i = ver_chain->len; i != 0; --i) {
+        cur = &ver_chain->items[i-1];
+        cur_flags = cur->flags;
+
+        if (NULL != f_vrfy) {
+            if ((ret = f_vrfy(p_vrfy, cur->crt, (int) i-1, &cur_flags)) != 0) {
+                return ret;
+            }
+        }
+
+        *flags |= cur_flags;
+    }
+
+    return 0;
+}
+
+static int x509_crt_verify_restartable_ca_cb(mbedtls_x509_crt *crt,
+                                             mbedtls_x509_crt *trust_ca,
+                                             mbedtls_x509_crl *ca_crl,
+                                             mbedtls_x509_crt_ca_cb_t f_ca_cb,
+                                             void *p_ca_cb,
+                                             const mbedtls_x509_crt_profile *profile,
+                                             const char *cn, uint32_t *flags,
+                                             int (*f_vrfy)(void *,
+                                                           mbedtls_x509_crt *,
+                                                           int,
+                                                           uint32_t *),
+                                             void *p_vrfy,
+                                             mbedtls_x509_crt_restart_ctx *rs_ctx)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    mbedtls_pk_type_t pk_type;
+    mbedtls_x509_crt_verify_chain ver_chain;
+    uint32_t ee_flags;
+
+    *flags = 0;
+    ee_flags = 0;
+    x509_crt_verify_chain_reset(&ver_chain);
+
+    if (profile == NULL) {
+        ret = MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+        goto exit;
+    }
+
+    /* check name if requested */
+    if (cn != NULL) {
+        x509_crt_verify_name(crt, cn, &ee_flags);
+    }
+
+    /* Check the type and size of the key */
+    pk_type = mbedtls_pk_get_type(&crt->pk);
+
+    if (x509_profile_check_pk_alg(profile, pk_type) != 0) {
+        ee_flags |= MBEDTLS_X509_BADCERT_BAD_PK;
+    }
+
+    if (x509_profile_check_key(profile, &crt->pk) != 0) {
+        ee_flags |= MBEDTLS_X509_BADCERT_BAD_KEY;
+    }
+
+    /* Check the chain */
+    ret = x509_crt_verify_chain(crt, trust_ca, ca_crl,
+                                f_ca_cb, p_ca_cb, profile,
+                                &ver_chain, rs_ctx);
+
+    if (ret != 0) {
+        goto exit;
+    }
+
+    /* Merge end-entity flags */
+    ver_chain.items[0].flags |= ee_flags;
+
+    /* Build final flags, calling callback on the way if any */
+    ret = x509_crt_merge_flags_with_cb(flags, &ver_chain, f_vrfy, p_vrfy);
+
+exit:
+
+#if defined(MBEDTLS_X509_TRUSTED_CERTIFICATE_CALLBACK)
+    mbedtls_x509_crt_free(ver_chain.trust_ca_cb_result);
+    mbedtls_free(ver_chain.trust_ca_cb_result);
+    ver_chain.trust_ca_cb_result = NULL;
+#endif /* MBEDTLS_X509_TRUSTED_CERTIFICATE_CALLBACK */
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+    if (rs_ctx != NULL && ret != MBEDTLS_ERR_ECP_IN_PROGRESS) {
+        mbedtls_x509_crt_restart_free(rs_ctx);
+    }
+#endif
+
+    /* prevent misuse of the vrfy callback - VERIFY_FAILED would be ignored by
+     * the SSL module for authmode optional, but non-zero return from the
+     * callback means a fatal error so it shouldn't be ignored */
+    if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
+        ret = MBEDTLS_ERR_X509_FATAL_ERROR;
+    }
+
+    if (ret != 0) {
+        *flags = (uint32_t) -1;
+        return ret;
+    }
+
+    if (*flags != 0) {
+        return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
+    }
+
+    return 0;
+}
+
+int mbedtls_x509_crt_verify(mbedtls_x509_crt *crt,
+                            mbedtls_x509_crt *trust_ca,
+                            mbedtls_x509_crl *ca_crl,
+                            const char *cn, uint32_t *flags,
+                            int (*f_vrfy)(void *, mbedtls_x509_crt *, int, uint32_t *),
+                            void *p_vrfy)
+{
+    return x509_crt_verify_restartable_ca_cb(crt, trust_ca, ca_crl,
+                                             NULL, NULL,
+                                             &mbedtls_x509_crt_profile_default,
+                                             cn, flags,
+                                             f_vrfy, p_vrfy, NULL);
 }
 
 void mbedtls_x509_crt_init(mbedtls_x509_crt *crt)

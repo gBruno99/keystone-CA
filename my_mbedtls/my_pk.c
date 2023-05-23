@@ -67,6 +67,18 @@ int mbedtls_pk_setup(mbedtls_pk_context *ctx, const mbedtls_pk_info_t *info)
     return 0;
 }
 
+int mbedtls_pk_can_do(const mbedtls_pk_context *ctx, mbedtls_pk_type_t type)
+{
+    /* A context with null pk_info is not set up yet and can't do anything.
+     * For backward compatibility, also accept NULL instead of a context
+     * pointer. */
+    if (ctx == NULL || ctx->pk_info == NULL) {
+        return 0;
+    }
+
+    return ctx->pk_info->can_do(type);
+}
+
 static inline int pk_hashlen_helper(mbedtls_md_type_t md_alg, size_t *hash_len)
 {
     if (*hash_len != 0) {
@@ -80,6 +92,180 @@ static inline int pk_hashlen_helper(mbedtls_md_type_t md_alg, size_t *hash_len)
     }
 
     return 0;
+}
+
+int mbedtls_pk_verify_restartable(mbedtls_pk_context *ctx,
+                                  mbedtls_md_type_t md_alg,
+                                  const unsigned char *hash, size_t hash_len,
+                                  const unsigned char *sig, size_t sig_len,
+                                  mbedtls_pk_restart_ctx *rs_ctx)
+{
+    if ((md_alg != MBEDTLS_MD_NONE || hash_len != 0) && hash == NULL) {
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    }
+
+    if (ctx->pk_info == NULL ||
+        pk_hashlen_helper(md_alg, &hash_len) != 0) {
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    }
+
+#if defined(MBEDTLS_ECDSA_C) && defined(MBEDTLS_ECP_RESTARTABLE)
+    /* optimization: use non-restartable version if restart disabled */
+    if (rs_ctx != NULL &&
+        mbedtls_ecp_restart_is_enabled() &&
+        ctx->pk_info->verify_rs_func != NULL) {
+        int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+        if ((ret = pk_restart_setup(rs_ctx, ctx->pk_info)) != 0) {
+            return ret;
+        }
+
+        ret = ctx->pk_info->verify_rs_func(ctx->pk_ctx,
+                                           md_alg, hash, hash_len, sig, sig_len, rs_ctx->rs_ctx);
+
+        if (ret != MBEDTLS_ERR_ECP_IN_PROGRESS) {
+            mbedtls_pk_restart_free(rs_ctx);
+        }
+
+        return ret;
+    }
+#else /* MBEDTLS_ECDSA_C && MBEDTLS_ECP_RESTARTABLE */
+    (void) rs_ctx;
+#endif /* MBEDTLS_ECDSA_C && MBEDTLS_ECP_RESTARTABLE */
+
+    if (ctx->pk_info->verify_func == NULL) {
+        return MBEDTLS_ERR_PK_TYPE_MISMATCH;
+    }
+
+    return ctx->pk_info->verify_func(ctx->pk_ctx, md_alg, hash, hash_len,
+                                     sig, sig_len);
+}
+
+int mbedtls_pk_verify(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg,
+                      const unsigned char *hash, size_t hash_len,
+                      const unsigned char *sig, size_t sig_len)
+{
+    return mbedtls_pk_verify_restartable(ctx, md_alg, hash, hash_len,
+                                         sig, sig_len, NULL);
+}
+
+int mbedtls_pk_verify_ext(mbedtls_pk_type_t type, const void *options,
+                          mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg,
+                          const unsigned char *hash, size_t hash_len,
+                          const unsigned char *sig, size_t sig_len)
+{
+    if ((md_alg != MBEDTLS_MD_NONE || hash_len != 0) && hash == NULL) {
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    }
+
+    if (ctx->pk_info == NULL) {
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    }
+
+    if (!mbedtls_pk_can_do(ctx, type)) {
+        return MBEDTLS_ERR_PK_TYPE_MISMATCH;
+    }
+
+    if (type != MBEDTLS_PK_RSASSA_PSS) {
+        /* General case: no options */
+        if (options != NULL) {
+            return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+        }
+
+        return mbedtls_pk_verify(ctx, md_alg, hash, hash_len, sig, sig_len);
+    }
+
+#if defined(MBEDTLS_RSA_C) && defined(MBEDTLS_PKCS1_V21)
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    const mbedtls_pk_rsassa_pss_options *pss_opts;
+
+    if (md_alg == MBEDTLS_MD_NONE && UINT_MAX < hash_len) {
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    }
+
+    if (options == NULL) {
+        return MBEDTLS_ERR_PK_BAD_INPUT_DATA;
+    }
+
+    pss_opts = (const mbedtls_pk_rsassa_pss_options *) options;
+
+#if defined(MBEDTLS_USE_PSA_CRYPTO)
+    if (pss_opts->mgf1_hash_id == md_alg) {
+        unsigned char buf[MBEDTLS_PK_RSA_PUB_DER_MAX_BYTES];
+        unsigned char *p;
+        int key_len;
+        size_t signature_length;
+        psa_status_t status = PSA_ERROR_DATA_CORRUPT;
+        psa_status_t destruction_status = PSA_ERROR_DATA_CORRUPT;
+
+        psa_algorithm_t psa_md_alg = mbedtls_hash_info_psa_from_md(md_alg);
+        mbedtls_svc_key_id_t key_id = MBEDTLS_SVC_KEY_ID_INIT;
+        psa_key_attributes_t attributes = PSA_KEY_ATTRIBUTES_INIT;
+        psa_algorithm_t psa_sig_alg = PSA_ALG_RSA_PSS_ANY_SALT(psa_md_alg);
+        p = buf + sizeof(buf);
+        key_len = mbedtls_pk_write_pubkey(&p, buf, ctx);
+
+        if (key_len < 0) {
+            return key_len;
+        }
+
+        psa_set_key_type(&attributes, PSA_KEY_TYPE_RSA_PUBLIC_KEY);
+        psa_set_key_usage_flags(&attributes, PSA_KEY_USAGE_VERIFY_HASH);
+        psa_set_key_algorithm(&attributes, psa_sig_alg);
+
+        status = psa_import_key(&attributes,
+                                buf + sizeof(buf) - key_len, key_len,
+                                &key_id);
+        if (status != PSA_SUCCESS) {
+            psa_destroy_key(key_id);
+            return PSA_PK_TO_MBEDTLS_ERR(status);
+        }
+
+        /* This function requires returning MBEDTLS_ERR_PK_SIG_LEN_MISMATCH
+         * on a valid signature with trailing data in a buffer, but
+         * mbedtls_psa_rsa_verify_hash requires the sig_len to be exact,
+         * so for this reason the passed sig_len is overwritten. Smaller
+         * signature lengths should not be accepted for verification. */
+        signature_length = sig_len > mbedtls_pk_get_len(ctx) ?
+                           mbedtls_pk_get_len(ctx) : sig_len;
+        status = psa_verify_hash(key_id, psa_sig_alg, hash,
+                                 hash_len, sig, signature_length);
+        destruction_status = psa_destroy_key(key_id);
+
+        if (status == PSA_SUCCESS && sig_len > mbedtls_pk_get_len(ctx)) {
+            return MBEDTLS_ERR_PK_SIG_LEN_MISMATCH;
+        }
+
+        if (status == PSA_SUCCESS) {
+            status = destruction_status;
+        }
+
+        return PSA_PK_RSA_TO_MBEDTLS_ERR(status);
+    } else
+#endif
+    {
+        if (sig_len < mbedtls_pk_get_len(ctx)) {
+            return MBEDTLS_ERR_RSA_VERIFY_FAILED;
+        }
+
+        ret = mbedtls_rsa_rsassa_pss_verify_ext(mbedtls_pk_rsa(*ctx),
+                                                md_alg, (unsigned int) hash_len, hash,
+                                                pss_opts->mgf1_hash_id,
+                                                pss_opts->expected_salt_len,
+                                                sig);
+        if (ret != 0) {
+            return ret;
+        }
+
+        if (sig_len > mbedtls_pk_get_len(ctx)) {
+            return MBEDTLS_ERR_PK_SIG_LEN_MISMATCH;
+        }
+
+        return 0;
+    }
+#else
+    return MBEDTLS_ERR_PK_FEATURE_UNAVAILABLE;
+#endif /* MBEDTLS_RSA_C && MBEDTLS_PKCS1_V21 */
 }
 
 int mbedtls_pk_sign_restartable(mbedtls_pk_context *ctx,
@@ -118,6 +304,17 @@ int mbedtls_pk_sign(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg,
     return mbedtls_pk_sign_restartable(ctx, md_alg, hash, hash_len,
                                        sig, sig_size, sig_len,
                                        f_rng, p_rng, NULL);
+}
+
+size_t mbedtls_pk_get_bitlen(const mbedtls_pk_context *ctx)
+{
+    /* For backward compatibility, accept NULL or a context that
+     * isn't set up yet, and return a fake value that should be safe. */
+    if (ctx == NULL || ctx->pk_info == NULL) {
+        return 0;
+    }
+
+    return ctx->pk_info->get_bitlen(ctx->pk_ctx);
 }
 
 mbedtls_pk_type_t mbedtls_pk_get_type(const mbedtls_pk_context *ctx)

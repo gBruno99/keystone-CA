@@ -5,10 +5,34 @@
 
 //usr
 typedef unsigned char __uint8_t;
+typedef unsigned int __uint32_t;
 typedef __uint8_t uint8_t;
+typedef __uint32_t uint32_t;
 #define INT_MAX         2147483647
 
 //mbedtls_config.h
+
+/**
+ * \def MBEDTLS_HAVE_TIME_DATE
+ *
+ * System has time.h, time(), and an implementation for
+ * mbedtls_platform_gmtime_r() (see below).
+ * The time needs to be correct (not necessarily very accurate, but at least
+ * the date should be correct). This is used to verify the validity period of
+ * X.509 certificates.
+ *
+ * Comment if your system does not have a correct clock.
+ *
+ * \note mbedtls_platform_gmtime_r() is an abstraction in platform_util.h that
+ * behaves similarly to the gmtime_r() function from the C standard. Refer to
+ * the documentation for mbedtls_platform_gmtime_r() for more information.
+ *
+ * \note It is possible to configure an implementation for
+ * mbedtls_platform_gmtime_r() at compile-time by using the macro
+ * MBEDTLS_PLATFORM_GMTIME_R_ALT.
+ */
+// #define MBEDTLS_HAVE_TIME_DATE
+
 /**
  * \def MBEDTLS_RSA_C
  *
@@ -57,6 +81,50 @@ typedef __uint8_t uint8_t;
 // platform.h
 #define mbedtls_free       free
 #define mbedtls_calloc     calloc 
+
+// platform_util.h
+
+#if defined(MBEDTLS_HAVE_TIME_DATE)
+/**
+ * \brief      Platform-specific implementation of gmtime_r()
+ *
+ *             The function is a thread-safe abstraction that behaves
+ *             similarly to the gmtime_r() function from Unix/POSIX.
+ *
+ *             Mbed TLS will try to identify the underlying platform and
+ *             make use of an appropriate underlying implementation (e.g.
+ *             gmtime_r() for POSIX and gmtime_s() for Windows). If this is
+ *             not possible, then gmtime() will be used. In this case, calls
+ *             from the library to gmtime() will be guarded by the mutex
+ *             mbedtls_threading_gmtime_mutex if MBEDTLS_THREADING_C is
+ *             enabled. It is recommended that calls from outside the library
+ *             are also guarded by this mutex.
+ *
+ *             If MBEDTLS_PLATFORM_GMTIME_R_ALT is defined, then Mbed TLS will
+ *             unconditionally use the alternative implementation for
+ *             mbedtls_platform_gmtime_r() supplied by the user at compile time.
+ *
+ * \param tt     Pointer to an object containing time (in seconds) since the
+ *               epoch to be converted
+ * \param tm_buf Pointer to an object where the results will be stored
+ *
+ * \return      Pointer to an object of type struct tm on success, otherwise
+ *              NULL
+ */
+struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt,
+                                     struct tm *tm_buf);
+#endif /* MBEDTLS_HAVE_TIME_DATE */
+
+// platform_time.h
+
+#if defined(MBEDTLS_HAVE_TIME_DATE)
+
+#include <time.h>
+typedef time_t mbedtls_time_t;
+
+#define mbedtls_time   time
+
+#endif /* MBEDTLS_HAVE_TIME_DATE */
 
 //error.h
 /** This is a bug in the library */
@@ -230,6 +298,18 @@ typedef enum {
     MBEDTLS_MD_KEYSTONE_SHA3 //new_impl
 } mbedtls_md_type_t;
 
+/**
+ * Opaque struct.
+ *
+ * Constructed using either #mbedtls_md_info_from_string or
+ * #mbedtls_md_info_from_type.
+ *
+ * Fields can be accessed with #mbedtls_md_get_size,
+ * #mbedtls_md_get_type and #mbedtls_md_get_name.
+ */
+/* Defined internally in library/md_wrap.h. */
+typedef struct mbedtls_md_info_t mbedtls_md_info_t;
+
 #define MBEDTLS_MD_CAN_MD5
 
 //pk_wrap.h
@@ -284,6 +364,25 @@ struct mbedtls_pk_info_t {
     /** Interface with the debug module */
     void (*debug_func)(const void *ctx, mbedtls_pk_debug_item *items);
 
+};
+
+// md_wrap.h
+/**
+ * Message digest information.
+ * Allows message digest functions to be called in a generic way.
+ */
+struct mbedtls_md_info_t {
+    /** Name of the message digest */
+    const char *name;
+
+    /** Digest identifier */
+    mbedtls_md_type_t type;
+
+    /** Output length of the digest function in bytes */
+    unsigned char size;
+
+    /** Block length of the digest function in bytes */
+    unsigned char block_size;
 };
 
 //pem.h

@@ -29,13 +29,23 @@ int mbedtls_asn1_write_int(unsigned char **p, const unsigned char *start, int va
 int mbedtls_asn1_write_tagged_string(unsigned char **p, const unsigned char *start, int tag, const char *text, size_t text_len);
 mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len, const unsigned char *val, size_t val_len);
 
+// md.h
+const mbedtls_md_info_t *mbedtls_md_info_from_type(mbedtls_md_type_t md_type);
+int mbedtls_md(const mbedtls_md_info_t *md_info, const unsigned char *input, size_t ilen, unsigned char *output);
+unsigned char mbedtls_md_get_size(const mbedtls_md_info_t *md_info);
+
 // pk.h
 void mbedtls_pk_init(mbedtls_pk_context *ctx);
 void mbedtls_pk_free(mbedtls_pk_context *ctx);
 const mbedtls_pk_info_t *mbedtls_pk_info_from_type(mbedtls_pk_type_t pk_type);
 int mbedtls_pk_setup(mbedtls_pk_context *ctx, const mbedtls_pk_info_t *info);
+int mbedtls_pk_can_do(const mbedtls_pk_context *ctx, mbedtls_pk_type_t type);
+int mbedtls_pk_verify_restartable(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg, const unsigned char *hash, size_t hash_len, const unsigned char *sig, size_t sig_len, mbedtls_pk_restart_ctx *rs_ctx);
+int mbedtls_pk_verify(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg, const unsigned char *hash, size_t hash_len, const unsigned char *sig, size_t sig_len);
+int mbedtls_pk_verify_ext(mbedtls_pk_type_t type, const void *options, mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg, const unsigned char *hash, size_t hash_len, const unsigned char *sig, size_t sig_len);
 int mbedtls_pk_sign_restartable(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg, const unsigned char *hash, size_t hash_len, unsigned char *sig, size_t sig_size, size_t *sig_len, int (*f_rng)(void *, unsigned char *, size_t), void *p_rng, mbedtls_pk_restart_ctx *rs_ctx);
 int mbedtls_pk_sign(mbedtls_pk_context *ctx, mbedtls_md_type_t md_alg, const unsigned char *hash, size_t hash_len, unsigned char *sig, size_t sig_size, size_t *sig_len, int (*f_rng)(void *, unsigned char *, size_t), void *p_rng);
+size_t mbedtls_pk_get_bitlen(const mbedtls_pk_context *ctx);
 mbedtls_pk_type_t mbedtls_pk_get_type(const mbedtls_pk_context *ctx);
 
 int mbedtls_pk_parse_subpubkey(unsigned char **p, const unsigned char *end, mbedtls_pk_context *pk);
@@ -72,6 +82,8 @@ int mbedtls_x509_get_time(unsigned char **p, const unsigned char *end, mbedtls_x
 int mbedtls_x509_get_sig(unsigned char **p, const unsigned char *end, mbedtls_x509_buf *sig);
 int mbedtls_x509_get_sig_alg(const mbedtls_x509_buf *sig_oid, const mbedtls_x509_buf *sig_params, mbedtls_md_type_t *md_alg, mbedtls_pk_type_t *pk_alg, void **sig_opts);
 int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *end, mbedtls_x509_buf *ext, int tag);
+int mbedtls_x509_time_is_past(const mbedtls_x509_time *to);
+int mbedtls_x509_time_is_future(const mbedtls_x509_time *from);
 
 int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *name);
 int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len, int critical, const unsigned char *val, size_t val_len);
@@ -81,6 +93,8 @@ int mbedtls_x509_write_extensions(unsigned char **p, unsigned char *start, mbedt
 
 // x509_crt.h
 int mbedtls_x509_crt_parse_der(mbedtls_x509_crt *chain, const unsigned char *buf, size_t buflen);
+int mbedtls_x509_crt_check_key_usage(const mbedtls_x509_crt *crt, unsigned int usage);
+int mbedtls_x509_crt_verify(mbedtls_x509_crt *crt, mbedtls_x509_crt *trust_ca, mbedtls_x509_crl *ca_crl, const char *cn, uint32_t *flags, int (*f_vrfy)(void *, mbedtls_x509_crt *, int, uint32_t *), void *p_vrfy);
 void mbedtls_x509_crt_init(mbedtls_x509_crt *crt);
 void mbedtls_x509_crt_free(mbedtls_x509_crt *crt);
 

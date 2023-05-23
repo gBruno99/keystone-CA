@@ -36,10 +36,34 @@
 #define MBEDTLS_ASN1_CONSTRUCTED             0x20
 #define MBEDTLS_ASN1_CONTEXT_SPECIFIC        0x80
 
+/*
+ * Bit masks for each of the components of an ASN.1 tag as specified in
+ * ITU X.690 (08/2015), section 8.1 "General rules for encoding",
+ * paragraph 8.1.2.2:
+ *
+ * Bit  8     7   6   5          1
+ *     +-------+-----+------------+
+ *     | Class | P/C | Tag number |
+ *     +-------+-----+------------+
+ */
+#define MBEDTLS_ASN1_TAG_CLASS_MASK          0xC0
+#define MBEDTLS_ASN1_TAG_PC_MASK             0x20
+#define MBEDTLS_ASN1_TAG_VALUE_MASK          0x1F
+
 /** \} name DER constants */
 
 /** Returns the size of the binary string, without the trailing \\0 */
 #define MBEDTLS_OID_SIZE(x) (sizeof(x) - 1)
+
+/**
+ * Compares an mbedtls_asn1_buf structure to a reference OID.
+ *
+ * Only works for 'defined' oid_str values (MBEDTLS_OID_HMAC_SHA1), you cannot use a
+ * 'unsigned char *oid' here!
+ */
+#define MBEDTLS_OID_CMP(oid_str, oid_buf)                                   \
+    ((MBEDTLS_OID_SIZE(oid_str) != (oid_buf)->len) ||                \
+     memcmp((oid_str), (oid_buf)->p, (oid_buf)->len) != 0)
 
 /**
  * \name ASN1 Error codes
