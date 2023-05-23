@@ -56,12 +56,12 @@ int main(){
 
   // Test my_mbedtls
   int ret;
-  mbedtls_x509write_cert cert_root;
-  mbedtls_x509write_crt_init(&cert_root);
+  mbedtls_x509write_cert cert_man;
+  mbedtls_x509write_crt_init(&cert_man);
 
   // Setting the name of the issuer of the cert
   
-  ret = mbedtls_x509write_crt_set_issuer_name(&cert_root, "O=Manufacturer");
+  ret = mbedtls_x509write_crt_set_issuer_name(&cert_man, "O=Manufacturer");
   if (ret != 0)
   {
     return 0;
@@ -69,7 +69,7 @@ int main(){
   
   // Setting the name of the subject of the cert
   
-  ret = mbedtls_x509write_crt_set_subject_name(&cert_root, "O=Manufacturer");
+  ret = mbedtls_x509write_crt_set_subject_name(&cert_man, "O=Manufacturer");
   if (ret != 0)
   {
     return 0;
@@ -105,70 +105,68 @@ int main(){
 
   
   // Variable  used to specify the serial of the cert
-  unsigned char serial_root[] = {0xFF, 0xFF, 0xFF};
+  unsigned char serial_man[] = {0xFF, 0xFF, 0xFF};
   
   // The public key of the security monitor is inserted in the structure
-  mbedtls_x509write_crt_set_subject_key(&cert_root, &subj_key_test);
+  mbedtls_x509write_crt_set_subject_key(&cert_man, &subj_key_test);
 
   // The private key of the embedded CA is used later to sign the cert
-  mbedtls_x509write_crt_set_issuer_key(&cert_root, &issu_key_test);
+  mbedtls_x509write_crt_set_issuer_key(&cert_man, &issu_key_test);
   
   // The serial of the cert is setted
-  mbedtls_x509write_crt_set_serial_raw(&cert_root, serial_root, 3);
+  mbedtls_x509write_crt_set_serial_raw(&cert_man, serial_man, 3);
   
   // The algoithm used to do the hash for the signature is specified
-  mbedtls_x509write_crt_set_md_alg(&cert_root, MBEDTLS_MD_KEYSTONE_SHA3);
+  mbedtls_x509write_crt_set_md_alg(&cert_man, MBEDTLS_MD_KEYSTONE_SHA3);
   
   // The validity of the crt is specified
-  ret = mbedtls_x509write_crt_set_validity(&cert_root, "20220101000000", "20230101000000");
+  ret = mbedtls_x509write_crt_set_validity(&cert_man, "20220101000000", "20230101000000");
   if (ret != 0)
   {
     return 0;
   }
   
-  unsigned char cert_der_root[1024];
-  int effe_len_cert_der_root;
+  unsigned char cert_der_man[1024];
+  int effe_len_cert_der_man;
 
   // The structure mbedtls_x509write_cert is parsed to create a x509 cert in der format, signed and written in memory
-  ret = mbedtls_x509write_crt_der(&cert_root, cert_der_root, 1024, NULL, NULL);//, test, &len);
+  ret = mbedtls_x509write_crt_der(&cert_man, cert_der_man, 1024, NULL, NULL);//, test, &len);
   if (ret != 0)
   {
-    effe_len_cert_der_root = ret;
+    effe_len_cert_der_man = ret;
   }
   else
   {
     return 0;
   }
 
-  unsigned char *cert_real_root = cert_der_root;
+  unsigned char *cert_real_man = cert_der_man;
   // effe_len_cert_der stands for the length of the cert, placed starting from the end of the buffer cert_der
-  int dif_root = 1024-effe_len_cert_der_root;
+  int dif_man = 1024-effe_len_cert_der_man;
   // cert_real points to the starts of the cert in der format
-  cert_real_root += dif_root;
+  cert_real_man += dif_man;
 
   mbedtls_pk_free(&issu_key_test);
   mbedtls_pk_free(&subj_key_test);
-  mbedtls_x509write_crt_free(&cert_root);
-  print_hex_string("Cert generated", cert_real_root, effe_len_cert_der_root);
+  mbedtls_x509write_crt_free(&cert_man);
+  print_hex_string("Cert generated", cert_real_man, effe_len_cert_der_man);
 
 
-  mbedtls_x509_crt cert_sm_p, cert_root_p, cert_man_p;
-  mbedtls_x509_crt_init(&cert_sm_p);
-  mbedtls_x509_crt_init(&cert_root_p);
-  mbedtls_x509_crt_init(&cert_man_p);
-  ret = mbedtls_x509_crt_parse_der(&cert_sm_p, certs[0], sizes[0]);
+  mbedtls_x509_crt cert_chain;
+  mbedtls_x509_crt_init(&cert_chain);
+  ret = mbedtls_x509_crt_parse_der(&cert_chain, certs[0], sizes[0]);
   my_printf("Parsing cert_sm - ret: %d\n", ret);
-  ret = mbedtls_x509_crt_parse_der(&cert_root_p, certs[1], sizes[1]);
+  ret = mbedtls_x509_crt_parse_der(&cert_chain, certs[1], sizes[1]);
   my_printf("Parsing cert_root - ret: %d\n", ret);
-  ret = mbedtls_x509_crt_parse_der(&cert_man_p, certs[2], sizes[2]);
+  ret = mbedtls_x509_crt_parse_der(&cert_chain, certs[2], sizes[2]);
   my_printf("Parsing cert_man - ret: %d\n", ret);
   my_printf("\n");
-  print_mbedtls_x509_cert("cert_sm", cert_sm_p);
-  print_mbedtls_x509_cert("cert_root", cert_root_p);
-  print_mbedtls_x509_cert("cert_man", cert_man_p);
-  mbedtls_x509_crt_free(&cert_sm_p);
-  mbedtls_x509_crt_free(&cert_root_p);
-  mbedtls_x509_crt_free(&cert_man_p);
+  print_mbedtls_x509_cert("cert_sm", cert_chain);
+  print_mbedtls_x509_cert("cert_root", *(cert_chain.next));
+  print_mbedtls_x509_cert("cert_man", *(*(cert_chain.next)).next);
+  mbedtls_x509_crt_free(&cert_chain);
+
+
 
   EAPP_RETURN(0);
 }
