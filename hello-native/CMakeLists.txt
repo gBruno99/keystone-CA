@@ -11,7 +11,7 @@ else()
   set(eyrie_plugins "freemem")
 endif()
 
-set(my_mbedtls_files ../my_mbedtls/my_asn1.c ../my_mbedtls/my_ed25519.c ../my_mbedtls/my_pk.c ../my_mbedtls/my_utils.c
+set(my_mbedtls_files ../my_mbedtls/my_asn1.c ../my_mbedtls/my_ed25519.c ../my_mbedtls/my_pk.c ../my_mbedtls/my_md.c ../my_mbedtls/my_utils.c
  ../my_mbedtls/custom_string.c ../my_mbedtls/my_x509.c ../my_mbedtls/my_x509_crt.c)
 set(my_mbedtls_dir ../my_mbedtls/)
 set(sha3_dir ../my_mbedtls/sha3/)
