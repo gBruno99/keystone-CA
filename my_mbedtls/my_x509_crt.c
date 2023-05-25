@@ -274,10 +274,10 @@ static int x509_get_uid(unsigned char **p,
     return 0;
 }
 
-int x509_get_basic_constraints(unsigned char **p,
+static int x509_get_basic_constraints(unsigned char **p,
                                       const unsigned char *end,
                                       int *ca_istrue,
-                                      int *max_pathlen) // it's static
+                                      int *max_pathlen)
 {
     int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len;
@@ -413,19 +413,18 @@ static int x509_get_crt_ext(unsigned char **p,
         }
         
         if(my_memcmp(extn_oid.p, oid_ext2, 3)== 0){
-            crt->ca_istrue = 1;
-            unsigned char app = **p;
-            crt->max_pathlen = (int) app;
+            //crt->ca_istrue = 1;
+            //unsigned char app = **p;
+            //crt->max_pathlen = (int) app;
             //crt->max_pathlen = (*p);
-            *p +=1;
-            //if ((ret = x509_get_basic_constraints(p, end_ext_octet +1,
-              //                                        &crt->ca_istrue, &crt->max_pathlen)) != 0) {
+            //*p +=1;
+            if ((ret = x509_get_basic_constraints(p, end_ext_octet,
+                                                      &crt->ca_istrue, &crt->max_pathlen)) != 0) {
                   
-                  //  return ret;
-                //}
+                   return ret;
+                }
         }
         else{
-            //my_memcpy(crt->hash.p_arr, *p, 64);
             crt ->hash.p = *p;
             crt ->hash.len = 64;
             *p += 64;
