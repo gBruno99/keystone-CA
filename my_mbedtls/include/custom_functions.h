@@ -74,6 +74,8 @@ int ed25519_check_pair_wrap(const void *pub, const void *prv, int (*f_rng)(void 
 void *ed25519_alloc_wrap(void);
 void ed25519_free_wrap(void *ctx);
 
+int  checkTCIValue(const mbedtls_x509_name *id, const mbedtls_x509_buf *tci);
+
 // x509.h
 int mbedtls_x509_get_serial(unsigned char **p, const unsigned char *end, mbedtls_x509_buf *serial);
 int mbedtls_x509_get_alg(unsigned char **p, const unsigned char *end, mbedtls_x509_buf *alg, mbedtls_x509_buf *params);

@@ -59,23 +59,11 @@ struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt,
 #else
     struct tm *lt;
 
-#if defined(MBEDTLS_THREADING_C)
-    if (mbedtls_mutex_lock(&mbedtls_threading_gmtime_mutex) != 0) {
-        return NULL;
-    }
-#endif /* MBEDTLS_THREADING_C */
-
     lt = gmtime(tt);
 
     if (lt != NULL) {
         memcpy(tm_buf, lt, sizeof(struct tm));
     }
-
-#if defined(MBEDTLS_THREADING_C)
-    if (mbedtls_mutex_unlock(&mbedtls_threading_gmtime_mutex) != 0) {
-        return NULL;
-    }
-#endif /* MBEDTLS_THREADING_C */
 
     return (lt == NULL) ? NULL : tm_buf;
 #endif /* _WIN32 && !EFIX64 && !EFI32 */

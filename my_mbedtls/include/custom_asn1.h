@@ -2,6 +2,7 @@
 #define CUSTOM_MBEDTLS_ASN1_H
 #include <stddef.h>
 #include "custom_utils.h"
+#include "custom_string.h"
 
 //asn1.h
 /**
@@ -63,7 +64,7 @@
  */
 #define MBEDTLS_OID_CMP(oid_str, oid_buf)                                   \
     ((MBEDTLS_OID_SIZE(oid_str) != (oid_buf)->len) ||                \
-     memcmp((oid_str), (oid_buf)->p, (oid_buf)->len) != 0)
+     my_memcmp((oid_str), (oid_buf)->p, (oid_buf)->len) != 0)
 
 /**
  * \name ASN1 Error codes
