@@ -110,6 +110,7 @@ int mbedtls_x509write_crt_set_issuer_name(mbedtls_x509write_cert *ctx, const cha
 int mbedtls_x509write_crt_set_serial_raw(mbedtls_x509write_cert *ctx, unsigned char *serial, size_t serial_len);
 int mbedtls_x509write_crt_set_validity(mbedtls_x509write_cert *ctx, const char *not_before, const char *not_after);
 int mbedtls_x509write_crt_set_extension(mbedtls_x509write_cert *ctx, const char *oid, size_t oid_len, int critical, const unsigned char *val, size_t val_len);
+int mbedtls_x509write_crt_set_basic_constraints(mbedtls_x509write_cert *ctx, int is_ca, int max_pathlen);
 int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx, unsigned char *buf, size_t size, int (*f_rng)(void *, unsigned char *, size_t), void *p_rng);
 
 #endif
