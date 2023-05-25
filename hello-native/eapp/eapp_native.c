@@ -162,11 +162,32 @@ int main(){
   my_printf("Parsing cert_man - ret: %d\n", ret);
   my_printf("\n");
   print_mbedtls_x509_cert("cert_sm", cert_chain);
+
+  // cert_chain.hash.p[15] = 0x56;
+
+  // https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.9
+
   print_mbedtls_x509_cert("cert_root", *(cert_chain.next));
+  cert_chain.next->ca_istrue = 1;
   print_mbedtls_x509_cert("cert_man", *(*(cert_chain.next)).next);
+  (cert_chain.next)->next->ca_istrue = 1;
+
+
+  mbedtls_x509_crt trusted_certs;
+  mbedtls_x509_crt_init(&trusted_certs);
+  ret = mbedtls_x509_crt_parse_der(&trusted_certs, cert_real_man, effe_len_cert_der_man);
+  my_printf("Parsing trusted cert - ret: %d\n", ret);
+  my_printf("\n");
+  print_mbedtls_x509_cert("trusted_cert", trusted_certs);
+  trusted_certs.ca_istrue = 1;
+
+  uint32_t flags = 0;
+  ret = mbedtls_x509_crt_verify(&cert_chain, &trusted_certs, NULL, NULL, &flags, NULL, NULL);
+  my_printf("Verifing cert chain - ret: %u, flags = %u\n", ret, flags);
+  my_printf("\n");
+
   mbedtls_x509_crt_free(&cert_chain);
-
-
+  mbedtls_x509_crt_free(&trusted_certs);
 
   EAPP_RETURN(0);
 }
