@@ -76,28 +76,28 @@ int main(){
   }
 
   // pk context used to embed the keys of the subject of the cert
-  mbedtls_pk_context subj_key_test;
-  mbedtls_pk_init(&subj_key_test);
+  mbedtls_pk_context subj_key_man;
+  mbedtls_pk_init(&subj_key_man);
 
   // pk context used to embed the keys of the issuer of the cert
-  mbedtls_pk_context issu_key_test;
-  mbedtls_pk_init(&issu_key_test);
+  mbedtls_pk_context issu_key_man;
+  mbedtls_pk_init(&issu_key_man);
   
   // Parsing the private key of the embedded CA that will be used to sign the certificate of the security monitor
-  ret = mbedtls_pk_parse_public_key(&issu_key_test, sanctum_dev_secret_key, 64, 1);
+  ret = mbedtls_pk_parse_public_key(&issu_key_man, sanctum_dev_secret_key, 64, 1);
   if (ret != 0)
   {
     return 0;
   }
 
-  ret = mbedtls_pk_parse_public_key(&issu_key_test, sanctum_dev_public_key, 32, 0);
+  ret = mbedtls_pk_parse_public_key(&issu_key_man, sanctum_dev_public_key, 32, 0);
   if (ret != 0)
   {
     return 0;
   }
 
   // Parsing the public key of the security monitor that will be inserted in its certificate 
-  ret = mbedtls_pk_parse_public_key(&subj_key_test, sanctum_dev_public_key, 32, 0);
+  ret = mbedtls_pk_parse_public_key(&subj_key_man, sanctum_dev_public_key, 32, 0);
   if (ret != 0)
   {
     return 0;
@@ -108,10 +108,10 @@ int main(){
   unsigned char serial_man[] = {0xFF, 0xFF, 0xFF};
   
   // The public key of the security monitor is inserted in the structure
-  mbedtls_x509write_crt_set_subject_key(&cert_man, &subj_key_test);
+  mbedtls_x509write_crt_set_subject_key(&cert_man, &subj_key_man);
 
   // The private key of the embedded CA is used later to sign the cert
-  mbedtls_x509write_crt_set_issuer_key(&cert_man, &issu_key_test);
+  mbedtls_x509write_crt_set_issuer_key(&cert_man, &issu_key_man);
   
   // The serial of the cert is setted
   mbedtls_x509write_crt_set_serial_raw(&cert_man, serial_man, 3);
@@ -120,7 +120,13 @@ int main(){
   mbedtls_x509write_crt_set_md_alg(&cert_man, MBEDTLS_MD_KEYSTONE_SHA3);
   
   // The validity of the crt is specified
-  ret = mbedtls_x509write_crt_set_validity(&cert_man, "20220101000000", "20230101000000");
+  ret = mbedtls_x509write_crt_set_validity(&cert_man, "20230101000000", "20240101000000");
+  if (ret != 0)
+  {
+    return 0;
+  }
+
+  ret = mbedtls_x509write_crt_set_basic_constraints(&cert_man, 1, 10);
   if (ret != 0)
   {
     return 0;
@@ -146,8 +152,8 @@ int main(){
   // cert_real points to the starts of the cert in der format
   cert_real_man += dif_man;
 
-  mbedtls_pk_free(&issu_key_test);
-  mbedtls_pk_free(&subj_key_test);
+  mbedtls_pk_free(&issu_key_man);
+  mbedtls_pk_free(&subj_key_man);
   mbedtls_x509write_crt_free(&cert_man);
   print_hex_string("Cert generated", cert_real_man, effe_len_cert_der_man);
 
@@ -168,9 +174,9 @@ int main(){
   // https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.9
 
   print_mbedtls_x509_cert("cert_root", *(cert_chain.next));
-  cert_chain.next->ca_istrue = 1;
+  // cert_chain.next->ca_istrue = 1;
   print_mbedtls_x509_cert("cert_man", *(*(cert_chain.next)).next);
-  (cert_chain.next)->next->ca_istrue = 1;
+  // (cert_chain.next)->next->ca_istrue = 1;
 
 
   mbedtls_x509_crt trusted_certs;
@@ -179,7 +185,7 @@ int main(){
   my_printf("Parsing trusted cert - ret: %d\n", ret);
   my_printf("\n");
   print_mbedtls_x509_cert("trusted_cert", trusted_certs);
-  trusted_certs.ca_istrue = 1;
+  // trusted_certs.ca_istrue = 1;
 
   uint32_t flags = 0;
   ret = mbedtls_x509_crt_verify(&cert_chain, &trusted_certs, NULL, NULL, &flags, NULL, NULL);
@@ -254,6 +260,9 @@ void print_mbedtls_x509_cert(char *name, mbedtls_x509_crt crt){
   print_mbedtls_asn1_buf("v3_ext", crt.v3_ext);
   my_printf("\n");
   print_mbedtls_asn1_buf("hash", crt.hash);
+  my_printf("\n");
+  my_printf("ca_istrue: %d\n", crt.ca_istrue);
+  my_printf("max_pathlen: %d\n", crt.max_pathlen);
   my_printf("\n");
   print_mbedtls_asn1_buf("sig", crt.sig);
   my_printf("sig_md: %d\n", crt.sig_md);
