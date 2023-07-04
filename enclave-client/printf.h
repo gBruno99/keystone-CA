@@ -34,6 +34,7 @@
 
 #include <stdarg.h>
 #include <stddef.h>
+#include "custom_functions.h"
 
 #ifdef __cplusplus
 extern "C" {

@@ -34,7 +34,6 @@
 #include <stdint.h>
 #include "printf.h"
 #include "app/syscall.h"
-#include "custom_functions.h"
 //#include "call/sbi.h"
 
 // ntoa conversion buffer size, this must be big enough to hold
