@@ -167,6 +167,40 @@ int mbedtls_asn1_get_int(unsigned char **p,
     return asn1_get_tagged_int(p, end, MBEDTLS_ASN1_INTEGER, val);
 }
 
+int mbedtls_asn1_get_bitstring(unsigned char **p, const unsigned char *end,
+                               mbedtls_asn1_bitstring *bs)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+
+    /* Certificate type is a single byte bitstring */
+    if ((ret = mbedtls_asn1_get_tag(p, end, &bs->len, MBEDTLS_ASN1_BIT_STRING)) != 0) {
+        return ret;
+    }
+
+    /* Check length, subtract one for actual bit string length */
+    if (bs->len < 1) {
+        return MBEDTLS_ERR_ASN1_OUT_OF_DATA;
+    }
+    bs->len -= 1;
+
+    /* Get number of unused bits, ensure unused bits <= 7 */
+    bs->unused_bits = **p;
+    if (bs->unused_bits > 7) {
+        return MBEDTLS_ERR_ASN1_INVALID_LENGTH;
+    }
+    (*p)++;
+
+    /* Get actual bitstring */
+    bs->p = *p;
+    *p += bs->len;
+
+    if (*p != end) {
+        return MBEDTLS_ERR_ASN1_LENGTH_MISMATCH;
+    }
+
+    return 0;
+}
+
 int mbedtls_asn1_get_bitstring_null(unsigned char **p, const unsigned char *end,
                                     size_t *len)
 {
@@ -534,6 +568,83 @@ int mbedtls_asn1_write_tagged_string(unsigned char **p, const unsigned char *sta
 
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
     MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, tag));
+
+    return (int) len;
+}
+
+int mbedtls_asn1_write_named_bitstring(unsigned char **p,
+                                       const unsigned char *start,
+                                       const unsigned char *buf,
+                                       size_t bits)
+{
+    size_t unused_bits, byte_len;
+    const unsigned char *cur_byte;
+    unsigned char cur_byte_shifted;
+    unsigned char bit;
+
+    byte_len = (bits + 7) / 8;
+    unused_bits = (byte_len * 8) - bits;
+
+    /*
+     * Named bitstrings require that trailing 0s are excluded in the encoding
+     * of the bitstring. Trailing 0s are considered part of the 'unused' bits
+     * when encoding this value in the first content octet
+     */
+    if (bits != 0) {
+        cur_byte = buf + byte_len - 1;
+        cur_byte_shifted = *cur_byte >> unused_bits;
+
+        for (;;) {
+            bit = cur_byte_shifted & 0x1;
+            cur_byte_shifted >>= 1;
+
+            if (bit != 0) {
+                break;
+            }
+
+            bits--;
+            if (bits == 0) {
+                break;
+            }
+
+            if (bits % 8 == 0) {
+                cur_byte_shifted = *--cur_byte;
+            }
+        }
+    }
+
+    return mbedtls_asn1_write_bitstring(p, start, buf, bits);
+}
+
+int mbedtls_asn1_write_bitstring(unsigned char **p, const unsigned char *start,
+                                 const unsigned char *buf, size_t bits)
+{
+    int ret = MBEDTLS_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len = 0;
+    size_t unused_bits, byte_len;
+
+    byte_len = (bits + 7) / 8;
+    unused_bits = (byte_len * 8) - bits;
+
+    if (*p < start || (size_t) (*p - start) < byte_len + 1) {
+        return MBEDTLS_ERR_ASN1_BUF_TOO_SMALL;
+    }
+
+    len = byte_len + 1;
+
+    /* Write the bitstring. Ensure the unused bits are zeroed */
+    if (byte_len > 0) {
+        byte_len--;
+        *--(*p) = buf[byte_len] & ~((0x1 << unused_bits) - 1);
+        (*p) -= byte_len;
+        memcpy(*p, buf, byte_len);
+    }
+
+    /* Write unused bits */
+    *--(*p) = (unsigned char) unused_bits;
+
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_len(p, start, len));
+    MBEDTLS_ASN1_CHK_ADD(len, mbedtls_asn1_write_tag(p, start, MBEDTLS_ASN1_BIT_STRING));
 
     return (int) len;
 }

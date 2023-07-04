@@ -168,6 +168,57 @@ typedef struct mbedtls_x509_time {
 }
 mbedtls_x509_time;
 
+/**
+ * From RFC 5280 section 4.2.1.6:
+ * OtherName ::= SEQUENCE {
+ *      type-id    OBJECT IDENTIFIER,
+ *      value      [0] EXPLICIT ANY DEFINED BY type-id }
+ *
+ * Future versions of the library may add new fields to this structure or
+ * to its embedded union and structure.
+ */
+typedef struct mbedtls_x509_san_other_name {
+    /**
+     * The type_id is an OID as defined in RFC 5280.
+     * To check the value of the type id, you should use
+     * \p MBEDTLS_OID_CMP with a known OID mbedtls_x509_buf.
+     */
+    mbedtls_x509_buf type_id;                   /**< The type id. */
+    union {
+        /**
+         * From RFC 4108 section 5:
+         * HardwareModuleName ::= SEQUENCE {
+         *                         hwType OBJECT IDENTIFIER,
+         *                         hwSerialNum OCTET STRING }
+         */
+        struct {
+            mbedtls_x509_buf oid;               /**< The object identifier. */
+            mbedtls_x509_buf val;               /**< The named value. */
+        }
+        hardware_module_name;
+    }
+    value;
+}
+mbedtls_x509_san_other_name;
+
+/**
+ * A structure for holding the parsed Subject Alternative Name,
+ * according to type.
+ *
+ * Future versions of the library may add new fields to this structure or
+ * to its embedded union and structure.
+ */
+typedef struct mbedtls_x509_subject_alternative_name {
+    int type;                              /**< The SAN type, value of MBEDTLS_X509_SAN_XXX. */
+    union {
+        mbedtls_x509_san_other_name other_name; /**< The otherName supported type. */
+        mbedtls_x509_name directory_name;
+        mbedtls_x509_buf unstructured_name; /**< The buffer for the unstructured types. rfc822Name, dnsName and uniformResourceIdentifier are currently supported. */
+    }
+    san; /**< A union of the supported SAN types */
+}
+mbedtls_x509_subject_alternative_name;
+
 //x509_crt.h
 #define MBEDTLS_X509_CRT_VERSION_1              0
 #define MBEDTLS_X509_CRT_VERSION_2              1
@@ -463,5 +514,55 @@ typedef struct mbedtls_x509_crl {
     struct mbedtls_x509_crl *next;
 }
 mbedtls_x509_crl;
+
+// x509_csr.h
+/**
+ * Certificate Signing Request (CSR) structure.
+ *
+ * Some fields of this structure are publicly readable. Do not modify
+ * them except via Mbed TLS library functions: the effect of modifying
+ * those fields or the data that those fields point to is unspecified.
+ */
+typedef struct mbedtls_x509_csr {
+    mbedtls_x509_buf raw;           /**< The raw CSR data (DER). */
+    mbedtls_x509_buf cri;           /**< The raw CertificateRequestInfo body (DER). */
+
+    int version;            /**< CSR version (1=v1). */
+
+    mbedtls_x509_buf  subject_raw;  /**< The raw subject data (DER). */
+    mbedtls_x509_name subject;      /**< The parsed subject data (named information object). */
+
+    mbedtls_pk_context pk;          /**< Container for the public key context. */
+
+    unsigned int key_usage;     /**< Optional key usage extension value: See the values in x509.h */
+    unsigned char ns_cert_type; /**< Optional Netscape certificate type extension value: See the values in x509.h */
+    mbedtls_x509_sequence subject_alt_names;    /**< Optional list of raw entries of Subject Alternative Names extension (currently only dNSName and OtherName are listed). */
+
+    int MBEDTLS_PRIVATE(ext_types);              /**< Bit string containing detected and parsed extensions */
+
+    mbedtls_x509_buf sig_oid;
+    mbedtls_x509_buf MBEDTLS_PRIVATE(sig);
+    mbedtls_md_type_t MBEDTLS_PRIVATE(sig_md);       /**< Internal representation of the MD algorithm of the signature algorithm, e.g. MBEDTLS_MD_SHA256 */
+    mbedtls_pk_type_t MBEDTLS_PRIVATE(sig_pk);       /**< Internal representation of the Public Key algorithm of the signature algorithm, e.g. MBEDTLS_PK_RSA */
+    void *MBEDTLS_PRIVATE(sig_opts);         /**< Signature options to be passed to mbedtls_pk_verify_ext(), e.g. for RSASSA-PSS */
+}
+mbedtls_x509_csr;
+
+/**
+ * Container for writing a CSR
+ */
+typedef struct mbedtls_x509write_csr {
+    mbedtls_pk_context *MBEDTLS_PRIVATE(key);
+    mbedtls_asn1_named_data *MBEDTLS_PRIVATE(subject);
+    mbedtls_md_type_t MBEDTLS_PRIVATE(md_alg);
+    mbedtls_asn1_named_data *MBEDTLS_PRIVATE(extensions);
+}
+mbedtls_x509write_csr;
+
+typedef struct mbedtls_x509_san_list {
+    mbedtls_x509_subject_alternative_name node;
+    struct mbedtls_x509_san_list *next;
+}
+mbedtls_x509_san_list;
 
 #endif

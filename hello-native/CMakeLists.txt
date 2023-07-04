@@ -12,7 +12,7 @@ else()
 endif()
 
 set(my_mbedtls_files ../my_mbedtls/my_asn1.c ../my_mbedtls/my_ed25519.c ../my_mbedtls/my_pk.c ../my_mbedtls/my_md.c ../my_mbedtls/my_utils.c
-../my_mbedtls/my_attester.c ../my_mbedtls/custom_string.c ../my_mbedtls/my_x509.c ../my_mbedtls/my_x509_crt.c)
+../my_mbedtls/my_attester.c ../my_mbedtls/custom_string.c ../my_mbedtls/my_x509.c ../my_mbedtls/my_x509_crt.c ../my_mbedtls/my_x509_csr.c)
 set(my_mbedtls_dir ../my_mbedtls/)
 set(sha3_dir ../my_mbedtls/sha3/)
 set(ed25519_files ../my_mbedtls/ed25519/ed25519.h ../my_mbedtls/ed25519/fe.h ../my_mbedtls/ed25519/fe.c ../my_mbedtls/ed25519/fixedint.h

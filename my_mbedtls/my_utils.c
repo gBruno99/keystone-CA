@@ -1,6 +1,56 @@
 #include "custom_functions.h"
 
 // oid.c
+typedef struct {
+    mbedtls_oid_descriptor_t    descriptor;
+    int                 ext_type;
+} oid_x509_ext_t;
+
+static const oid_x509_ext_t oid_x509_ext[] =
+{
+    {
+        OID_DESCRIPTOR(MBEDTLS_OID_BASIC_CONSTRAINTS,
+                       "id-ce-basicConstraints",
+                       "Basic Constraints"),
+        MBEDTLS_OID_X509_EXT_BASIC_CONSTRAINTS,
+    },
+    {
+        OID_DESCRIPTOR(MBEDTLS_OID_KEY_USAGE,            "id-ce-keyUsage",            "Key Usage"),
+        MBEDTLS_OID_X509_EXT_KEY_USAGE,
+    },
+    {
+        OID_DESCRIPTOR(MBEDTLS_OID_EXTENDED_KEY_USAGE,
+                       "id-ce-extKeyUsage",
+                       "Extended Key Usage"),
+        MBEDTLS_OID_X509_EXT_EXTENDED_KEY_USAGE,
+    },
+    {
+        OID_DESCRIPTOR(MBEDTLS_OID_SUBJECT_ALT_NAME,
+                       "id-ce-subjectAltName",
+                       "Subject Alt Name"),
+        MBEDTLS_OID_X509_EXT_SUBJECT_ALT_NAME,
+    },
+    {
+        OID_DESCRIPTOR(MBEDTLS_OID_NS_CERT_TYPE,
+                       "id-netscape-certtype",
+                       "Netscape Certificate Type"),
+        MBEDTLS_OID_X509_EXT_NS_CERT_TYPE,
+    },
+    {
+        OID_DESCRIPTOR(MBEDTLS_OID_CERTIFICATE_POLICIES,
+                       "id-ce-certificatePolicies",
+                       "Certificate Policies"),
+        MBEDTLS_OID_X509_EXT_CERTIFICATE_POLICIES,
+    },
+    {
+        NULL_OID_DESCRIPTOR,
+        0,
+    },
+};
+
+FN_OID_TYPED_FROM_ASN1(oid_x509_ext_t, x509_ext, oid_x509_ext)
+FN_OID_GET_ATTR1(mbedtls_oid_get_x509_ext_type, oid_x509_ext_t, x509_ext, int, ext_type)
+
 const oid_sig_alg_t oid_sig_alg[] = // new_impl
     {
         {

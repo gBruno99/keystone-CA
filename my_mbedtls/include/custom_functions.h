@@ -11,6 +11,7 @@ int mbedtls_asn1_get_len(unsigned char **p, const unsigned char *end, size_t *le
 int mbedtls_asn1_get_tag(unsigned char **p, const unsigned char *end, size_t *len, int tag);
 int mbedtls_asn1_get_bool(unsigned char **p, const unsigned char *end, int *val);
 int mbedtls_asn1_get_int(unsigned char **p, const unsigned char *end, int *val);
+int mbedtls_asn1_get_bitstring(unsigned char **p, const unsigned char *end, mbedtls_asn1_bitstring *bs);
 int mbedtls_asn1_get_bitstring_null(unsigned char **p, const unsigned char *end, size_t *len);
 void mbedtls_asn1_sequence_free(mbedtls_asn1_sequence *seq); 
 int mbedtls_asn1_get_alg(unsigned char **p, const unsigned char *end, mbedtls_asn1_buf *alg, mbedtls_asn1_buf *params);
@@ -27,6 +28,8 @@ int mbedtls_asn1_write_algorithm_identifier(unsigned char **p, const unsigned ch
 int mbedtls_asn1_write_bool(unsigned char **p, const unsigned char *start, int boolean);
 int mbedtls_asn1_write_int(unsigned char **p, const unsigned char *start, int val);
 int mbedtls_asn1_write_tagged_string(unsigned char **p, const unsigned char *start, int tag, const char *text, size_t text_len);
+int mbedtls_asn1_write_bitstring(unsigned char **p, const unsigned char *start, const unsigned char *buf, size_t bits);
+int mbedtls_asn1_write_named_bitstring(unsigned char **p, const unsigned char *start, const unsigned char *buf, size_t bits);
 mbedtls_asn1_named_data *mbedtls_asn1_store_named_data(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len, const unsigned char *val, size_t val_len);
 
 // md.h
@@ -86,6 +89,11 @@ int mbedtls_x509_get_sig_alg(const mbedtls_x509_buf *sig_oid, const mbedtls_x509
 int mbedtls_x509_get_ext(unsigned char **p, const unsigned char *end, mbedtls_x509_buf *ext, int tag);
 int mbedtls_x509_time_is_past(const mbedtls_x509_time *to);
 int mbedtls_x509_time_is_future(const mbedtls_x509_time *from);
+int mbedtls_x509_get_subject_alt_name(unsigned char **p, const unsigned char *end, mbedtls_x509_sequence *subject_alt_name);
+int mbedtls_x509_get_ns_cert_type(unsigned char **p, const unsigned char *end, unsigned char *ns_cert_type);
+int mbedtls_x509_get_key_usage(unsigned char **p, const unsigned char *end, unsigned int *key_usage);
+int mbedtls_x509_parse_subject_alt_name(const mbedtls_x509_buf *san_buf, mbedtls_x509_subject_alternative_name *san); 
+void mbedtls_x509_free_subject_alt_name(mbedtls_x509_subject_alternative_name *san);
 
 int mbedtls_x509_string_to_names(mbedtls_asn1_named_data **head, const char *name);
 int mbedtls_x509_set_extension(mbedtls_asn1_named_data **head, const char *oid, size_t oid_len, int critical, const unsigned char *val, size_t val_len);
@@ -112,5 +120,21 @@ int mbedtls_x509write_crt_set_validity(mbedtls_x509write_cert *ctx, const char *
 int mbedtls_x509write_crt_set_extension(mbedtls_x509write_cert *ctx, const char *oid, size_t oid_len, int critical, const unsigned char *val, size_t val_len);
 int mbedtls_x509write_crt_set_basic_constraints(mbedtls_x509write_cert *ctx, int is_ca, int max_pathlen);
 int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx, unsigned char *buf, size_t size, int (*f_rng)(void *, unsigned char *, size_t), void *p_rng);
+
+// x509_csr.h
+int mbedtls_x509_csr_parse_der(mbedtls_x509_csr *csr, const unsigned char *buf, size_t buflen);
+void mbedtls_x509_csr_init(mbedtls_x509_csr *csr);
+void mbedtls_x509_csr_free(mbedtls_x509_csr *csr);
+
+void mbedtls_x509write_csr_init(mbedtls_x509write_csr *ctx);
+void mbedtls_x509write_csr_free(mbedtls_x509write_csr *ctx);
+void mbedtls_x509write_csr_set_md_alg(mbedtls_x509write_csr *ctx, mbedtls_md_type_t md_alg);
+void mbedtls_x509write_csr_set_key(mbedtls_x509write_csr *ctx, mbedtls_pk_context *key);
+int mbedtls_x509write_csr_set_subject_name(mbedtls_x509write_csr *ctx, const char *subject_name);
+int mbedtls_x509write_csr_set_extension(mbedtls_x509write_csr *ctx, const char *oid, size_t oid_len, int critical, const unsigned char *val, size_t val_len);
+int mbedtls_x509write_csr_set_subject_alternative_name(mbedtls_x509write_csr *ctx, const mbedtls_x509_san_list *san_list);
+int mbedtls_x509write_csr_set_key_usage(mbedtls_x509write_csr *ctx, unsigned char key_usage);
+int mbedtls_x509write_csr_set_ns_cert_type(mbedtls_x509write_csr *ctx, unsigned char ns_cert_type);
+int mbedtls_x509write_csr_der(mbedtls_x509write_csr *ctx, unsigned char *buf, size_t size, int (*f_rng)(void *, unsigned char *, size_t), void *p_rng);
 
 #endif

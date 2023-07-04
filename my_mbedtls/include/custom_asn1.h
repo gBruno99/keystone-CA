@@ -104,6 +104,16 @@ mbedtls_asn1_buf;
 typedef mbedtls_asn1_buf mbedtls_x509_buf_crt; // new_impl
 
 /**
+ * Container for ASN1 bit strings.
+ */
+typedef struct mbedtls_asn1_bitstring {
+    size_t len;                 /**< ASN1 length, in octets. */
+    unsigned char unused_bits;  /**< Number of unused bits at the end of the string */
+    unsigned char *p;           /**< Raw ASN1 data for the bit string */
+}
+mbedtls_asn1_bitstring;
+
+/**
  * Container for a sequence or list of 'named' ASN.1 data items
  */
 typedef struct mbedtls_asn1_named_data {
@@ -155,6 +165,14 @@ mbedtls_asn1_sequence;
         (g) += ret;                                 \
     } while (0)
 
+#define MBEDTLS_ASN1_CHK_CLEANUP_ADD(g, f)                      \
+    do                                                  \
+    {                                                   \
+        if ((ret = (f)) < 0)                         \
+        goto cleanup;                              \
+        else                                            \
+        (g) += ret;                                 \
+    } while (0)
 
 
 #endif
