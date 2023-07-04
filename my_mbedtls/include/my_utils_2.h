@@ -11,6 +11,7 @@
 #define ADD_LEN(s)      s, MBEDTLS_OID_SIZE(s)
 
 #define OID_DESCRIPTOR(s, name, description)  { ADD_LEN(s), name, description }
+#define NULL_OID_DESCRIPTOR                   { NULL, 0, NULL, NULL }
 
 /*
  * Macro to generate an internal function for oid_XXX_from_asn1() (used by
@@ -26,7 +27,7 @@
         if (p == NULL || oid == NULL) return NULL;                  \
         while (cur->asn1 != NULL) {                                    \
             if (cur->asn1_len == oid->len &&                            \
-                memcmp(cur->asn1, oid->p, oid->len) == 0) {          \
+                my_memcmp(cur->asn1, oid->p, oid->len) == 0) {          \
                 return p;                                            \
             }                                                           \
             p++;                                                        \

@@ -180,7 +180,7 @@ int mbedtls_x509_csr_parse_der(mbedtls_x509_csr *csr,
     unsigned char *p, *end;
     mbedtls_x509_buf sig_params;
 
-    memset(&sig_params, 0, sizeof(mbedtls_x509_buf));
+    my_memset(&sig_params, 0, sizeof(mbedtls_x509_buf));
 
     /*
      * Check for valid input
@@ -200,7 +200,7 @@ int mbedtls_x509_csr_parse_der(mbedtls_x509_csr *csr,
         return MBEDTLS_ERR_X509_ALLOC_FAILED;
     }
 
-    memcpy(p, buf, buflen);
+    my_memcpy(p, buf, buflen);
 
     csr->raw.p = p;
     csr->raw.len = len;
@@ -338,7 +338,7 @@ int mbedtls_x509_csr_parse_der(mbedtls_x509_csr *csr,
 
 void mbedtls_x509_csr_init(mbedtls_x509_csr *csr)
 {
-    memset(csr, 0, sizeof(mbedtls_x509_csr));
+    my_memset(csr, 0, sizeof(mbedtls_x509_csr));
 }
 
 void mbedtls_x509_csr_free(mbedtls_x509_csr *csr)
@@ -367,7 +367,7 @@ void mbedtls_x509_csr_free(mbedtls_x509_csr *csr)
 // x509write_csr.c
 void mbedtls_x509write_csr_init(mbedtls_x509write_csr *ctx)
 {
-    memset(ctx, 0, sizeof(mbedtls_x509write_csr));
+    my_memset(ctx, 0, sizeof(mbedtls_x509write_csr));
 }
 
 void mbedtls_x509write_csr_free(mbedtls_x509write_csr *ctx)
@@ -670,7 +670,7 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
      * Move the written CSR data to the start of buf to create space for
      * writing the signature into buf.
      */
-    memmove(buf, c, len);
+    my_memmove(buf, c, len);
 
     /*
      * Write sig and its OID into buf backwards from the end of buf.
@@ -687,7 +687,7 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
      * CSR data to the start of the signature.
      */
     c2 -= len;
-    memmove(c2, buf, len);
+    my_memmove(c2, buf, len);
 
     /* ASN encode the total size and tag the CSR data with it. */
     len += sig_and_oid_len;
@@ -698,7 +698,7 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
                              MBEDTLS_ASN1_CONSTRUCTED | MBEDTLS_ASN1_SEQUENCE));
 
     /* Zero the unused bytes at the start of buf */
-    memset(buf, 0, c2 - buf);
+    my_memset(buf, 0, c2 - buf);
 
     return (int) len;
 }

@@ -271,8 +271,7 @@ int mbedtls_asn1_get_alg(unsigned char **p,
     #endif
 
     if (*p == end) {
-        // mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
-        my_memset(params, 0x00, sizeof(mbedtls_asn1_buf));
+        mbedtls_platform_zeroize(params, sizeof(mbedtls_asn1_buf));
         return 0;
     }
 
@@ -637,7 +636,7 @@ int mbedtls_asn1_write_bitstring(unsigned char **p, const unsigned char *start,
         byte_len--;
         *--(*p) = buf[byte_len] & ~((0x1 << unused_bits) - 1);
         (*p) -= byte_len;
-        memcpy(*p, buf, byte_len);
+        my_memcpy(*p, buf, byte_len);
     }
 
     /* Write unused bits */

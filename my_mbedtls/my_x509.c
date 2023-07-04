@@ -660,7 +660,7 @@ int mbedtls_x509_get_subject_alt_name(unsigned char **p,
     while (*p < end) {
         mbedtls_x509_subject_alternative_name dummy_san_buf;
         mbedtls_x509_buf tmp_san_buf;
-        memset(&dummy_san_buf, 0, sizeof(dummy_san_buf));
+        my_memset(&dummy_san_buf, 0, sizeof(dummy_san_buf));
 
         tmp_san_buf.tag = **p;
         (*p)++;
@@ -799,9 +799,9 @@ int mbedtls_x509_parse_subject_alt_name(const mbedtls_x509_buf *san_buf,
                 return ret;
             }
 
-            memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
+            my_memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
             san->type = MBEDTLS_X509_SAN_OTHER_NAME;
-            memcpy(&san->san.other_name,
+            my_memcpy(&san->san.other_name,
                    &other_name, sizeof(other_name));
 
         }
@@ -811,10 +811,10 @@ int mbedtls_x509_parse_subject_alt_name(const mbedtls_x509_buf *san_buf,
          */
         case (MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_X509_SAN_UNIFORM_RESOURCE_IDENTIFIER):
         {
-            memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
+            my_memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
             san->type = MBEDTLS_X509_SAN_UNIFORM_RESOURCE_IDENTIFIER;
 
-            memcpy(&san->san.unstructured_name,
+            my_memcpy(&san->san.unstructured_name,
                    san_buf, sizeof(*san_buf));
 
         }
@@ -824,10 +824,10 @@ int mbedtls_x509_parse_subject_alt_name(const mbedtls_x509_buf *san_buf,
          */
         case (MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_X509_SAN_DNS_NAME):
         {
-            memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
+            my_memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
             san->type = MBEDTLS_X509_SAN_DNS_NAME;
 
-            memcpy(&san->san.unstructured_name,
+            my_memcpy(&san->san.unstructured_name,
                    san_buf, sizeof(*san_buf));
         }
         break;
@@ -837,9 +837,9 @@ int mbedtls_x509_parse_subject_alt_name(const mbedtls_x509_buf *san_buf,
          */
         case (MBEDTLS_ASN1_CONTEXT_SPECIFIC | MBEDTLS_X509_SAN_RFC822_NAME):
         {
-            memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
+            my_memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
             san->type = MBEDTLS_X509_SAN_RFC822_NAME;
-            memcpy(&san->san.unstructured_name, san_buf, sizeof(*san_buf));
+            my_memcpy(&san->san.unstructured_name, san_buf, sizeof(*san_buf));
         }
         break;
 
@@ -850,7 +850,7 @@ int mbedtls_x509_parse_subject_alt_name(const mbedtls_x509_buf *san_buf,
         {
             size_t name_len;
             unsigned char *p = san_buf->p;
-            memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
+            my_memset(san, 0, sizeof(mbedtls_x509_subject_alternative_name));
             san->type = MBEDTLS_X509_SAN_DIRECTORY_NAME;
 
             ret = mbedtls_asn1_get_tag(&p, p + san_buf->len, &name_len,

@@ -119,3 +119,8 @@ struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt,
 #endif /* _WIN32 && !EFIX64 && !EFI32 */
 }
 #endif /* MBEDTLS_HAVE_TIME_DATE */
+
+// new impl
+void mbedtls_platform_zeroize(void *buf, size_t len){
+    my_memset(buf, 0x00, len);
+}

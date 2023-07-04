@@ -1647,8 +1647,7 @@ void mbedtls_x509_crt_free(mbedtls_x509_crt *crt)
         mbedtls_asn1_sequence_free(cert_cur->certificate_policies.next);
 
         if (cert_cur->raw.p != NULL && cert_cur->own_buffer) {
-            // mbedtls_platform_zeroize(cert_cur->raw.p, cert_cur->raw.len);
-            my_memset(cert_cur->raw.p, 0x00, cert_cur->raw.len);
+            mbedtls_platform_zeroize(cert_cur->raw.p, cert_cur->raw.len);
             mbedtls_free(cert_cur->raw.p);
             #if MBEDTLS_DEBUG_PRINTS
             my_printf("mbedtls_x509_crt_free - free: %lu\n", cert_cur->raw.len);
@@ -1658,8 +1657,7 @@ void mbedtls_x509_crt_free(mbedtls_x509_crt *crt)
         cert_prv = cert_cur;
         cert_cur = cert_cur->next;
 
-        // mbedtls_platform_zeroize(cert_prv, sizeof(mbedtls_x509_crt));
-        my_memset(cert_prv, 0x00, sizeof(mbedtls_x509_crt));
+        mbedtls_platform_zeroize(cert_prv, sizeof(mbedtls_x509_crt));
         if (cert_prv != crt) {
             mbedtls_free(cert_prv);
             #if MBEDTLS_DEBUG_PRINTS
@@ -1683,8 +1681,7 @@ void mbedtls_x509write_crt_free(mbedtls_x509write_cert *ctx)
     mbedtls_asn1_free_named_data_list(&ctx->issuer);
     mbedtls_asn1_free_named_data_list(&ctx->extensions);
 
-    // mbedtls_platform_zeroize(ctx, sizeof(mbedtls_x509write_cert));
-    my_memset(ctx, 0x00, sizeof(mbedtls_x509write_cert));
+    mbedtls_platform_zeroize(ctx, sizeof(mbedtls_x509write_cert));
 }
 
 void mbedtls_x509write_crt_set_md_alg(mbedtls_x509write_cert *ctx,
@@ -2036,7 +2033,7 @@ int mbedtls_x509write_crt_der(mbedtls_x509write_cert *ctx,
         ed25519_sign(sig, hash, 64, ed25519->pub_key, ed25519->priv_key);
         sig_len = 64;
     } else {
-        crypto_interface(3, (void*) hash, MBEDTLS_HASH_MAX_SIZE, sig, &sig_len, ed25519->pub_key);
+        crypto_interface(2, (void*) hash, MBEDTLS_HASH_MAX_SIZE, sig, &sig_len, ed25519->pub_key);
     }
     
     /* Move CRT to the front of the buffer to have space

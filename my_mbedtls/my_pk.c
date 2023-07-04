@@ -31,8 +31,7 @@ void mbedtls_pk_free(mbedtls_pk_context *ctx)
         ctx->pk_info->ctx_free_func(ctx->pk_ctx);
     }
 
-    // mbedtls_platform_zeroize(ctx, sizeof(mbedtls_pk_context));
-    my_memset(ctx, 0x00, sizeof(mbedtls_pk_context));
+    mbedtls_platform_zeroize(ctx, sizeof(mbedtls_pk_context));
 }
 
 const mbedtls_pk_info_t *mbedtls_pk_info_from_type(mbedtls_pk_type_t pk_type) // new_impl

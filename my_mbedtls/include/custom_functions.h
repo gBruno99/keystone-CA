@@ -79,6 +79,8 @@ void ed25519_free_wrap(void *ctx);
 
 int  checkTCIValue(const mbedtls_x509_name *id, const mbedtls_x509_buf *tci);
 
+void mbedtls_platform_zeroize(void *buf, size_t len);
+
 // x509.h
 int mbedtls_x509_get_serial(unsigned char **p, const unsigned char *end, mbedtls_x509_buf *serial);
 int mbedtls_x509_get_alg(unsigned char **p, const unsigned char *end, mbedtls_x509_buf *alg, mbedtls_x509_buf *params);

@@ -162,7 +162,7 @@ int mbedtls_ed25519_write_signature_restartable(mbedtls_ed25519_context *ctx,
         ed25519_sign(sig, hash, sizeof(hash), ctx->pub_key, ctx->priv_key);
         *slen = MBEDTLS_PK_SIGNATURE_MAX_SIZE;
     } else {
-        return crypto_interface(3, (void*) hash, hlen, sig, slen, ctx->pub_key);
+        return crypto_interface(2, (void*) hash, hlen, sig, slen, ctx->pub_key);
     }
     return 0;
 }

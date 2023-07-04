@@ -151,6 +151,11 @@
 typedef mbedtls_asn1_buf mbedtls_x509_buf;
 
 /**
+ * Container for ASN1 bit strings.
+ */
+typedef mbedtls_asn1_bitstring mbedtls_x509_bitstring;
+
+/**
  * Container for ASN1 named information objects.
  * It allows for Relative Distinguished Names (e.g. cn=localhost,ou=code,etc.).
  */
