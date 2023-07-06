@@ -4,6 +4,10 @@
 #include "custom_oid.h"
 #include "my_utils_2.h"
 
+// custom new_impl
+#define NONCE_LEN               32
+#define ATTESTATION_PROOF_LEN   64
+
 //x509.h
 #define MBEDTLS_X509_MAX_INTERMEDIATE_CA   8
 
@@ -34,6 +38,9 @@
 #define MBEDTLS_X509_EXT_INIHIBIT_ANYPOLICY       MBEDTLS_OID_X509_EXT_INIHIBIT_ANYPOLICY
 #define MBEDTLS_X509_EXT_FRESHEST_CRL             MBEDTLS_OID_X509_EXT_FRESHEST_CRL
 #define MBEDTLS_X509_EXT_NS_CERT_TYPE             MBEDTLS_OID_X509_EXT_NS_CERT_TYPE
+#define MBEDTLS_X509_EXT_NONCE                    MBEDTLS_OID_X509_EXT_NONCE                // new_impl  
+#define MBEDTLS_X509_EXT_DICE_CERTS               MBEDTLS_OID_X509_EXT_DICE_CERTS           // new_impl
+#define MBEDTLS_X509_EXT_ATTESTATION_PROOF        MBEDTLS_OID_X509_EXT_ATTESTATION_PROOF    // new_impl
 
 /**
  * \name X509 Error codes
@@ -542,6 +549,10 @@ typedef struct mbedtls_x509_csr {
     unsigned int key_usage;     /**< Optional key usage extension value: See the values in x509.h */
     unsigned char ns_cert_type; /**< Optional Netscape certificate type extension value: See the values in x509.h */
     mbedtls_x509_sequence subject_alt_names;    /**< Optional list of raw entries of Subject Alternative Names extension (currently only dNSName and OtherName are listed). */
+
+    mbedtls_x509_crt cert_chain;            // new_impl
+    mbedtls_x509_buf nonce;                 // new_impl
+    mbedtls_x509_buf attestation_proof;     // new_impl
 
     int MBEDTLS_PRIVATE(ext_types);              /**< Bit string containing detected and parsed extensions */
 

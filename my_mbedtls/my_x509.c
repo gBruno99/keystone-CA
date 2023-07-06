@@ -706,6 +706,10 @@ int mbedtls_x509_get_subject_alt_name(unsigned char **p,
                                          MBEDTLS_ERR_ASN1_ALLOC_FAILED);
             }
 
+            #if MBEDTLS_DEBUG_PRINTS
+            my_printf("mbedtls_x509_get_subject_alt_name - calloc: %lu\n", sizeof(mbedtls_asn1_sequence));
+            #endif
+
             cur = cur->next;
         }
 

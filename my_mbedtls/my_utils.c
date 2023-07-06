@@ -42,6 +42,24 @@ static const oid_x509_ext_t oid_x509_ext[] =
                        "Certificate Policies"),
         MBEDTLS_OID_X509_EXT_CERTIFICATE_POLICIES,
     },
+    {   // new_impl
+        OID_DESCRIPTOR(MBEDTLS_OID_NONCE,
+                       "id-keystone-nonce",
+                       "Nonce"),
+        MBEDTLS_OID_X509_EXT_NONCE,
+    },
+    {   // new_impl
+        OID_DESCRIPTOR(MBEDTLS_OID_DICE_CERTS,
+                       "id-keystone-diceCertificates",
+                       "DICE Certificates"),
+        MBEDTLS_OID_X509_EXT_DICE_CERTS,
+    },
+    {   // new_impl
+        OID_DESCRIPTOR(MBEDTLS_OID_ATTESTATION_PROOF,
+                       "id-keystone-attestationProof",
+                       "Attestation Proof"),
+        MBEDTLS_OID_X509_EXT_ATTESTATION_PROOF,
+    },
     {
         NULL_OID_DESCRIPTOR,
         0,

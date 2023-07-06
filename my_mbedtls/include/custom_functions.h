@@ -79,6 +79,10 @@ void ed25519_free_wrap(void *ctx);
 
 int  checkTCIValue(const mbedtls_x509_name *id, const mbedtls_x509_buf *tci);
 
+int mbedtls_x509write_csr_set_nonce(mbedtls_x509write_csr *ctx, unsigned char *nonce);
+int mbedtls_x509write_csr_set_attestation_proof(mbedtls_x509write_csr *ctx, unsigned char *attest_proof);
+int mbedtls_x509write_csr_set_dice_certs(mbedtls_x509write_csr *ctx, unsigned char *certs[], int *sizes);
+
 void mbedtls_platform_zeroize(void *buf, size_t len);
 
 // x509.h

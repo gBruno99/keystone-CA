@@ -30,6 +30,9 @@
 #define MBEDTLS_OID_X509_EXT_INIHIBIT_ANYPOLICY          (1 << 13)
 #define MBEDTLS_OID_X509_EXT_FRESHEST_CRL                (1 << 14)
 #define MBEDTLS_OID_X509_EXT_NS_CERT_TYPE                (1 << 16)
+#define MBEDTLS_OID_X509_EXT_NONCE                       (1 << 24) // new_impl  
+#define MBEDTLS_OID_X509_EXT_DICE_CERTS                  (1 << 25) // new_impl
+#define MBEDTLS_OID_X509_EXT_ATTESTATION_PROOF           (1 << 26) // new_impl
 
 /*
  * Top level OID tuples
@@ -415,5 +418,9 @@ typedef struct mbedtls_oid_descriptor_t {
     const char *MBEDTLS_PRIVATE(description);        /*!< human friendly description     */
 } mbedtls_oid_descriptor_t;
 
+// custom new_impl
+#define MBEDTLS_OID_NONCE               "\x2b\x65\x60"
+#define MBEDTLS_OID_DICE_CERTS          "\x2b\x65\x61"
+#define MBEDTLS_OID_ATTESTATION_PROOF   "\x2b\x65\x62"
 
 #endif /* oid.h */
