@@ -745,3 +745,121 @@ int print_hex_string(char* name, unsigned char* value, int size){
   my_printf("%s_len: %d\n", name, size);
   return 0;
 }
+
+// certs prints
+int print_mbedtls_asn1_buf(char *name, mbedtls_asn1_buf buf){
+  my_printf("%s_tag: %02x\n", name, buf.tag);
+  print_hex_string(name, buf.p, buf.len);
+  return 0;
+}
+
+int print_mbedtls_asn1_named_data(char *name, mbedtls_asn1_named_data buf){
+  char tmp[128] = {0};
+  sprintf(tmp, "%s_oid", name);
+  print_mbedtls_asn1_buf(tmp, buf.oid);
+  sprintf(tmp, "%s_val", name);
+  print_mbedtls_asn1_buf(name, buf.val);
+  my_printf("%s_next: %p\n", name, buf.next);
+  return 0;
+}
+
+int print_mbedtls_x509_time(char *name, mbedtls_x509_time tm){
+  my_printf("%s:\n- year=%d, mon=%d, day=%d\n- hour=%d, min=%d, sec=%d\n",
+    name, tm.year, tm.mon, tm.day, tm.hour, tm.min, tm.sec);
+  return 0;
+}
+
+int print_mbedtls_pk_context(char *name, mbedtls_pk_context pk){
+  char tmp[128] = {0};
+  sprintf(tmp, "%s - pk", name);
+  my_printf("%s: %s\n", name, pk.pk_info->name);
+  print_hex_string(tmp, mbedtls_pk_ed25519(pk)->pub_key, PUBLIC_KEY_SIZE);
+  return 0;
+}
+
+void print_mbedtls_x509_cert(char *name, mbedtls_x509_crt crt){
+  my_printf("%s:\n", name);
+  print_mbedtls_asn1_buf("raw", crt.raw);
+  print_mbedtls_asn1_buf("tbs", crt.tbs);
+  my_printf("\n");
+  my_printf("version: %d\n", crt.version);
+  print_mbedtls_asn1_buf("serial", crt.serial);
+  print_mbedtls_asn1_buf("sig_oid", crt.sig_oid);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("issuer_raw", crt.issuer_raw);
+  print_mbedtls_asn1_buf("subject_raw", crt.subject_raw);
+  my_printf("\n");
+  print_mbedtls_asn1_named_data("issuer", crt.issuer);
+  print_mbedtls_asn1_named_data("subject", crt.subject);
+  my_printf("\n");
+  print_mbedtls_x509_time("valid_from", crt.valid_from);
+  print_mbedtls_x509_time("valid_to", crt.valid_to);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("pk_raw", crt.pk_raw);
+  print_mbedtls_pk_context("pk", crt.pk);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("issuer_id", crt.issuer_id);
+  print_mbedtls_asn1_buf("subject_id", crt.subject_id);
+  print_mbedtls_asn1_buf("v3_ext", crt.v3_ext);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("hash", crt.hash);
+  my_printf("\n");
+  my_printf("ca_istrue: %d\n", crt.ca_istrue);
+  my_printf("max_pathlen: %d\n", crt.max_pathlen);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("sig", crt.sig);
+  my_printf("sig_md: %d\n", crt.sig_md);
+  my_printf("sig_pk: %d\n", crt.sig_pk);
+  my_printf("\n\n");
+  return;
+}
+
+void print_mbedtls_x509write_csr(char *name, mbedtls_x509write_csr *csr){
+  mbedtls_asn1_named_data *cur;
+  my_printf("%s:\n", name);
+  print_mbedtls_pk_context("pk", *(csr->key));
+  my_printf("\n");
+  cur = csr->subject;
+  while(cur!=NULL) {
+    print_mbedtls_asn1_named_data("subject", *cur);
+    cur = cur->next;
+  }
+  my_printf("\n");
+  cur = csr->extensions;
+  while(cur!=NULL) {
+    print_mbedtls_asn1_named_data("extensions", *cur);
+    cur = cur->next;
+  }
+  my_printf("\n\n");
+  return;
+}
+
+void print_mbedtls_x509_csr(char *name, mbedtls_x509_csr csr){
+  my_printf("%s:\n", name);
+  print_mbedtls_asn1_buf("raw", csr.raw);
+  print_mbedtls_asn1_buf("cri", csr.cri);
+  my_printf("\n");
+  my_printf("version: %d\n", csr.version);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("subject_raw", csr.subject_raw);
+  print_mbedtls_asn1_named_data("subject", csr.subject);
+  my_printf("\n");
+  print_mbedtls_pk_context("pk", csr.pk);
+  my_printf("\n");
+  my_printf("key_usage: %d\n", csr.key_usage);
+  my_printf("\n");
+  print_mbedtls_x509_cert("cert_1", csr.cert_chain);
+  print_mbedtls_x509_cert("cert_2", *(csr.cert_chain.next));
+  print_mbedtls_x509_cert("cert_3", *(*(csr.cert_chain.next)).next);
+  print_mbedtls_asn1_buf("nonce", csr.nonce);
+  print_mbedtls_asn1_buf("attestation_proof", csr.attestation_proof);
+  my_printf("\n");
+  my_printf("ext_types: %d\n", csr.ext_types);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("sig_oid", csr.sig_oid);
+  print_mbedtls_asn1_buf("sig", csr.sig);
+  my_printf("sig_md: %d\n", csr.sig_md);
+  my_printf("sig_pk: %d\n", csr.sig_pk);
+  my_printf("\n\n");
+  return;
+}
