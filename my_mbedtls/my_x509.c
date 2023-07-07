@@ -1211,6 +1211,9 @@ int mbedtls_x509_write_extensions(unsigned char **p, unsigned char *start,
 
     while (cur_ext != NULL) {
         MBEDTLS_ASN1_CHK_ADD(len, x509_write_extension(p, start, cur_ext));
+        #if MBEDTLS_DEBUG_PRINTS
+        print_mbedtls_asn1_named_data("mbedtls_x509_write_extensions", *cur_ext);
+        #endif
         cur_ext = cur_ext->next;
     }
 
