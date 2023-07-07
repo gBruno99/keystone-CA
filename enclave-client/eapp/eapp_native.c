@@ -81,6 +81,42 @@ static const unsigned char sanctum_cert_ca[] = {
   0x3d, 0x5f, 0x05, 0x98, 0x3a, 0xfe, 0x03, 0x03, 0x53, 0x95, 0xe3, 0x2a, 0x2b, 0x88, 0x30, 0x03
 };
 
+/*
+#define MDSIZE 64
+#define SIGNATURE_SIZE 64
+#define ATTEST_DATA_MAXLEN 1024
+
+typedef unsigned char byte;
+
+struct enclave_report
+{
+  byte hash[MDSIZE];
+  uint64_t data_len;
+  byte data[ATTEST_DATA_MAXLEN];
+  byte signature[SIGNATURE_SIZE];
+};
+
+struct sm_report
+{
+  byte hash[MDSIZE];
+  byte public_key[PUBLIC_KEY_SIZE];
+  byte signature[SIGNATURE_SIZE];
+};
+
+struct report
+{
+  struct enclave_report enclave;
+  struct sm_report sm;
+  byte dev_public_key[PUBLIC_KEY_SIZE];
+};
+
+char report[2048] = {0};
+attest_enclave((void*) report, "test", 5);
+struct report *parsed_report = (struct report*) report;
+print_hex_string("TCI enclave", parsed_report->enclave.hash, 64);
+print_hex_string("TCI sm", parsed_report->sm.hash, 64);
+*/
+
 static const int sanctum_cert_ca_len = 272;
 
 int main(){
