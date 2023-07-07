@@ -54,6 +54,11 @@ int getAttestationPublicKey(mbedtls_x509_csr *csr, unsigned char *pk) {
     return 1;
 }
 
+int getReferenceTCI(mbedtls_x509_csr *csr, unsigned char *tci) {
+    my_memcpy(tci, _reference_tci_enclave, _reference_tci_enclave_len);
+    return 0;
+}
+
 int checkEnclaveTCI(unsigned char *tci, int tci_len) {
     if(tci_len != _reference_tci_enclave_len) return -1;
     return my_memcmp(tci, _reference_tci_enclave, _reference_tci_enclave_len);

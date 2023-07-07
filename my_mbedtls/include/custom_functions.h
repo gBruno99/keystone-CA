@@ -79,6 +79,7 @@ void ed25519_free_wrap(void *ctx);
 
 int  checkTCIValue(const mbedtls_x509_name *id, const mbedtls_x509_buf *tci);
 int getAttestationPublicKey(mbedtls_x509_csr *csr, unsigned char *pk);
+int getReferenceTCI(mbedtls_x509_csr *csr, unsigned char *tci);
 int checkEnclaveTCI(unsigned char *tci, int tci_len);
 
 int mbedtls_x509write_csr_set_nonce(mbedtls_x509write_csr *ctx, unsigned char *nonce);

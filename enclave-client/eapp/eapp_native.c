@@ -9,6 +9,7 @@
 #include "printf.h"
 #include "custom_functions.h"
 #include "ed25519/ed25519.h"
+#include "sha3/sha3.h"
 
 #define PUBLIC_KEY_SIZE     32
 #define PRIVATE_KEY_SIZE    64
@@ -42,7 +43,6 @@ static const unsigned char ref_cert_man[] = {
 
 static const int ref_cert_man_len = 254;
 
-/*
 static const unsigned char sanctum_ca_private_key[] = {
   0x60, 0x9e, 0x84, 0xdf, 0x9b, 0x49, 0x5d, 0xe7, 0xe1, 0xff, 0x76, 0x91, 0xa4, 0xb9, 0xff, 0xed, 
   0x56, 0x49, 0x0c, 0x4e, 0x51, 0x59, 0x4b, 0xa3, 0x7e, 0x85, 0xee, 0x91, 0x6e, 0x7a, 0x6e, 0x7a, 
@@ -55,11 +55,11 @@ static const unsigned char sanctum_ca_public_key[] = {
   0x9b, 0xb4, 0x39, 0x31, 0x9d, 0x50, 0x47, 0xb1, 0xee, 0xe5, 0x62, 0xd9, 0xcc, 0x72, 0x6a, 0xc6
 };
 
+/*
 static const unsigned char seed[] = {
   0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3, 
   0x25, 0x64, 0xdd, 0x17, 0xd7, 0xdc, 0x2b, 0x46, 0xcb, 0x50, 0xa8, 0x4a, 0x69, 0x27, 0x0b, 0x4c
 };
-*/
 
 static const unsigned char sanctum_cert_ca[] = {
   0x30, 0x82, 0x01, 0x0c, 0x30, 0x81, 0xbd, 0xa0, 0x03, 0x02, 0x01, 0x02, 0x02, 0x03, 0x0f, 0x0f, 
@@ -80,6 +80,7 @@ static const unsigned char sanctum_cert_ca[] = {
   0x31, 0xaa, 0x24, 0x5a, 0x8d, 0xee, 0xca, 0x86, 0xef, 0x6e, 0x29, 0x56, 0x17, 0xd9, 0x24, 0xd7, 
   0x3d, 0x5f, 0x05, 0x98, 0x3a, 0xfe, 0x03, 0x03, 0x53, 0x95, 0xe3, 0x2a, 0x2b, 0x88, 0x30, 0x03
 };
+*/
 
 /*
 #define MDSIZE 64
@@ -117,7 +118,7 @@ print_hex_string("TCI enclave", parsed_report->enclave.hash, 64);
 print_hex_string("TCI sm", parsed_report->sm.hash, 64);
 */
 
-static const int sanctum_cert_ca_len = 272;
+// static const int sanctum_cert_ca_len = 272;
 
 int main(){
 
@@ -283,31 +284,111 @@ int main(){
 
   // verify attestation proof
   unsigned char verification_pk[PUBLIC_KEY_SIZE] = {0};
+  unsigned char reference_tci[HASH_LEN] = {0};
+  unsigned char fin_hash[HASH_LEN] = {0};
+  sha3_ctx_t ctx_hash;
   ret = getAttestationPublicKey(&csr, verification_pk);
   my_printf("Getting SM public key - ret: %d\n", ret);
 
   print_hex_string("Reference PK", verification_pk, PUBLIC_KEY_SIZE);
 
+  ret = getReferenceTCI(&csr, reference_tci);
+  my_printf("Getting enclave TCI - ret: %d\n", ret);
+  print_hex_string("Reference TCI", reference_tci, HASH_LEN);
+
+  sha3_init(&ctx_hash, HASH_LEN);
+  sha3_update(&ctx_hash, nonce, NONCE_LEN);
+  sha3_update(&ctx_hash, reference_tci, HASH_LEN);
+  sha3_update(&ctx_hash, mbedtls_pk_ed25519(csr.pk)->pub_key, PUBLIC_KEY_SIZE);
+  sha3_final(fin_hash, &ctx_hash);
+
+  ret = ed25519_verify(csr.sig.p, fin_hash, HASH_LEN, verification_pk)==1?0:1;
+  my_printf("Verifying attestation proof - ret: %d\n", ret);
+  my_printf("\n");
+
+  // CA - Step 3: Generate Enclave Certificate
+  my_printf("Step 4: Generating Certificate...\n\n");
+
+  mbedtls_x509write_cert cert_encl;
+  mbedtls_x509write_crt_init(&cert_encl);
+
+  ret = mbedtls_x509write_crt_set_issuer_name(&cert_encl, "O=Certificate Authority");
+  my_printf("Setting issuer - ret: %d\n", ret);
   
+  ret = mbedtls_x509write_crt_set_subject_name(&cert_encl, "CN=Client1,O=Certificate Authority");
+  my_printf("Setting subject - ret: %d\n", ret);
 
+  mbedtls_pk_context subj_key;
+  mbedtls_pk_init(&subj_key);
 
+  mbedtls_pk_context issu_key;
+  mbedtls_pk_init(&issu_key);
+  
+  ret = mbedtls_pk_parse_public_key(&issu_key, sanctum_ca_private_key, PRIVATE_KEY_SIZE, PARSE_PRIVATE_KEY);
+  my_printf("Parsing issuer pk - ret: %d\n", ret);
+
+  ret = mbedtls_pk_parse_public_key(&issu_key, sanctum_ca_public_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
+  my_printf("Parsing issuer sk - ret: %d\n", ret);
+
+  ret = mbedtls_pk_parse_public_key(&subj_key, mbedtls_pk_ed25519(csr.pk)->pub_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
+  my_printf("Parsing subject pk - ret: %d\n", ret);
+
+  mbedtls_x509write_crt_set_subject_key(&cert_encl, &subj_key);
+  my_printf("Setting subject key\n");
+
+  mbedtls_x509write_crt_set_issuer_key(&cert_encl, &issu_key);
+  my_printf("Setting issuer keys\n");
+  
+  unsigned char serial[] = {0xAB, 0xAB, 0xAB};
+
+  ret = mbedtls_x509write_crt_set_serial_raw(&cert_encl, serial, 3);
+  my_printf("Setting serial - ret: %d\n", ret);
+  
+  mbedtls_x509write_crt_set_md_alg(&cert_encl, MBEDTLS_MD_KEYSTONE_SHA3);
+  my_printf("Setting md algorithm\n");
+  
+  ret = mbedtls_x509write_crt_set_validity(&cert_encl, "20230101000000", "20240101000000");
+  my_printf("Setting validity - ret: %d\n", ret);
+
+  char oid_ext[] = {0xff, 0x20, 0xff};
+
+  ret = mbedtls_x509write_crt_set_extension(&cert_encl, oid_ext, 3, 0, reference_tci, HASH_LEN);
+  my_printf("Setting tci - ret: %d\n", ret);
+
+  my_printf("\n");
+  // Writing certificate
+  
+  unsigned char cert_der[1024];
+  int effe_len_cert_der;
+  size_t len_cert_der_tot = 1024;
+
+  ret = mbedtls_x509write_crt_der(&cert_encl, cert_der, len_cert_der_tot, NULL, NULL);
+  my_printf("Writing enclave certificate - ret: %d\n", ret);
+  effe_len_cert_der = ret;
+  
+  unsigned char *cert_real = cert_der;
+  int dif  = 1024-effe_len_cert_der;
+  cert_real += dif;
+
+  print_hex_string("Enclave Certificate", cert_real, effe_len_cert_der);
+
+  mbedtls_pk_free(&issu_key);
+  mbedtls_pk_free(&subj_key);
+  mbedtls_x509write_crt_free(&cert_encl);
   mbedtls_x509_csr_free(&csr);
 
-  // CA - Step X
-  mbedtls_x509_crt cert_ca;
-
-  // parse ca certificate
-  mbedtls_x509_crt_init(&cert_ca);
-  ret = mbedtls_x509_crt_parse_der(&cert_ca, sanctum_cert_ca, sanctum_cert_ca_len);
-  my_printf("Parsing Certificates Authority's Certificate - ret: %d\n", ret);
+  // parse enclave certificate
+  mbedtls_x509_crt cert_gen;
+  mbedtls_x509_crt_init(&cert_gen);
+  ret = mbedtls_x509_crt_parse_der(&cert_gen, cert_real, effe_len_cert_der);
+  my_printf("Parsing Enclave Certificate - ret: %d\n", ret);
   my_printf("\n");
 
   #if PRINT_STRUCTS
-  print_mbedtls_x509_cert("Certificates Authority's Certificate", cert_ca);
+  print_mbedtls_x509_cert("Enclave Certificate", cert_gen);
   #endif
-  my_printf("\n");
 
-  mbedtls_x509_crt_free(&cert_ca);
+  mbedtls_x509_crt_free(&cert_gen);
 
   EAPP_RETURN(0);
 }
