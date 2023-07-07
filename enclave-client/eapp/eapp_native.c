@@ -8,8 +8,12 @@
 #include "app/syscall.h"
 #include "printf.h"
 #include "custom_functions.h"
+#include "ed25519/ed25519.h"
 
 #define PUBLIC_KEY_SIZE 32
+#define PRIVATE_KEY_SIZE 64
+#define PARSE_PUBLIC_KEY 0
+#define PARSE_PRIVATE_KEY 1
 
 static const unsigned char ref_cert_man[] = {
   0x30, 0x81, 0xfb, 0x30, 0x81, 0xac, 0xa0, 0x03, 0x02, 0x01, 0x02, 0x02, 0x04, 0x00, 0xff, 0xff, 
@@ -31,6 +35,47 @@ static const unsigned char ref_cert_man[] = {
 };
 
 static const int ref_cert_man_len = 254;
+
+/*
+static const unsigned char sanctum_ca_private_key[] = {
+  0x60, 0x9e, 0x84, 0xdf, 0x9b, 0x49, 0x5d, 0xe7, 0xe1, 0xff, 0x76, 0x91, 0xa4, 0xb9, 0xff, 0xed, 
+  0x56, 0x49, 0x0c, 0x4e, 0x51, 0x59, 0x4b, 0xa3, 0x7e, 0x85, 0xee, 0x91, 0x6e, 0x7a, 0x6e, 0x7a, 
+  0x47, 0xdd, 0xd1, 0x4f, 0x9b, 0x31, 0x2b, 0x90, 0xaa, 0x4e, 0x12, 0x8a, 0x0d, 0xd7, 0xc3, 0x16, 
+  0x25, 0xd7, 0x71, 0x41, 0xe4, 0x2d, 0xcb, 0x1e, 0x1b, 0xf8, 0x6a, 0x57, 0x7a, 0x54, 0x00, 0x76
+};
+
+static const unsigned char sanctum_ca_public_key[] = {
+  0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23, 
+  0x9b, 0xb4, 0x39, 0x31, 0x9d, 0x50, 0x47, 0xb1, 0xee, 0xe5, 0x62, 0xd9, 0xcc, 0x72, 0x6a, 0xc6
+};
+
+static const unsigned char seed[] = {
+  0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3, 
+  0x25, 0x64, 0xdd, 0x17, 0xd7, 0xdc, 0x2b, 0x46, 0xcb, 0x50, 0xa8, 0x4a, 0x69, 0x27, 0x0b, 0x4c
+};
+*/
+
+static const unsigned char sanctum_cert_ca[] = {
+  0x30, 0x82, 0x01, 0x0c, 0x30, 0x81, 0xbd, 0xa0, 0x03, 0x02, 0x01, 0x02, 0x02, 0x03, 0x0f, 0x0f, 
+  0x0f, 0x30, 0x07, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x05, 0x00, 0x30, 0x20, 0x31, 0x1e, 0x30, 0x1c, 
+  0x06, 0x03, 0x55, 0x04, 0x0a, 0x0c, 0x15, 0x43, 0x65, 0x72, 0x74, 0x69, 0x66, 0x69, 0x63, 0x61, 
+  0x74, 0x65, 0x20, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x74, 0x79, 0x30, 0x1e, 0x17, 0x0d, 
+  0x32, 0x33, 0x30, 0x31, 0x30, 0x31, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x5a, 0x17, 0x0d, 0x32, 
+  0x34, 0x30, 0x31, 0x30, 0x31, 0x30, 0x30, 0x30, 0x30, 0x30, 0x30, 0x5a, 0x30, 0x20, 0x31, 0x1e, 
+  0x30, 0x1c, 0x06, 0x03, 0x55, 0x04, 0x0a, 0x0c, 0x15, 0x43, 0x65, 0x72, 0x74, 0x69, 0x66, 0x69, 
+  0x63, 0x61, 0x74, 0x65, 0x20, 0x41, 0x75, 0x74, 0x68, 0x6f, 0x72, 0x69, 0x74, 0x79, 0x30, 0x2c, 
+  0x30, 0x07, 0x06, 0x03, 0x7b, 0x30, 0x78, 0x05, 0x00, 0x03, 0x21, 0x00, 0x95, 0xb2, 0xcd, 0xbd, 
+  0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23, 0x9b, 0xb4, 0x39, 0x31, 
+  0x9d, 0x50, 0x47, 0xb1, 0xee, 0xe5, 0x62, 0xd9, 0xcc, 0x72, 0x6a, 0xc6, 0xa3, 0x16, 0x30, 0x14, 
+  0x30, 0x12, 0x06, 0x03, 0x55, 0x1d, 0x13, 0x01, 0x01, 0xff, 0x04, 0x08, 0x30, 0x06, 0x01, 0x01, 
+  0xff, 0x02, 0x01, 0x0a, 0x30, 0x07, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x05, 0x00, 0x03, 0x41, 0x00, 
+  0x41, 0x79, 0x58, 0x40, 0x7f, 0xa8, 0xad, 0x8b, 0x36, 0xc9, 0x12, 0x2a, 0x77, 0x10, 0xde, 0x1c, 
+  0x9a, 0xc2, 0x26, 0x8a, 0xb7, 0x79, 0xfe, 0x7f, 0xeb, 0x11, 0xfe, 0x6d, 0x97, 0xac, 0x4d, 0x56, 
+  0x31, 0xaa, 0x24, 0x5a, 0x8d, 0xee, 0xca, 0x86, 0xef, 0x6e, 0x29, 0x56, 0x17, 0xd9, 0x24, 0xd7, 
+  0x3d, 0x5f, 0x05, 0x98, 0x3a, 0xfe, 0x03, 0x03, 0x53, 0x95, 0xe3, 0x2a, 0x2b, 0x88, 0x30, 0x03
+};
+
+static const int sanctum_cert_ca_len = 272;
 
 int main(){
 
@@ -60,8 +105,11 @@ int main(){
 
   // CA - Step 1: Verify chain of certificates
   int ret;
+  uint32_t flags = 0;
   mbedtls_x509_crt cert_chain;
+  mbedtls_x509_crt trusted_certs;
 
+  // parse chain of certificates
   mbedtls_x509_crt_init(&cert_chain);
   ret = mbedtls_x509_crt_parse_der(&cert_chain, certs[0], sizes[0]);
   my_printf("Parsing Security Monitor's Certificate - ret: %d\n", ret);
@@ -76,17 +124,18 @@ int main(){
   print_mbedtls_x509_cert("Manufacturer's Certificate", *(*(cert_chain.next)).next);
   my_printf("\n");
 
-  mbedtls_x509_crt trusted_certs;
+  // parse trusted certificate
   mbedtls_x509_crt_init(&trusted_certs);
   ret = mbedtls_x509_crt_parse_der(&trusted_certs, ref_cert_man, ref_cert_man_len);
   my_printf("Parsing Trusted Certificate - ret: %d\n", ret);
   my_printf("\n");
+
   print_mbedtls_x509_cert("Trusted Certificate", trusted_certs);
   my_printf("\n");
 
   // cert_chain.hash.p[15] = 0x56; // Used to break verification
 
-  uint32_t flags = 0;
+  //  verify chain of certificates
   ret = mbedtls_x509_crt_verify(&cert_chain, &trusted_certs, NULL, NULL, &flags, NULL, NULL);
   my_printf("Verifing Chain of Certificates - ret: %u, flags = %u\n", ret, flags);
   my_printf("\n");
@@ -94,7 +143,133 @@ int main(){
   mbedtls_x509_crt_free(&cert_chain);
   mbedtls_x509_crt_free(&trusted_certs);
 
+  // CA - Step X
+  mbedtls_x509_crt cert_ca;
+
+  // parse ca certificate
+  mbedtls_x509_crt_init(&cert_ca);
+  ret = mbedtls_x509_crt_parse_der(&cert_ca, sanctum_cert_ca, sanctum_cert_ca_len);
+  my_printf("Parsing Certificates Authority's Certificate - ret: %d\n", ret);
+  my_printf("\n");
+
+  print_mbedtls_x509_cert("Certificates Authority's Certificate", cert_ca);
+  my_printf("\n");
+
+  mbedtls_x509_crt_free(&cert_ca);
+
   EAPP_RETURN(0);
 }
 
 // https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.9
+
+/*** Code to generate CA cert ***/
+/*
+  int ret;
+  unsigned char sanctum_ca_private_key[PRIVATE_KEY_SIZE];
+  unsigned char sanctum_ca_public_key[PUBLIC_KEY_SIZE];
+  mbedtls_x509write_cert cert_ca;
+  mbedtls_x509write_crt_init(&cert_ca);
+
+  // Setting the name of the issuer of the cert
+
+  ed25519_create_keypair(sanctum_ca_public_key, sanctum_ca_private_key, seed);
+
+  print_hex_string("CA-SK", sanctum_ca_private_key, PRIVATE_KEY_SIZE);
+  print_hex_string("CA-PK", sanctum_ca_public_key, PUBLIC_KEY_SIZE);
+  
+  ret = mbedtls_x509write_crt_set_issuer_name(&cert_ca, "O=Certificate Authority");
+  if (ret != 0)
+  {
+    return 0;
+  }
+  
+  // Setting the name of the subject of the cert
+  
+  ret = mbedtls_x509write_crt_set_subject_name(&cert_ca, "O=Certificate Authority");
+  if (ret != 0)
+  {
+    return 0;
+  }
+
+  // pk context used to embed the keys of the subject of the cert
+  mbedtls_pk_context subj_key_ca;
+  mbedtls_pk_init(&subj_key_ca);
+
+  // pk context used to embed the keys of the issuer of the cert
+  mbedtls_pk_context issu_key_ca;
+  mbedtls_pk_init(&issu_key_ca);
+  
+  // Parsing the private key of the embedded CA that will be used to sign the certificate of the security monitor
+  ret = mbedtls_pk_parse_public_key(&issu_key_ca, sanctum_ca_private_key, PRIVATE_KEY_SIZE, PARSE_PRIVATE_KEY);
+  if (ret != 0)
+  {
+    return 0;
+  }
+
+  ret = mbedtls_pk_parse_public_key(&issu_key_ca, sanctum_ca_public_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
+  if (ret != 0)
+  {
+    return 0;
+  }
+
+  // Parsing the public key of the security monitor that will be inserted in its certificate 
+  ret = mbedtls_pk_parse_public_key(&subj_key_ca, sanctum_ca_public_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
+  if (ret != 0)
+  {
+    return 0;
+  }
+
+  
+  // Variable  used to specify the serial of the cert
+  unsigned char serial_ca[] = {0x0F, 0x0F, 0x0F};
+  
+  // The public key of the security monitor is inserted in the structure
+  mbedtls_x509write_crt_set_subject_key(&cert_ca, &subj_key_ca);
+
+  // The private key of the embedded CA is used later to sign the cert
+  mbedtls_x509write_crt_set_issuer_key(&cert_ca, &issu_key_ca);
+  
+  // The serial of the cert is setted
+  mbedtls_x509write_crt_set_serial_raw(&cert_ca, serial_ca, 3);
+  
+  // The algoithm used to do the hash for the signature is specified
+  mbedtls_x509write_crt_set_md_alg(&cert_ca, MBEDTLS_MD_KEYSTONE_SHA3);
+  
+  // The validity of the crt is specified
+  ret = mbedtls_x509write_crt_set_validity(&cert_ca, "20230101000000", "20240101000000");
+  if (ret != 0)
+  {
+    return 0;
+  }
+
+  ret = mbedtls_x509write_crt_set_basic_constraints(&cert_ca, 1, 10);
+  if (ret != 0)
+  {
+    return 0;
+  }
+  
+  unsigned char cert_der_ca[1024];
+  int effe_len_cert_der_ca;
+
+  // The structure mbedtls_x509write_cert is parsed to create a x509 cert in der format, signed and written in memory
+  ret = mbedtls_x509write_crt_der(&cert_ca, cert_der_ca, 1024, NULL, NULL);//, test, &len);
+  if (ret != 0)
+  {
+    effe_len_cert_der_ca = ret;
+  }
+  else
+  {
+    return 0;
+  }
+
+  unsigned char *cert_real_ca = cert_der_ca;
+  // effe_len_cert_der stands for the length of the cert, placed starting from the end of the buffer cert_der
+  int dif_ca = 1024-effe_len_cert_der_ca;
+  // cert_real points to the starts of the cert in der format
+  cert_real_ca += dif_ca;
+
+  mbedtls_pk_free(&issu_key_ca);
+  mbedtls_pk_free(&subj_key_ca);
+  mbedtls_x509write_crt_free(&cert_ca);
+  print_hex_string("Cert generated", cert_real_ca, effe_len_cert_der_ca);
+*/
