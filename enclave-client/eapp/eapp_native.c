@@ -19,6 +19,8 @@
 #define HASH_LEN            64
 #define SIG_LEN             64
 
+#define PRINT_STRUCTS       0
+
 static const unsigned char ref_cert_man[] = {
   0x30, 0x81, 0xfb, 0x30, 0x81, 0xac, 0xa0, 0x03, 0x02, 0x01, 0x02, 0x02, 0x04, 0x00, 0xff, 0xff, 
   0xff, 0x30, 0x07, 0x06, 0x03, 0x2b, 0x65, 0x70, 0x05, 0x00, 0x30, 0x17, 0x31, 0x15, 0x30, 0x13, 
@@ -84,10 +86,12 @@ static const int sanctum_cert_ca_len = 272;
 int main(){
 
   // Client - Step 1: Create LDevID keypair
+  my_printf("Step 1: Generating LDevID...\n\n");
   unsigned char pk[PUBLIC_KEY_SIZE] = {0};
   create_keypair(pk, 15);
 
   print_hex_string("LDevID PK", pk, PUBLIC_KEY_SIZE);
+  my_printf("\n");
 
   // Client - Step 2: Get nonce from CA
   unsigned char nonce[] = {
@@ -96,6 +100,7 @@ int main(){
   };
 
   // Client - Step 3: Generate CSR
+  my_printf("Step 2: Generating CSR...\n\n");
   unsigned char *certs[3];
   certs[0] = mbedtls_calloc(1, CERTS_MAX_LEN);
   if(certs[0]==NULL)
@@ -114,9 +119,11 @@ int main(){
   int sizes[3];
   get_cert_chain(certs[0], certs[1], certs[2], &sizes[0], &sizes[1], &sizes[2]);
 
+  my_printf("Getting DICE certificates...\n");
   print_hex_string("certs[0]", certs[0], sizes[0]);
   print_hex_string("certs[1]", certs[1], sizes[1]);
   print_hex_string("certs[2]", certs[2], sizes[2]);
+  my_printf("\n");
 
   int ret = 1;
   mbedtls_pk_context key;
@@ -125,6 +132,11 @@ int main(){
   mbedtls_x509write_csr req;
   unsigned char key_usage = MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_KEY_ENCIPHERMENT | MBEDTLS_X509_KU_DATA_ENCIPHERMENT | MBEDTLS_X509_KU_KEY_AGREEMENT;
   const char subject_name[] = "CN=Client,O=Enclave";
+
+  my_printf("Generating attestation proof...\n");
+  crypto_interface(1, nonce, NONCE_LEN, attest_proof, &attest_proof_len, pk);
+  print_hex_string("attest_proof", attest_proof, attest_proof_len);
+  my_printf("\n");
 
   mbedtls_x509write_csr_init(&req);
   mbedtls_pk_init(&key);
@@ -147,28 +159,30 @@ int main(){
   ret = mbedtls_x509write_csr_set_nonce(&req, nonce);
   my_printf("Setting nonce - ret: %d\n", ret);
 
-  crypto_interface(1, nonce, NONCE_LEN, attest_proof, &attest_proof_len, pk);
-  print_hex_string("attest_proof", attest_proof, attest_proof_len);
-
   ret = mbedtls_x509write_csr_set_attestation_proof(&req, attest_proof);
   my_printf("Setting attestation proof - ret: %d\n", ret);
 
   ret = mbedtls_x509write_csr_set_dice_certs(&req, (unsigned char **)certs, sizes);
   my_printf("Setting chain of certs - ret: %d\n", ret);
 
+  my_printf("\n");
+
+  #if PRINT_STRUCTS
   print_mbedtls_x509write_csr("CSR write struct", &req);
+  #endif
 
   unsigned char out_csr[3072];
   int csr_len;
 
   csr_len = mbedtls_x509write_csr_der(&req, out_csr, 3072, NULL, NULL);
-  my_printf("Writing csr - ret: %d\n", csr_len);
+  my_printf("Writing CSR - ret: %d\n", csr_len);
 
   unsigned char *gen_csr = out_csr;
   int dif_csr = 3072-csr_len;
   gen_csr += dif_csr;
 
   print_hex_string("CSR", gen_csr, csr_len);
+  my_printf("\n");
 
   mbedtls_pk_free(&key);
   mbedtls_x509write_csr_free(&req);
@@ -181,19 +195,26 @@ int main(){
   // TODO
 
   // CA - Step 2: Parse and validate CSR
+  my_printf("Step 3-A: Parsing CSR...\n\n");
   mbedtls_x509_csr csr;
   mbedtls_x509_csr_init(&csr);
 
   ret = mbedtls_x509_csr_parse_der(&csr, gen_csr, csr_len);
-  my_printf("Parsing csr - ret: %d\n", ret);
+  my_printf("Parsing CSR - ret: %d\n", ret);
+  my_printf("\n");
 
+  #if PRINT_STRUCTS
   print_mbedtls_x509_csr("Parsed CSR", csr);
+  #endif
 
   // verify CSR signature
+  my_printf("Step 3-B: Verifying CSR...\n\n");
   unsigned char csr_hash[64] = {0};
   ret = mbedtls_md(mbedtls_md_info_from_type(csr.sig_md), csr.cri.p, csr.cri.len, csr_hash);
   my_printf("Hashing CSR- ret: %d\n", ret);
+  #if PRINT_STRUCTS
   print_hex_string("Hash CSR", csr_hash, HASH_LEN);
+  #endif
   ret = mbedtls_pk_verify_ext(csr.sig_pk, csr.sig_opts, &(csr.pk), csr.sig_md, csr_hash, HASH_LEN, csr.sig.p, csr.sig.len);
   my_printf("Verify CSR signature - ret: %d\n", ret);
 
@@ -210,10 +231,10 @@ int main(){
   mbedtls_x509_crt_init(&trusted_certs);
   ret = mbedtls_x509_crt_parse_der(&trusted_certs, ref_cert_man, ref_cert_man_len);
   my_printf("Parsing Trusted Certificate - ret: %d\n", ret);
-  my_printf("\n");
 
+  #if PRINT_STRUCTS
   print_mbedtls_x509_cert("Trusted Certificate", trusted_certs);
-  my_printf("\n");
+  #endif
 
   // cert_chain.hash.p[15] = 0x56; // Used to break verification
 
@@ -227,7 +248,7 @@ int main(){
   // verify attestation proof
   unsigned char verification_pk[PUBLIC_KEY_SIZE] = {0};
   ret = getAttestationPublicKey(&csr, verification_pk);
-  my_printf("Get SM public key - ret: %d\n", ret);
+  my_printf("Getting SM public key - ret: %d\n", ret);
 
   print_hex_string("Reference PK", verification_pk, PUBLIC_KEY_SIZE);
 
@@ -245,7 +266,9 @@ int main(){
   my_printf("Parsing Certificates Authority's Certificate - ret: %d\n", ret);
   my_printf("\n");
 
+  #if PRINT_STRUCTS
   print_mbedtls_x509_cert("Certificates Authority's Certificate", cert_ca);
+  #endif
   my_printf("\n");
 
   mbedtls_x509_crt_free(&cert_ca);

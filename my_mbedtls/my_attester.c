@@ -20,15 +20,21 @@ int  checkTCIValue(const mbedtls_x509_name *id, const mbedtls_x509_buf *tci) {
     size_t tci_len = tci->len;
 
     if(id_len == 12 && my_strncmp(id_name, "Manufacturer", 12) == 0){
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("Cert is: Manufacturer\n");
+        #endif
         return 0;
     }
     if(id_len == 13 && my_strncmp(id_name, "Root of Trust", 13) == 0){
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("Cert is: Root of Trust\n");
+        #endif
         return 0;
     }
     if(id_len == 16 && my_strncmp(id_name, "Security Monitor", 16) == 0){
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("Cert is: Security Monitor\n");
+        #endif
         return checkWithRefMeasure(tci_value, tci_len, _reference_tci_sm, _reference_tci_sm_len);
     }
     return -1;

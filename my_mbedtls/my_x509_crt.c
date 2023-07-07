@@ -1056,13 +1056,17 @@ static int x509_crt_check_signature(const mbedtls_x509_crt *child,
 
     /* Note: hash errors can happen only after an internal error */
     if (mbedtls_md(md_info, child->tbs.p, child->tbs.len, hash) != 0) {
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_check_signature - exit 1\n");
+        #endif
         return -1;
     }
 
     /* Skip expensive computation on obvious mismatch */
     if (!mbedtls_pk_can_do(&parent->pk, child->sig_pk)) {
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_check_signature - exit 2\n");
+        #endif
         return -1;
     }
 
@@ -1081,34 +1085,46 @@ static int x509_crt_check_parent(const mbedtls_x509_crt *child,
 
     /* Parent must be the issuer */
     if (x509_name_cmp(&child->issuer, &parent->subject) != 0) {
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_check_parent - exit 1\n");
+        #endif
         return -1;
     }
 
     /* Parent must have the basicConstraints CA bit set as a general rule */
     need_ca_bit = 1;
 
+    #if MBEDTLS_DEBUG_PRINTS
     my_printf("x509_crt_check_parent - top=%d, version=%d\n", top, parent->version);
+    #endif
 
     /* Exception: v1/v2 certificates that are locally trusted. */
     if (top && parent->version < 3) {
         need_ca_bit = 0;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
     my_printf("x509_crt_check_parent - need_ca_bit=%d, ca_istrue=%d\n", need_ca_bit, parent->ca_istrue);
+    #endif
 
     if (need_ca_bit && !parent->ca_istrue) {
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_check_parent - exit 2\n");
+        #endif
         return -1;
     }
 
     if (need_ca_bit &&
         mbedtls_x509_crt_check_key_usage(parent, MBEDTLS_X509_KU_KEY_CERT_SIGN) != 0) {
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_check_parent - exit 3\n");
+        #endif
         return -1;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
     my_printf("x509_crt_check_parent - return\n");
+    #endif
     return 0;
 }
 
@@ -1133,19 +1149,25 @@ static int x509_crt_find_parent_in(
 
     for (parent = candidates; parent != NULL; parent = parent->next) {
 
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_find_parent_in - iteration %d\n", i);
+        #endif
         i++;
 
         /* basic parenting skills (name, CA bit, key usage) */
         if (x509_crt_check_parent(child, parent, top) != 0) {
+            #if MBEDTLS_DEBUG_PRINTS
             my_printf("x509_crt_find_parent_in - continue 1\n");
+            #endif
             continue;
         }
 
         /* +1 because stored max_pathlen is 1 higher that the actual value */
         if (parent->max_pathlen > 0 &&
             (size_t) parent->max_pathlen < 1 + path_cnt - self_cnt) {
+            #if MBEDTLS_DEBUG_PRINTS
             my_printf("x509_crt_find_parent_in - continue 2\n");
+            #endif
             continue;
         }
 
@@ -1156,7 +1178,9 @@ static int x509_crt_find_parent_in(
 
         signature_is_good = ret == 0;
         if (top && !signature_is_good) {
+            #if MBEDTLS_DEBUG_PRINTS
             my_printf("x509_crt_find_parent_in - continue 3\n");
+            #endif
             continue;
         }
 
@@ -1168,24 +1192,32 @@ static int x509_crt_find_parent_in(
                 fallback_signature_is_good = signature_is_good;
             }
 
+            #if MBEDTLS_DEBUG_PRINTS
             my_printf("x509_crt_find_parent_in - continue 4\n");
+            #endif
             continue;
         }
 
         *r_parent = parent;
         *r_signature_is_good = signature_is_good;
 
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_find_parent_in - break\n");
+        #endif
         break;
     }
 
     if (parent == NULL) {
         *r_parent = fallback_parent;
         *r_signature_is_good = fallback_signature_is_good;
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_find_parent_in - parent is NULL\n");
+        #endif
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
     my_printf("x509_crt_find_parent_in - return\n");    
+    #endif
 
     return 0;
 }
@@ -1210,7 +1242,9 @@ static int x509_crt_find_parent(
     while (1) {
         search_list = *parent_is_trusted ? trust_ca : child->next;
 
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_find_parent - iteration %d\n", i);
+        #endif
         i++;
 
         ret = x509_crt_find_parent_in(child, search_list,
@@ -1299,7 +1333,9 @@ static int x509_crt_verify_chain(
         ver_chain->len++;
         flags = &cur->flags;
 
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_verify_chain - iteration %d\n", i);
+        #endif
         i++;
 
         /* Check time-validity (all certificates) */
@@ -1312,13 +1348,17 @@ static int x509_crt_verify_chain(
         }
 
         if(checkTCIValue(&child->subject, &child->hash)){
+            #if MBEDTLS_DEBUG_PRINTS
             my_printf("x509_crt_verify_chain - failed TCI\n");
+            #endif
             *flags |= MBEDTLS_X509_BADCERT_OTHER;
         }
 
         /* Stop here for trusted roots (but not for trusted EE certs) */
         if (child_is_trusted) {
+            #if MBEDTLS_DEBUG_PRINTS
             my_printf("x509_crt_verify_chain - exit 1\n");
+            #endif
             return 0;
         }
 
@@ -1334,7 +1374,9 @@ static int x509_crt_verify_chain(
         /* Special case: EE certs that are locally trusted */
         if (ver_chain->len == 1 &&
             x509_crt_check_ee_locally_trusted(child, trust_ca) == 0) {
+            #if MBEDTLS_DEBUG_PRINTS
             my_printf("x509_crt_verify_chain - exit 2\n");
+            #endif
             return 0;
         }
 
@@ -1370,7 +1412,9 @@ static int x509_crt_verify_chain(
         /* No parent? We're done here */
         if (parent == NULL) {
             *flags |= MBEDTLS_X509_BADCERT_NOT_TRUSTED;
+            #if MBEDTLS_DEBUG_PRINTS
             my_printf("x509_crt_verify_chain - exit 3\n");
+            #endif
             return 0;
         }
 
@@ -1387,7 +1431,9 @@ static int x509_crt_verify_chain(
         if (!parent_is_trusted &&
             ver_chain->len > MBEDTLS_X509_MAX_INTERMEDIATE_CA) {
             /* return immediately to avoid overflow the chain array */
+            #if MBEDTLS_DEBUG_PRINTS
             my_printf("x509_crt_verify_chain - exit 4\n");
+            #endif
             return MBEDTLS_ERR_X509_FATAL_ERROR;
         }
 
@@ -1496,7 +1542,9 @@ static int x509_crt_merge_flags_with_cb(
     for (i = ver_chain->len; i != 0; --i) {
         cur = &ver_chain->items[i-1];
         cur_flags = cur->flags;
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_merge_flags_with_cb - %d - cur_flags=%u\n", i, cur_flags);
+        #endif
 
         if (NULL != f_vrfy) {
             if ((ret = f_vrfy(p_vrfy, cur->crt, (int) i-1, &cur_flags)) != 0) {
@@ -1535,7 +1583,9 @@ static int x509_crt_verify_restartable_ca_cb(mbedtls_x509_crt *crt,
 
     if (profile == NULL) {
         ret = MBEDTLS_ERR_X509_BAD_INPUT_DATA;
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_verify_restartable_ca_cb - exit 1\n");
+        #endif
         goto exit;
     }
 
@@ -1544,7 +1594,9 @@ static int x509_crt_verify_restartable_ca_cb(mbedtls_x509_crt *crt,
         x509_crt_verify_name(crt, cn, &ee_flags);
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
     my_printf("x509_crt_verify_restartable_ca_cb - 1-ee_flags=%u\n", ee_flags);
+    #endif
 
     /* Check the type and size of the key */
     pk_type = mbedtls_pk_get_type(&crt->pk);
@@ -1553,13 +1605,17 @@ static int x509_crt_verify_restartable_ca_cb(mbedtls_x509_crt *crt,
         ee_flags |= MBEDTLS_X509_BADCERT_BAD_PK;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
     my_printf("x509_crt_verify_restartable_ca_cb - 2-ee_flags=%u\n", ee_flags);
+    #endif
 
     if (x509_profile_check_key(profile, &crt->pk) != 0) {
         ee_flags |= MBEDTLS_X509_BADCERT_BAD_KEY;
     }
 
+    #if MBEDTLS_DEBUG_PRINTS
     my_printf("x509_crt_verify_restartable_ca_cb - 3-ee_flags=%u\n", ee_flags);
+    #endif
 
     /* Check the chain */
     ret = x509_crt_verify_chain(crt, trust_ca, ca_crl,
@@ -1567,14 +1623,18 @@ static int x509_crt_verify_restartable_ca_cb(mbedtls_x509_crt *crt,
                                 &ver_chain, rs_ctx);
 
     if (ret != 0) {
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_verify_restartable_ca_cb - exit 2\n");
+        #endif
         goto exit;
     }
 
     /* Merge end-entity flags */
     ver_chain.items[0].flags |= ee_flags;
 
+    #if MBEDTLS_DEBUG_PRINTS
     my_printf("x509_crt_verify_restartable_ca_cb - 4-item_flags=%u\n", ver_chain.items[0].flags);
+    #endif
 
     /* Build final flags, calling callback on the way if any */
     ret = x509_crt_merge_flags_with_cb(flags, &ver_chain, f_vrfy, p_vrfy);
@@ -1591,18 +1651,24 @@ exit:
      * the SSL module for authmode optional, but non-zero return from the
      * callback means a fatal error so it shouldn't be ignored */
     if (ret == MBEDTLS_ERR_X509_CERT_VERIFY_FAILED) {
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_verify_restartable_ca_cb - exit 3\n");
+        #endif
         ret = MBEDTLS_ERR_X509_FATAL_ERROR;
     }
 
     if (ret != 0) {
         *flags = (uint32_t) -1;
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_verify_restartable_ca_cb - exit 4\n");
+        #endif
         return ret;
     }
 
     if (*flags != 0) {
+        #if MBEDTLS_DEBUG_PRINTS
         my_printf("x509_crt_verify_restartable_ca_cb - exit 5\n");
+        #endif
         return MBEDTLS_ERR_X509_CERT_VERIFY_FAILED;
     }
 
