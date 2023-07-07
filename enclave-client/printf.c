@@ -813,3 +813,53 @@ void print_mbedtls_x509_cert(char *name, mbedtls_x509_crt crt){
   my_printf("\n\n");
   return;
 }
+
+void print_mbedtls_x509write_csr(char *name, mbedtls_x509write_csr *csr){
+  mbedtls_asn1_named_data *cur;
+  my_printf("%s:\n", name);
+  print_mbedtls_pk_context("pk", *(csr->key));
+  my_printf("\n");
+  cur = csr->subject;
+  while(cur!=NULL) {
+    print_mbedtls_asn1_named_data("subject", *cur);
+    cur = cur->next;
+  }
+  my_printf("\n");
+  cur = csr->extensions;
+  while(cur!=NULL) {
+    print_mbedtls_asn1_named_data("extensions", *cur);
+    cur = cur->next;
+  }
+  my_printf("\n\n");
+  return;
+}
+
+void print_mbedtls_x509_csr(char *name, mbedtls_x509_csr csr){
+  my_printf("%s:\n", name);
+  print_mbedtls_asn1_buf("raw", csr.raw);
+  print_mbedtls_asn1_buf("cri", csr.cri);
+  my_printf("\n");
+  my_printf("version: %d\n", csr.version);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("subject_raw", csr.subject_raw);
+  print_mbedtls_asn1_named_data("subject", csr.subject);
+  my_printf("\n");
+  print_mbedtls_pk_context("pk", csr.pk);
+  my_printf("\n");
+  my_printf("key_usage: %d\n", csr.key_usage);
+  my_printf("\n");
+  print_mbedtls_x509_cert("cert_1", csr.cert_chain);
+  print_mbedtls_x509_cert("cert_2", *(csr.cert_chain.next));
+  print_mbedtls_x509_cert("cert_3", *(*(csr.cert_chain.next)).next);
+  print_mbedtls_asn1_buf("nonce", csr.nonce);
+  print_mbedtls_asn1_buf("attestation_proof", csr.attestation_proof);
+  my_printf("\n");
+  my_printf("ext_types: %d\n", csr.ext_types);
+  my_printf("\n");
+  print_mbedtls_asn1_buf("sig_oid", csr.sig_oid);
+  print_mbedtls_asn1_buf("sig", csr.sig);
+  my_printf("sig_md: %d\n", csr.sig_md);
+  my_printf("sig_pk: %d\n", csr.sig_pk);
+  my_printf("\n\n");
+  return;
+}

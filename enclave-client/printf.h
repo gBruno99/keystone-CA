@@ -108,6 +108,8 @@ int print_mbedtls_asn1_named_data(char *name, mbedtls_asn1_named_data buf);
 int print_mbedtls_x509_time(char *name, mbedtls_x509_time tm);
 int print_mbedtls_pk_context(char *name, mbedtls_pk_context pk);
 void print_mbedtls_x509_cert(char *name, mbedtls_x509_crt crt);
+void print_mbedtls_x509write_csr(char *name, mbedtls_x509write_csr *csr);
+void print_mbedtls_x509_csr(char *name, mbedtls_x509_csr csr);
 
 
 #ifdef __cplusplus
