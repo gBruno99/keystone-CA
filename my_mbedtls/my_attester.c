@@ -1,13 +1,6 @@
 #include "custom_functions.h"
-
-static const unsigned char _reference_tci_sm[] = {
-    0xe7, 0x92, 0x62, 0x5c, 0xc0, 0x77, 0x9c, 0x1e, 0x94, 0x8a, 0x7e, 0x7b, 0xbb, 0x1e, 0x25, 0xa4, 
-    0xe5, 0x90, 0x97, 0xd7, 0x9d, 0x87, 0xd6, 0x37, 0x51, 0x7d, 0xe6, 0x21, 0xfe, 0x32, 0x83, 0xfd, 
-    0x5b, 0x9d, 0x0e, 0xd8, 0xbd, 0x05, 0x7f, 0x87, 0x7a, 0x7a, 0xaf, 0x57, 0xf2, 0x2f, 0xf6, 0x03, 
-    0x31, 0x3e, 0x46, 0x43, 0xf8, 0xca, 0xf2, 0x4b, 0x04, 0x8a, 0x4b, 0xa0, 0x7d, 0x47, 0xeb, 0x33
-};
-
-static const size_t _reference_tci_sm_len = 64;
+#include "sm_reference_values.h"
+#include "enclave_reference_values.h"
 
 static int checkWithRefMeasure(const unsigned char* tci, size_t tci_len, const unsigned char* ref_tci, size_t ref_tci_len){
     if(tci_len != ref_tci_len)
@@ -39,4 +32,23 @@ int  checkTCIValue(const mbedtls_x509_name *id, const mbedtls_x509_buf *tci) {
         return checkWithRefMeasure(tci_value, tci_len, _reference_tci_sm, _reference_tci_sm_len);
     }
     return -1;
+}
+
+int getAttestationPublicKey(mbedtls_x509_csr *csr, unsigned char *pk) {
+    mbedtls_x509_crt *cur = &(csr->cert_chain);
+    while(cur != NULL) {
+        char *id_name = (char *) (cur->subject).val.p;
+        size_t id_len = (cur->subject).val.len;
+        if(id_len == 16 && my_strncmp(id_name, "Security Monitor", 16) == 0) {
+            my_memcpy(pk, mbedtls_pk_ed25519(cur->pk)->pub_key, PUBLIC_KEY_SIZE);
+            return 0;
+        }
+        cur = cur->next;
+    }
+    return 1;
+}
+
+int checkEnclaveTCI(unsigned char *tci, int tci_len) {
+    if(tci_len != _reference_tci_enclave_len) return -1;
+    return my_memcmp(tci, _reference_tci_enclave, _reference_tci_enclave_len);
 }

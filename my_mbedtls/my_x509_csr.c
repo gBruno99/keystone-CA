@@ -832,11 +832,14 @@ static int x509write_csr_der_internal(mbedtls_x509write_csr *ctx,
      * Note: hash errors can happen only after an internal error
      */
     ret = mbedtls_md(mbedtls_md_info_from_type(ctx->md_alg), c, len, hash);
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("x509write_csr_der_internal - hash", hash, MBEDTLS_HASH_MAX_SIZE);
+    #endif
     if (ret != 0) {
         return ret;
     }
 
-    if ((ret = mbedtls_pk_sign(ctx->key, ctx->md_alg, hash, 0,
+    if ((ret = mbedtls_pk_sign(ctx->key, ctx->md_alg, hash, MBEDTLS_HASH_MAX_SIZE,
                                sig, sig_size, &sig_len,
                                f_rng, p_rng)) != 0) {
         return ret;

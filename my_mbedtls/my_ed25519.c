@@ -208,8 +208,14 @@ int ed25519_verify_wrap(void *ctx, mbedtls_md_type_t md_alg,
 {
     mbedtls_ed25519_context *ed25519 = (mbedtls_ed25519_context *)ctx;
     // ed25519_verify(const unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key)
-
-    return ed25519_verify(sig, hash, hash_len, ed25519->pub_key)==1?0:1;
+    int ret = ed25519_verify(sig, hash, hash_len, ed25519->pub_key);
+    #if MBEDTLS_DEBUG_PRINTS
+    print_hex_string("verify pk", ed25519->pub_key, PUBLIC_KEY_SIZE);
+    print_hex_string("verify hash", (unsigned char *)hash, hash_len);
+    print_hex_string("verify sig", (unsigned char *)sig, sig_len);
+    my_printf("verify returned %d\n", ret);
+    #endif
+    return ret==1?0:1;
     // return 0;
 }
 
