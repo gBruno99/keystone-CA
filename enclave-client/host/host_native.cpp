@@ -27,6 +27,8 @@ main(int argc, char** argv) {
   Keystone::Enclave enclave;
   Keystone::Params params;
 
+  std::cout<<"host - argc: "<<argc<<std::endl;
+
   params.setFreeMemSize(1024 * 1024);
   params.setUntrustedMem(DEFAULT_UNTRUSTED_PTR, 1024 * 1024);
 

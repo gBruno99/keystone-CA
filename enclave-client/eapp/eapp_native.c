@@ -82,7 +82,6 @@ static const unsigned char sanctum_cert_ca[] = {
 };
 */
 
-/*
 #define MDSIZE 64
 #define SIGNATURE_SIZE 64
 #define ATTEST_DATA_MAXLEN 1024
@@ -111,16 +110,17 @@ struct report
   byte dev_public_key[PUBLIC_KEY_SIZE];
 };
 
-char report[2048] = {0};
-attest_enclave((void*) report, "test", 5);
-struct report *parsed_report = (struct report*) report;
-print_hex_string("TCI enclave", parsed_report->enclave.hash, 64);
-print_hex_string("TCI sm", parsed_report->sm.hash, 64);
-*/
-
 // static const int sanctum_cert_ca_len = 272;
 
 int main(){
+
+  // print tci sm and tci enclave
+  char report[2048] = {0};
+  attest_enclave((void*) report, "test", 5);
+  struct report *parsed_report = (struct report*) report;
+  print_hex_string("TCI enclave", parsed_report->enclave.hash, 64);
+  print_hex_string("TCI sm", parsed_report->sm.hash, 64);
+  my_printf("\n");
 
   // Client - Step 1: Create LDevID keypair
   my_printf("Step 1: Generating LDevID...\n\n");
