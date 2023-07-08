@@ -39,18 +39,18 @@ int main(){
   print_hex_string("PK", pk, PUBLIC_KEY_SIZE);
 
   unsigned char *certs[3];
-  certs[0] = mbedtls_calloc(1, 1024);
+  certs[0] = custom_calloc(1, 1024);
   if(certs[0]==NULL)
     EAPP_RETURN(-1);
-  certs[1] = mbedtls_calloc(1, 1024);
+  certs[1] = custom_calloc(1, 1024);
   if(certs[1]==NULL){
-    mbedtls_free(certs[0]);
+    custom_free(certs[0]);
     EAPP_RETURN(-1);
   }
-  certs[2] = mbedtls_calloc(1, 1024);
+  certs[2] = custom_calloc(1, 1024);
   if(certs[2]==NULL){
-    mbedtls_free(certs[0]);
-    mbedtls_free(certs[1]);
+    custom_free(certs[0]);
+    custom_free(certs[1]);
     EAPP_RETURN(-1);
   }
 
@@ -68,14 +68,14 @@ int main(){
   crypto_interface(2, data, sizeof(data), outbuf, &outbuf_len, pk);
   print_hex_string("outbuf", outbuf, outbuf_len);
 
-  // Test my_mbedtls
+  // Test custom_custom
   int ret;
-  mbedtls_x509write_cert cert_man;
-  mbedtls_x509write_crt_init(&cert_man);
+  custom_x509write_cert cert_man;
+  custom_x509write_crt_init(&cert_man);
 
   // Setting the name of the issuer of the cert
   
-  ret = mbedtls_x509write_crt_set_issuer_name(&cert_man, "O=Manufacturer");
+  ret = custom_x509write_crt_set_issuer_name(&cert_man, "O=Manufacturer");
   if (ret != 0)
   {
     return 0;
@@ -83,35 +83,35 @@ int main(){
   
   // Setting the name of the subject of the cert
   
-  ret = mbedtls_x509write_crt_set_subject_name(&cert_man, "O=Manufacturer");
+  ret = custom_x509write_crt_set_subject_name(&cert_man, "O=Manufacturer");
   if (ret != 0)
   {
     return 0;
   }
 
   // pk context used to embed the keys of the subject of the cert
-  mbedtls_pk_context subj_key_man;
-  mbedtls_pk_init(&subj_key_man);
+  custom_pk_context subj_key_man;
+  custom_pk_init(&subj_key_man);
 
   // pk context used to embed the keys of the issuer of the cert
-  mbedtls_pk_context issu_key_man;
-  mbedtls_pk_init(&issu_key_man);
+  custom_pk_context issu_key_man;
+  custom_pk_init(&issu_key_man);
   
   // Parsing the private key of the embedded CA that will be used to sign the certificate of the security monitor
-  ret = mbedtls_pk_parse_public_key(&issu_key_man, sanctum_dev_secret_key, 64, 1);
+  ret = custom_pk_parse_public_key(&issu_key_man, sanctum_dev_secret_key, 64, 1);
   if (ret != 0)
   {
     return 0;
   }
 
-  ret = mbedtls_pk_parse_public_key(&issu_key_man, sanctum_dev_public_key, 32, 0);
+  ret = custom_pk_parse_public_key(&issu_key_man, sanctum_dev_public_key, 32, 0);
   if (ret != 0)
   {
     return 0;
   }
 
   // Parsing the public key of the security monitor that will be inserted in its certificate 
-  ret = mbedtls_pk_parse_public_key(&subj_key_man, sanctum_dev_public_key, 32, 0);
+  ret = custom_pk_parse_public_key(&subj_key_man, sanctum_dev_public_key, 32, 0);
   if (ret != 0)
   {
     return 0;
@@ -122,25 +122,25 @@ int main(){
   unsigned char serial_man[] = {0xFF, 0xFF, 0xFF};
   
   // The public key of the security monitor is inserted in the structure
-  mbedtls_x509write_crt_set_subject_key(&cert_man, &subj_key_man);
+  custom_x509write_crt_set_subject_key(&cert_man, &subj_key_man);
 
   // The private key of the embedded CA is used later to sign the cert
-  mbedtls_x509write_crt_set_issuer_key(&cert_man, &issu_key_man);
+  custom_x509write_crt_set_issuer_key(&cert_man, &issu_key_man);
   
   // The serial of the cert is setted
-  mbedtls_x509write_crt_set_serial_raw(&cert_man, serial_man, 3);
+  custom_x509write_crt_set_serial_raw(&cert_man, serial_man, 3);
   
   // The algoithm used to do the hash for the signature is specified
-  mbedtls_x509write_crt_set_md_alg(&cert_man, MBEDTLS_MD_KEYSTONE_SHA3);
+  custom_x509write_crt_set_md_alg(&cert_man, CUSTOM_MD_KEYSTONE_SHA3);
   
   // The validity of the crt is specified
-  ret = mbedtls_x509write_crt_set_validity(&cert_man, "20230101000000", "20240101000000");
+  ret = custom_x509write_crt_set_validity(&cert_man, "20230101000000", "20240101000000");
   if (ret != 0)
   {
     return 0;
   }
 
-  ret = mbedtls_x509write_crt_set_basic_constraints(&cert_man, 1, 10);
+  ret = custom_x509write_crt_set_basic_constraints(&cert_man, 1, 10);
   if (ret != 0)
   {
     return 0;
@@ -149,8 +149,8 @@ int main(){
   unsigned char cert_der_man[1024];
   int effe_len_cert_der_man;
 
-  // The structure mbedtls_x509write_cert is parsed to create a x509 cert in der format, signed and written in memory
-  ret = mbedtls_x509write_crt_der(&cert_man, cert_der_man, 1024, NULL, NULL);//, test, &len);
+  // The structure custom_x509write_cert is parsed to create a x509 cert in der format, signed and written in memory
+  ret = custom_x509write_crt_der(&cert_man, cert_der_man, 1024, NULL, NULL);//, test, &len);
   if (ret != 0)
   {
     effe_len_cert_der_man = ret;
@@ -166,107 +166,107 @@ int main(){
   // cert_real points to the starts of the cert in der format
   cert_real_man += dif_man;
 
-  mbedtls_pk_free(&issu_key_man);
-  mbedtls_pk_free(&subj_key_man);
-  mbedtls_x509write_crt_free(&cert_man);
+  custom_pk_free(&issu_key_man);
+  custom_pk_free(&subj_key_man);
+  custom_x509write_crt_free(&cert_man);
   print_hex_string("Cert generated", cert_real_man, effe_len_cert_der_man);
 
 
-  mbedtls_x509_crt cert_chain;
-  mbedtls_x509_crt_init(&cert_chain);
-  ret = mbedtls_x509_crt_parse_der(&cert_chain, certs[0], sizes[0]);
-  my_printf("Parsing cert_sm - ret: %d\n", ret);
-  ret = mbedtls_x509_crt_parse_der(&cert_chain, certs[1], sizes[1]);
-  my_printf("Parsing cert_root - ret: %d\n", ret);
-  ret = mbedtls_x509_crt_parse_der(&cert_chain, certs[2], sizes[2]);
-  my_printf("Parsing cert_man - ret: %d\n", ret);
-  my_printf("\n");
-  print_mbedtls_x509_cert("cert_sm", cert_chain);
+  custom_x509_crt cert_chain;
+  custom_x509_crt_init(&cert_chain);
+  ret = custom_x509_crt_parse_der(&cert_chain, certs[0], sizes[0]);
+  custom_printf("Parsing cert_sm - ret: %d\n", ret);
+  ret = custom_x509_crt_parse_der(&cert_chain, certs[1], sizes[1]);
+  custom_printf("Parsing cert_root - ret: %d\n", ret);
+  ret = custom_x509_crt_parse_der(&cert_chain, certs[2], sizes[2]);
+  custom_printf("Parsing cert_man - ret: %d\n", ret);
+  custom_printf("\n");
+  print_custom_x509_cert("cert_sm", cert_chain);
 
   // cert_chain.hash.p[15] = 0x56;
 
   // https://www.rfc-editor.org/rfc/rfc5280#section-4.2.1.9
 
-  print_mbedtls_x509_cert("cert_root", *(cert_chain.next));
+  print_custom_x509_cert("cert_root", *(cert_chain.next));
   // cert_chain.next->ca_istrue = 1;
-  print_mbedtls_x509_cert("cert_man", *(*(cert_chain.next)).next);
+  print_custom_x509_cert("cert_man", *(*(cert_chain.next)).next);
   // (cert_chain.next)->next->ca_istrue = 1;
 
 
-  mbedtls_x509_crt trusted_certs;
-  mbedtls_x509_crt_init(&trusted_certs);
-  ret = mbedtls_x509_crt_parse_der(&trusted_certs, cert_real_man, effe_len_cert_der_man);
-  my_printf("Parsing trusted cert - ret: %d\n", ret);
-  my_printf("\n");
-  print_mbedtls_x509_cert("trusted_cert", trusted_certs);
+  custom_x509_crt trusted_certs;
+  custom_x509_crt_init(&trusted_certs);
+  ret = custom_x509_crt_parse_der(&trusted_certs, cert_real_man, effe_len_cert_der_man);
+  custom_printf("Parsing trusted cert - ret: %d\n", ret);
+  custom_printf("\n");
+  print_custom_x509_cert("trusted_cert", trusted_certs);
   // trusted_certs.ca_istrue = 1;
 
   uint32_t flags = 0;
-  ret = mbedtls_x509_crt_verify(&cert_chain, &trusted_certs, NULL, NULL, &flags, NULL, NULL);
-  my_printf("Verifing cert chain - ret: %u, flags = %u\n", ret, flags);
-  my_printf("\n");
+  ret = custom_x509_crt_verify(&cert_chain, &trusted_certs, NULL, NULL, &flags, NULL, NULL);
+  custom_printf("Verifing cert chain - ret: %u, flags = %u\n", ret, flags);
+  custom_printf("\n");
 
-  mbedtls_x509_crt_free(&cert_chain);
-  mbedtls_x509_crt_free(&trusted_certs);
+  custom_x509_crt_free(&cert_chain);
+  custom_x509_crt_free(&trusted_certs);
 
   ret = 1;
-  mbedtls_pk_context key;
+  custom_pk_context key;
   char buf[1024];
-  mbedtls_x509write_csr req;
-  unsigned char key_usage = MBEDTLS_X509_KU_DIGITAL_SIGNATURE | MBEDTLS_X509_KU_KEY_ENCIPHERMENT | MBEDTLS_X509_KU_DATA_ENCIPHERMENT | MBEDTLS_X509_KU_KEY_AGREEMENT;
+  custom_x509write_csr req;
+  unsigned char key_usage = CUSTOM_X509_KU_DIGITAL_SIGNATURE | CUSTOM_X509_KU_KEY_ENCIPHERMENT | CUSTOM_X509_KU_DATA_ENCIPHERMENT | CUSTOM_X509_KU_KEY_AGREEMENT;
   const char subject_name[] = "CN=Client,O=Enclave";
   unsigned char nonce[] = {
     0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
     0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
   }; 
 
-  mbedtls_x509write_csr_init(&req);
-  mbedtls_pk_init(&key);
-  my_memset(buf, 0, sizeof(buf));
+  custom_x509write_csr_init(&req);
+  custom_pk_init(&key);
+  custom_memset(buf, 0, sizeof(buf));
 
-  mbedtls_x509write_csr_set_md_alg(&req, MBEDTLS_MD_KEYSTONE_SHA3);
+  custom_x509write_csr_set_md_alg(&req, CUSTOM_MD_KEYSTONE_SHA3);
 
-  ret = mbedtls_x509write_csr_set_key_usage(&req, key_usage);
-  my_printf("Setting key usage - ret: %d\n", ret);
+  ret = custom_x509write_csr_set_key_usage(&req, key_usage);
+  custom_printf("Setting key usage - ret: %d\n", ret);
 
-  ret = mbedtls_x509write_csr_set_subject_name(&req, subject_name);
-  my_printf("Setting key usage - ret: %d\n", ret);
+  ret = custom_x509write_csr_set_subject_name(&req, subject_name);
+  custom_printf("Setting key usage - ret: %d\n", ret);
   
-  ret = mbedtls_pk_parse_public_key(&key, pk, PUBLIC_KEY_SIZE, 0);
-  my_printf("Setting pk context - ret: %d\n", ret);
+  ret = custom_pk_parse_public_key(&key, pk, PUBLIC_KEY_SIZE, 0);
+  custom_printf("Setting pk context - ret: %d\n", ret);
 
-  mbedtls_x509write_csr_set_key(&req, &key);
-  my_printf("Setting pk\n");
+  custom_x509write_csr_set_key(&req, &key);
+  custom_printf("Setting pk\n");
 
   /*
   unsigned char test[64] = {0};
   unsigned char *c = test+64;
 
-  ret = mbedtls_asn1_write_named_bitstring(&c, test, nonce, NONCE_LEN*8);
+  ret = custom_asn1_write_named_bitstring(&c, test, nonce, NONCE_LEN*8);
   print_hex_string("Test", test, 64);
   
-  my_printf("int: %d\n", sizeof(int));
+  custom_printf("int: %d\n", sizeof(int));
   */
 
-  ret = mbedtls_x509write_csr_set_nonce(&req, nonce);
-  my_printf("Setting nonce - ret: %d\n", ret);
+  ret = custom_x509write_csr_set_nonce(&req, nonce);
+  custom_printf("Setting nonce - ret: %d\n", ret);
 
   crypto_interface(1, nonce, NONCE_LEN, outbuf, &outbuf_len, pk);
   print_hex_string("attest_proof", outbuf, outbuf_len);
 
-  ret = mbedtls_x509write_csr_set_attestation_proof(&req, outbuf);
-  my_printf("Setting attestation proof - ret: %d\n", ret);
+  ret = custom_x509write_csr_set_attestation_proof(&req, outbuf);
+  custom_printf("Setting attestation proof - ret: %d\n", ret);
 
-  ret = mbedtls_x509write_csr_set_dice_certs(&req, (unsigned char **)certs, sizes);
-  my_printf("Setting chain of certs - ret: %d\n", ret);
+  ret = custom_x509write_csr_set_dice_certs(&req, (unsigned char **)certs, sizes);
+  custom_printf("Setting chain of certs - ret: %d\n", ret);
 
-  print_mbedtls_x509write_csr("CSR write struct", &req);
+  print_custom_x509write_csr("CSR write struct", &req);
 
   unsigned char out_csr[3072];
   int csr_len;
 
-  csr_len = mbedtls_x509write_csr_der(&req, out_csr, 3072, NULL, NULL);
-  my_printf("Writing csr - ret: %d\n", csr_len);
+  csr_len = custom_x509write_csr_der(&req, out_csr, 3072, NULL, NULL);
+  custom_printf("Writing csr - ret: %d\n", csr_len);
 
   unsigned char *parsed_csr = out_csr;
   int dif_csr = 3072-csr_len;
@@ -274,22 +274,22 @@ int main(){
 
   print_hex_string("CSR", parsed_csr, csr_len);
 
-  mbedtls_pk_free(&key);
-  mbedtls_x509write_csr_free(&req);
+  custom_pk_free(&key);
+  custom_x509write_csr_free(&req);
 
-  mbedtls_free(certs[0]);
-  mbedtls_free(certs[1]);
-  mbedtls_free(certs[2]);
+  custom_free(certs[0]);
+  custom_free(certs[1]);
+  custom_free(certs[2]);
 
-  mbedtls_x509_csr csr;
-  mbedtls_x509_csr_init(&csr);
+  custom_x509_csr csr;
+  custom_x509_csr_init(&csr);
 
-  ret = mbedtls_x509_csr_parse_der(&csr, parsed_csr, csr_len);
-  my_printf("Parsing csr - ret: %d\n", ret);
+  ret = custom_x509_csr_parse_der(&csr, parsed_csr, csr_len);
+  custom_printf("Parsing csr - ret: %d\n", ret);
 
-  print_mbedtls_x509_csr("Parsed CSR", csr);
+  print_custom_x509_csr("Parsed CSR", csr);
 
-  mbedtls_x509_csr_free(&csr);
+  custom_x509_csr_free(&csr);
 
   EAPP_RETURN(0);
 }

@@ -2,63 +2,63 @@
 
 // oid.c
 typedef struct {
-    mbedtls_oid_descriptor_t    descriptor;
+    custom_oid_descriptor_t    descriptor;
     int                 ext_type;
 } oid_x509_ext_t;
 
 static const oid_x509_ext_t oid_x509_ext[] =
 {
     {
-        OID_DESCRIPTOR(MBEDTLS_OID_BASIC_CONSTRAINTS,
+        OID_DESCRIPTOR(CUSTOM_OID_BASIC_CONSTRAINTS,
                        "id-ce-basicConstraints",
                        "Basic Constraints"),
-        MBEDTLS_OID_X509_EXT_BASIC_CONSTRAINTS,
+        CUSTOM_OID_X509_EXT_BASIC_CONSTRAINTS,
     },
     {
-        OID_DESCRIPTOR(MBEDTLS_OID_KEY_USAGE,            "id-ce-keyUsage",            "Key Usage"),
-        MBEDTLS_OID_X509_EXT_KEY_USAGE,
+        OID_DESCRIPTOR(CUSTOM_OID_KEY_USAGE,            "id-ce-keyUsage",            "Key Usage"),
+        CUSTOM_OID_X509_EXT_KEY_USAGE,
     },
     {
-        OID_DESCRIPTOR(MBEDTLS_OID_EXTENDED_KEY_USAGE,
+        OID_DESCRIPTOR(CUSTOM_OID_EXTENDED_KEY_USAGE,
                        "id-ce-extKeyUsage",
                        "Extended Key Usage"),
-        MBEDTLS_OID_X509_EXT_EXTENDED_KEY_USAGE,
+        CUSTOM_OID_X509_EXT_EXTENDED_KEY_USAGE,
     },
     {
-        OID_DESCRIPTOR(MBEDTLS_OID_SUBJECT_ALT_NAME,
+        OID_DESCRIPTOR(CUSTOM_OID_SUBJECT_ALT_NAME,
                        "id-ce-subjectAltName",
                        "Subject Alt Name"),
-        MBEDTLS_OID_X509_EXT_SUBJECT_ALT_NAME,
+        CUSTOM_OID_X509_EXT_SUBJECT_ALT_NAME,
     },
     {
-        OID_DESCRIPTOR(MBEDTLS_OID_NS_CERT_TYPE,
+        OID_DESCRIPTOR(CUSTOM_OID_NS_CERT_TYPE,
                        "id-netscape-certtype",
                        "Netscape Certificate Type"),
-        MBEDTLS_OID_X509_EXT_NS_CERT_TYPE,
+        CUSTOM_OID_X509_EXT_NS_CERT_TYPE,
     },
     {
-        OID_DESCRIPTOR(MBEDTLS_OID_CERTIFICATE_POLICIES,
+        OID_DESCRIPTOR(CUSTOM_OID_CERTIFICATE_POLICIES,
                        "id-ce-certificatePolicies",
                        "Certificate Policies"),
-        MBEDTLS_OID_X509_EXT_CERTIFICATE_POLICIES,
+        CUSTOM_OID_X509_EXT_CERTIFICATE_POLICIES,
     },
     {   // new_impl
-        OID_DESCRIPTOR(MBEDTLS_OID_NONCE,
+        OID_DESCRIPTOR(CUSTOM_OID_NONCE,
                        "id-keystone-nonce",
                        "Nonce"),
-        MBEDTLS_OID_X509_EXT_NONCE,
+        CUSTOM_OID_X509_EXT_NONCE,
     },
     {   // new_impl
-        OID_DESCRIPTOR(MBEDTLS_OID_DICE_CERTS,
+        OID_DESCRIPTOR(CUSTOM_OID_DICE_CERTS,
                        "id-keystone-diceCertificates",
                        "DICE Certificates"),
-        MBEDTLS_OID_X509_EXT_DICE_CERTS,
+        CUSTOM_OID_X509_EXT_DICE_CERTS,
     },
     {   // new_impl
-        OID_DESCRIPTOR(MBEDTLS_OID_ATTESTATION_PROOF,
+        OID_DESCRIPTOR(CUSTOM_OID_ATTESTATION_PROOF,
                        "id-keystone-attestationProof",
                        "Attestation Proof"),
-        MBEDTLS_OID_X509_EXT_ATTESTATION_PROOF,
+        CUSTOM_OID_X509_EXT_ATTESTATION_PROOF,
     },
     {
         NULL_OID_DESCRIPTOR,
@@ -67,52 +67,52 @@ static const oid_x509_ext_t oid_x509_ext[] =
 };
 
 FN_OID_TYPED_FROM_ASN1(oid_x509_ext_t, x509_ext, oid_x509_ext)
-FN_OID_GET_ATTR1(mbedtls_oid_get_x509_ext_type, oid_x509_ext_t, x509_ext, int, ext_type)
+FN_OID_GET_ATTR1(custom_oid_get_x509_ext_type, oid_x509_ext_t, x509_ext, int, ext_type)
 
 const oid_sig_alg_t oid_sig_alg[] = // new_impl
     {
         {
-            OID_DESCRIPTOR(MBEDTLS_OID_PKCS1_MD5, "md5WithRSAEncryption", "RSA with MD5"),
-            MBEDTLS_MD_MD5,
-            MBEDTLS_PK_RSA,
+            OID_DESCRIPTOR(CUSTOM_OID_PKCS1_MD5, "md5WithRSAEncryption", "RSA with MD5"),
+            CUSTOM_MD_MD5,
+            CUSTOM_PK_RSA,
         },
         {
-            OID_DESCRIPTOR(MBEDTLS_OID_PKCS1_SHA224, "sha224WithRSAEncryption", "RSA with SHA-224"),
-            MBEDTLS_MD_SHA224,
-            MBEDTLS_PK_RSA,
+            OID_DESCRIPTOR(CUSTOM_OID_PKCS1_SHA224, "sha224WithRSAEncryption", "RSA with SHA-224"),
+            CUSTOM_MD_SHA224,
+            CUSTOM_PK_RSA,
         },
         {
-            OID_DESCRIPTOR(MBEDTLS_OID_ECDSA_SHA1, "ecdsa-with-SHA1", "ECDSA with SHA1"),
-            MBEDTLS_MD_SHA1,
-            MBEDTLS_PK_ECDSA,
+            OID_DESCRIPTOR(CUSTOM_OID_ECDSA_SHA1, "ecdsa-with-SHA1", "ECDSA with SHA1"),
+            CUSTOM_MD_SHA1,
+            CUSTOM_PK_ECDSA,
         },
         {
             OID_DESCRIPTOR("\x2B\x65\x70", "ed25519", "ed25519 with sha3"),
-            MBEDTLS_MD_KEYSTONE_SHA3,
-            MBEDTLS_PK_ED25519,
+            CUSTOM_MD_KEYSTONE_SHA3,
+            CUSTOM_PK_ED25519,
         },
 };
 
-FN_OID_GET_OID_BY_ATTR2(mbedtls_oid_get_oid_by_sig_alg,
+FN_OID_GET_OID_BY_ATTR2(custom_oid_get_oid_by_sig_alg,
                         oid_sig_alg_t,
                         oid_sig_alg,
-                        mbedtls_pk_type_t,
+                        custom_pk_type_t,
                         pk_alg,
-                        mbedtls_md_type_t,
+                        custom_md_type_t,
                         md_alg)
 
 // hash_info.c
-unsigned char mbedtls_hash_info_get_size(mbedtls_md_type_t md_type) // new_impl
+unsigned char custom_hash_info_get_size(custom_md_type_t md_type) // new_impl
 {
-    if (md_type == MBEDTLS_MD_KEYSTONE_SHA3) // MBEDTLS_MD_SHA512 ??
-        return MBEDTLS_HASH_MAX_SIZE;
+    if (md_type == CUSTOM_MD_KEYSTONE_SHA3) // CUSTOM_MD_SHA512 ??
+        return CUSTOM_HASH_MAX_SIZE;
     return 0;
 }
 
 // platform_util.c
 
-#if defined(MBEDTLS_HAVE_TIME_DATE)
-struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt,
+#if defined(CUSTOM_HAVE_TIME_DATE)
+struct tm *custom_platform_gmtime_r(const custom_time_t *tt,
                                      struct tm *tm_buf)
 {
 #if defined(_WIN32) && !defined(PLATFORM_UTIL_USE_GMTIME)
@@ -136,9 +136,9 @@ struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt,
     return (lt == NULL) ? NULL : tm_buf;
 #endif /* _WIN32 && !EFIX64 && !EFI32 */
 }
-#endif /* MBEDTLS_HAVE_TIME_DATE */
+#endif /* CUSTOM_HAVE_TIME_DATE */
 
 // new impl
-void mbedtls_platform_zeroize(void *buf, size_t len){
-    my_memset(buf, 0x00, len);
+void custom_platform_zeroize(void *buf, size_t len){
+    custom_memset(buf, 0x00, len);
 }

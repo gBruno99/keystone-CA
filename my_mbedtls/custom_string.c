@@ -1,6 +1,6 @@
 #include "include/custom_string.h"
 
-size_t my_strlen(const char *str)
+size_t custom_strlen(const char *str)
 {
     unsigned int count = 0;
     while(*str!='\0')
@@ -11,7 +11,7 @@ size_t my_strlen(const char *str)
     return count;
 }
 
-int my_strncmp(const char *string1, const char *string2, size_t count)
+int custom_strncmp(const char *string1, const char *string2, size_t count)
 {
     while ( count && *string1 && ( *string1 == *string2 ) )
     {
@@ -29,8 +29,8 @@ int my_strncmp(const char *string1, const char *string2, size_t count)
     }
 }
 
-// Function to implement `my_strncpy()` function
-char *my_strncpy(char *strDest, const char *strSource, size_t count)
+// Function to implement `custom_strncpy()` function
+char *custom_strncpy(char *strDest, const char *strSource, size_t count)
 {
     // return if no memory is allocated to the destination
     if (strDest == NULL) {
@@ -52,11 +52,11 @@ char *my_strncpy(char *strDest, const char *strSource, size_t count)
     // null terminate destination string
     *strDest = '\0';
  
-    // the destination is returned by standard `my_strncpy()`
+    // the destination is returned by standard `custom_strncpy()`
     return ptr;
 }
 
-void *my_memmove(void *dest, const void *src, size_t count)
+void *custom_memmove(void *dest, const void *src, size_t count)
 {
     char *pDest = (char *)dest;
     const char *pSrc =( const char*)src;
@@ -89,7 +89,7 @@ void *my_memmove(void *dest, const void *src, size_t count)
 }
 
 int
-my_memcmp(const void *buffer1, const void *buffer2, size_t count)
+custom_memcmp(const void *buffer1, const void *buffer2, size_t count)
 {
     const unsigned char *s1 = (const unsigned char*)buffer1;
     const unsigned char *s2 = (const unsigned char*)buffer2;
@@ -102,7 +102,7 @@ my_memcmp(const void *buffer1, const void *buffer2, size_t count)
   return 0;
 }
 
-void *my_memcpy(void *dest, const void *src, size_t count)
+void *custom_memcpy(void *dest, const void *src, size_t count)
 {
   const char* s = src;
   char *d = dest;
@@ -121,7 +121,7 @@ void *my_memcpy(void *dest, const void *src, size_t count)
   return dest;
 }
 
-void *my_memset(void *dest, int c, size_t count)
+void *custom_memset(void *dest, int c, size_t count)
 {
   if ((((uintptr_t)dest | count) & (sizeof(uintptr_t)-1)) == 0) {
     uintptr_t word = c & 0xFF;

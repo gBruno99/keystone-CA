@@ -23,11 +23,12 @@ set(ed25519_files ../my_mbedtls/ed25519/ed25519.h ../my_mbedtls/ed25519/fe.h ../
 
 add_executable(${eapp_bin} ${eapp_src} ${my_mbedtls_files} printf.h printf.c 
 ${sha3_dir}/sha3.h ${sha3_dir}/sha3.c ${ed25519_files})
-target_link_libraries(${eapp_bin} "-nostdlib -static -T ${CMAKE_CURRENT_SOURCE_DIR}/app.lds" ${KEYSTONE_LIB_EAPP} ${KEYSTONE_LIB_EDGE})
+target_link_libraries(${eapp_bin} "-nostdlib -static -T ${CMAKE_CURRENT_SOURCE_DIR}/app.lds" ${KEYSTONE_LIB_EAPP} ${KEYSTONE_LIB_EDGE} ${MBEDTLS_LIB_TLS_EAPP})
 
 target_include_directories(${eapp_bin}
   PUBLIC ${KEYSTONE_SDK_DIR}/include/app
   PUBLIC ${KEYSTONE_SDK_DIR}/include/edge
+  PRIVATE ${MBEDTLS_DIR_EAPP}/include
   PRIVATE ${my_mbedtls_dir}/include
   PRIVATE ${my_mbedtls_dir}
   PRIVATE ${sha3_dir}
