@@ -2,6 +2,7 @@
 #include "mbedtls/build_info.h"
 #include "mbedtls/platform.h"
 #include "mbedtls/md5.h"
+#include "openssl/ssl.h"
 
 int main()
 {
@@ -22,5 +23,12 @@ int main()
   }
 
   mbedtls_printf("\n\n");
+
+  // Test OpenSSL
+  SSL_CONF_CTX *cctx = NULL;
+  cctx = SSL_CONF_CTX_new();
+  SSL_CONF_CTX_set_flags(cctx, SSL_CONF_FLAG_CLIENT | SSL_CONF_FLAG_CMDLINE);
+  printf("Test OpenSSL\n");
+
   return 0;
 }

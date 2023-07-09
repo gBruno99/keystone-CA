@@ -4,4 +4,5 @@
 *~
 build/
 valerio/
-old_implementation
+old_implementation/
+openssl_install_dir/
