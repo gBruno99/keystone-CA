@@ -66,4 +66,6 @@ find_program(MAKESELF makeself)
 add_subdirectory(hello)
 add_subdirectory(hello-native)
 add_subdirectory(enclave-client)
+add_subdirectory(tls-client)
+add_subdirectory(tls-server)
 
