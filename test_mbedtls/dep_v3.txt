@@ -1,0 +1,96 @@
+x509_attr_descr_from_name: ... U
+ed25519_get_bitlen: ... U
+ed25519_can_do: ... U
+mbedtls_ed25519_init: ... T
+ed25519_free_wrap: U
+ed25519_check_pair_wrap: U
+ed25519_encrypt_wrap: ... U
+ed25519_decrypt_wrap: ... U
+mbedtls_ed25519_write_signature_restartable: ... U
+mbedtls_ed25519_write_signature: U
+ed25519_sign_wrap: U
+ed25519_verify_wrap: ... U
+(OBJ) mbedtls_ed25519_info: 
+mbedtls_x509write_crt_init: ... T
+mbedtls_asn1_free_named_data_list_mod: ... U
+asn1_find_named_data: ... T
+mbedtls_x509write_crt_set_subject_key: ... T
+mbedtls_x509write_crt_set_issuer_key: ... T
+mbedtls_pk_info_from_type: ... U
+mbedtls_pk_setup: ... U
+mbedtls_pk_get_type: ... T
+pk_set_ed25519pubkey: ... U
+pk_set_ed25519privkey: ... U
+mbedtls_pk_parse_public_key: T
+mbedtls_x509write_crt_set_validity: ... T
+mbedtls_pk_init: ... T
+mbedtls_ed25519_free: ... U
+mbedtls_ed25519_check_pub_priv: ... U
+mbedtls_x509write_crt_der: T
+mbedtls_x509_write_sig: U
+mbedtls_pk_sign: T
+mbedtls_pk_sign_restartable: ... U
+mbedtls_pk_write_pubkey_der: U
+mbedtls_pk_write_pubkey: U
+pk_write_ed25519_pubkey: ... U
+mbedtls_asn1_write_len: ... U
+mbedtls_asn1_write_tag: ... U
+mbedtls_asn1_write_algorithm_identifier: U
+mbedtls_asn1_write_null: U
+mbedtls_asn1_write_oid: U
+mbedtls_asn1_write_raw_buffer: ... U
+mbedtls_x509_write_names: T
+x509_write_name: U
+mbedtls_asn1_write_tagged_string: U
+x509_write_time: U
+mbedtls_asn1_write_int: U
+asn1_write_tagged_int: U
+mbedtls_x509write_crt_set_serial_raw: ... T
+mbedtls_x509write_crt_set_md_alg: ... T
+mbedtls_x509_crt_parse_der: T
+mbedtls_x509_crt_parse_der_internal: U
+mbedtls_x509_crt_init: ... T
+x509_crt_parse_der_core: U
+mbedtls_asn1_get_tag: U
+mbedtls_asn1_get_len: ... U
+mbedtls_pk_free: ... U
+x509_get_version: U
+mbedtls_x509_get_serial: U
+mbedtls_x509_get_alg: U 
+mbedtls_x509_get_alg_mod: U
+mbedtls_asn1_get_alg_mod: U
+mbedtls_asn1_get_alg: U
+mbedtls_x509_get_sig_alg_mod: ... U
+x509_get_attr_type_value: T
+x509_get_dates: U
+mbedtls_x509_get_time: U
+x509_parse_time: U
+x509_parse_int: ... U
+x509_date_is_valid: ... U
+mbedtls_pk_parse_subpubkey: U
+mbedtls_x509_get_sig: U
+mbedtls_asn1_get_bitstring_null: U
+mbedtls_asn1_get_int: U
+asn1_get_tagged_int: U
+mbedtls_oid_get_oid_by_sig_alg: ...(DEFINE) U
+mbedtls_x509_write_extensions: T
+mbedtls_x509_write_extensions_mod: U
+x509_write_extension_mod: U
+x509_write_extension: U
+mbedtls_asn1_write_bool: U
+mbedtls_x509write_crt_set_extension: T
+mbedtls_x509_set_extension: ... U
+x509_get_uid: U
+pk_get_pk_alg: U
+mbedtls_x509write_crt_set_subject_name_mod: T
+mbedtls_x509write_crt_set_issuer_name_mod: T
+mbedtls_x509_string_to_names_mod: U
+mbedtls_asn1_store_named_data_mod: U
+asn1_find_named_data_mod: ... U
+mbedtls_x509_write_names_mod: U
+x509_write_name_mod: U
+mbedtls_x509_get_name_mod: U
+x509_get_attr_type_value_mod: U
+x509_get_crt_ext: U
+mbedtls_x509_get_ext: U
+mbedtls_asn1_get_bool: U
