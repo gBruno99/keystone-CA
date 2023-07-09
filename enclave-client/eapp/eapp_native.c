@@ -254,12 +254,14 @@ int main(){
   #endif
   ret = custom_pk_verify_ext(csr.sig_pk, csr.sig_opts, &(csr.pk), csr.sig_md, csr_hash, HASH_LEN, csr.sig.p, csr.sig.len);
   custom_printf("Verify CSR signature - ret: %d\n", ret);
+  custom_printf("\n");
 
   // verify nonces equality
   ret = csr.nonce.len != NONCE_LEN;
   custom_printf("Verify nonce len - ret: %d\n", ret);
   ret = custom_memcmp(csr.nonce.p, nonce, NONCE_LEN);
   custom_printf("Verify nonce value - ret: %d\n", ret);
+  custom_printf("\n");
 
   // parse trusted certificate
   uint32_t flags = 0;
@@ -288,13 +290,13 @@ int main(){
   unsigned char fin_hash[HASH_LEN] = {0};
   sha3_ctx_t ctx_hash;
   ret = getAttestationPublicKey(&csr, verification_pk);
-  custom_printf("Getting SM public key - ret: %d\n", ret);
+  custom_printf("Getting SM PK - ret: %d\n", ret);
 
-  print_hex_string("Reference PK", verification_pk, PUBLIC_KEY_SIZE);
+  print_hex_string("SM PK", verification_pk, PUBLIC_KEY_SIZE);
 
   ret = getReferenceTCI(&csr, reference_tci);
-  custom_printf("Getting enclave TCI - ret: %d\n", ret);
-  print_hex_string("Reference TCI", reference_tci, HASH_LEN);
+  custom_printf("Getting Reference Enclave TCI - ret: %d\n", ret);
+  print_hex_string("Reference Enclave TCI", reference_tci, HASH_LEN);
 
   sha3_init(&ctx_hash, HASH_LEN);
   sha3_update(&ctx_hash, nonce, NONCE_LEN);
@@ -363,7 +365,7 @@ int main(){
   size_t len_cert_der_tot = 1024;
 
   ret = custom_x509write_crt_der(&cert_encl, cert_der, len_cert_der_tot, NULL, NULL);
-  custom_printf("Writing enclave certificate - ret: %d\n", ret);
+  custom_printf("Writing Enclave Certificate - ret: %d\n", ret);
   effe_len_cert_der = ret;
   
   unsigned char *cert_real = cert_der;
