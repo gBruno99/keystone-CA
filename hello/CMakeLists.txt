@@ -14,7 +14,7 @@ endif()
 # eapp
 
 add_executable(${eapp_bin} ${eapp_src})
-target_link_libraries(${eapp_bin} "-static" ${MBEDTLS_LIB_CRYPTO_HOST} ${MBEDTLS_LIB_TLS_HOST} ${MBEDTLS_LIB_X509_HOST} ${OPENSSL_LIB_SSL} ${OPENSSL_LIB_CRYPTO})
+target_link_libraries(${eapp_bin} "-static" ${MBEDTLS_LIB_TLS_HOST} ${MBEDTLS_LIB_X509_HOST} ${MBEDTLS_LIB_CRYPTO_HOST} ${OPENSSL_LIB_SSL} ${OPENSSL_LIB_CRYPTO})
 target_include_directories(${eapp_bin} PRIVATE ${MBEDTLS_DIR_HOST}/include PRIVATE ${OPENSSL_DIR}/include/)
 
 # host
