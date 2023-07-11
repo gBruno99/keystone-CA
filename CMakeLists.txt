@@ -68,4 +68,5 @@ add_subdirectory(hello-native)
 add_subdirectory(enclave-client)
 add_subdirectory(tls-client)
 add_subdirectory(tls-server)
+add_subdirectory(tls-client-enclave)
 

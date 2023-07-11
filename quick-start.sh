@@ -108,6 +108,7 @@ make hello-package
 make hello-native-package
 make enclave-client-package
 make tls-client-package
+make tls-client-enclave-package
 
 # copy enclave packages - only for me
 cp hello/hello.ke ../../keystone/build/overlay/root/
@@ -115,6 +116,7 @@ cp hello/hello.ke ../../keystone/build/overlay/root/
 cp hello-native/hello-native.ke ../../keystone/build/overlay/root/
 cp enclave-client/enclave-client.ke ../../keystone/build/overlay/root/
 cp tls-client/tls-client.ke ../../keystone/build/overlay/root/
+cp tls-client-enclave/tls-client-enclave.ke ../../keystone/build/overlay/root/
 cp tls-server/tls-server.riscv ../../keystone/build/overlay/root/
 
 # Done!
