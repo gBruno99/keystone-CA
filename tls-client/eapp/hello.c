@@ -92,14 +92,14 @@ int main(void)
     mbedtls_x509_crt_init(&cacert);
     mbedtls_ctr_drbg_init(&ctr_drbg);
 
-    mbedtls_printf("\n  . Seeding the random number generator...");
+    mbedtls_printf("\n[C]  . Seeding the random number generator...");
     fflush(stdout);
 
     mbedtls_entropy_init(&entropy);
     if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
                                      (const unsigned char *) pers,
                                      strlen(pers))) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
+        mbedtls_printf(" failed\n[C]  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
         goto exit;
     }
 
@@ -108,13 +108,13 @@ int main(void)
     /*
      * 0. Initialize certificates
      */
-    mbedtls_printf("  . Loading the CA root certificate ...");
+    mbedtls_printf("[C]  . Loading the CA root certificate ...");
     fflush(stdout);
 
     ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) mbedtls_test_cas_pem,
                                  mbedtls_test_cas_pem_len);
     if (ret < 0) {
-        mbedtls_printf(" failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
+        mbedtls_printf(" failed\n[C]  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
                        (unsigned int) -ret);
         goto exit;
     }
@@ -124,12 +124,12 @@ int main(void)
     /*
      * 1. Start the connection
      */
-    mbedtls_printf("  . Connecting to tcp/%s/%s...", SERVER_NAME, SERVER_PORT);
+    mbedtls_printf("[C]  . Connecting to tcp/%s/%s...", SERVER_NAME, SERVER_PORT);
     fflush(stdout);
 
     if ((ret = mbedtls_net_connect(&server_fd, SERVER_NAME,
                                    SERVER_PORT, MBEDTLS_NET_PROTO_TCP)) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_net_connect returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[C]  ! mbedtls_net_connect returned %d\n\n", ret);
         goto exit;
     }
 
@@ -138,14 +138,14 @@ int main(void)
     /*
      * 2. Setup stuff
      */
-    mbedtls_printf("  . Setting up the SSL/TLS structure...");
+    mbedtls_printf("[C]  . Setting up the SSL/TLS structure...");
     fflush(stdout);
 
     if ((ret = mbedtls_ssl_config_defaults(&conf,
                                            MBEDTLS_SSL_IS_CLIENT,
                                            MBEDTLS_SSL_TRANSPORT_STREAM,
                                            MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ssl_config_defaults returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_config_defaults returned %d\n\n", ret);
         goto exit;
     }
 
@@ -159,12 +159,12 @@ int main(void)
     mbedtls_ssl_conf_dbg(&conf, my_debug, stdout);
 
     if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ssl_setup returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_setup returned %d\n\n", ret);
         goto exit;
     }
 
     if ((ret = mbedtls_ssl_set_hostname(&ssl, SERVER_NAME)) != 0) {
-        mbedtls_printf(" failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_set_hostname returned %d\n\n", ret);
         goto exit;
     }
 
@@ -173,12 +173,12 @@ int main(void)
     /*
      * 4. Handshake
      */
-    mbedtls_printf("  . Performing the SSL/TLS handshake...");
+    mbedtls_printf("[C]  . Performing the SSL/TLS handshake...");
     fflush(stdout);
 
     while ((ret = mbedtls_ssl_handshake(&ssl)) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n",
+            mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_handshake returned -0x%x\n\n",
                            (unsigned int) -ret);
             goto exit;
         }
@@ -189,7 +189,7 @@ int main(void)
     /*
      * 5. Verify the server certificate
      */
-    mbedtls_printf("  . Verifying peer X.509 certificate...");
+    mbedtls_printf("[C]  . Verifying peer X.509 certificate...");
 
     /* In real life, we probably want to bail out when ret != 0 */
     if ((flags = mbedtls_ssl_get_verify_result(&ssl)) != 0) {
@@ -211,25 +211,25 @@ int main(void)
     /*
      * 3. Write the GET request
      */
-    mbedtls_printf("  > Write to server:");
+    mbedtls_printf("[C]  > Write to server:");
     fflush(stdout);
 
     len = sprintf((char *) buf, GET_REQUEST);
 
     while ((ret = mbedtls_ssl_write(&ssl, buf, len)) <= 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n  ! mbedtls_ssl_write returned %d\n\n", ret);
+            mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_write returned %d\n\n", ret);
             goto exit;
         }
     }
 
     len = ret;
-    mbedtls_printf(" %d bytes written\n\n%s", len, (char *) buf);
+    mbedtls_printf("[C] %d bytes written\n\n%s", len, (char *) buf);
 
     /*
      * 7. Read the HTTP response
      */
-    mbedtls_printf("  < Read from server:");
+    mbedtls_printf("[C]  < Read from server:");
     fflush(stdout);
 
     do {
@@ -246,12 +246,12 @@ int main(void)
         }
 
         if (ret < 0) {
-            mbedtls_printf("failed\n  ! mbedtls_ssl_read returned %d\n\n", ret);
+            mbedtls_printf("failed\n[C]  ! mbedtls_ssl_read returned %d\n\n", ret);
             break;
         }
 
         if (ret == 0) {
-            mbedtls_printf("\n\nEOF\n\n");
+            mbedtls_printf("\n\n[C] EOF\n\n");
             break;
         }
 
@@ -269,7 +269,7 @@ exit:
     if (exit_code != MBEDTLS_EXIT_SUCCESS) {
         char error_buf[100];
         mbedtls_strerror(ret, error_buf, 100);
-        mbedtls_printf("Last error was: %d - %s\n\n", ret, error_buf);
+        mbedtls_printf("[C] Last error was: %d - %s\n\n", ret, error_buf);
     }
 #endif
 
