@@ -4,8 +4,13 @@
 //------------------------------------------------------------------------------
 #include "edge/edge_call.h"
 #include "host/keystone.h"
+#include "net.h"
 
 using namespace Keystone;
+
+#define OCALL_NET_CONNECT 1
+#define OCALL_NET_SEND    2
+#define OCALL_NET_RECV    3
 
 int
 main(int argc, char** argv) {
@@ -18,6 +23,11 @@ main(int argc, char** argv) {
   enclave.init(argv[1], argv[2], params);
 
   enclave.registerOcallDispatch(incoming_call_dispatch);
+
+  register_call(OCALL_NET_CONNECT, net_connect_wrapper);
+  register_call(OCALL_NET_SEND, net_send_wrapper);
+  register_call(OCALL_NET_RECV, net_recv_wrapper);
+
   edge_call_init_internals(
       (uintptr_t)enclave.getSharedBuffer(), enclave.getSharedBufferSize());
 

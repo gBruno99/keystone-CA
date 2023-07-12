@@ -13,14 +13,23 @@ endif()
 
 # eapp
 
-add_executable(${eapp_bin} ${eapp_src} certs.c certs.h)
-target_link_libraries(${eapp_bin} "-static" ${MBEDTLS_LIB_TLS_HOST} ${MBEDTLS_LIB_X509_HOST} ${MBEDTLS_LIB_CRYPTO_HOST})
-target_include_directories(${eapp_bin} PRIVATE ${MBEDTLS_DIR_HOST}/include PRIVATE .)
+add_executable(${eapp_bin} ${eapp_src} certs.c certs.h eapp/eapp_net.h eapp/eapp_net.c)
+target_link_libraries(${eapp_bin} "-static" ${KEYSTONE_LIB_EAPP} ${KEYSTONE_LIB_EDGE} ${MBEDTLS_LIB_TLS_HOST} ${MBEDTLS_LIB_X509_HOST} ${MBEDTLS_LIB_CRYPTO_HOST})
+target_include_directories(${eapp_bin} 
+  PUBLIC ${KEYSTONE_SDK_DIR}/include/app
+  PUBLIC ${KEYSTONE_SDK_DIR}/include/edge
+  PRIVATE ${MBEDTLS_DIR_HOST}/include 
+  PRIVATE .)
 
 # host
 
-add_executable(${host_bin} ${host_src})
-target_link_libraries(${host_bin} ${KEYSTONE_LIB_HOST} ${KEYSTONE_LIB_EDGE})
+add_executable(${host_bin} ${host_src} host/net.cpp host/net.h)
+target_link_libraries(${host_bin} ${KEYSTONE_LIB_HOST} ${KEYSTONE_LIB_EDGE} ${MBEDTLS_LIB_TLS_HOST} ${MBEDTLS_LIB_X509_HOST} ${MBEDTLS_LIB_CRYPTO_HOST})
+target_include_directories(${host_bin}
+  PUBLIC ${KEYSTONE_SDK_DIR}/include/host
+  PUBLIC ${KEYSTONE_SDK_DIR}/include/edge
+  PRIVATE ${MBEDTLS_DIR_HOST}/include 
+  PRIVATE .)
 
 # add target for Eyrie runtime (see keystone.cmake)
 
