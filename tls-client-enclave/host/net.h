@@ -7,5 +7,7 @@ void
 net_send_wrapper(void* buffer);
 void
 net_recv_wrapper(void* buffer);
+void
+net_free_wrapper(void* buffer);
 
 #endif
