@@ -1,0 +1,40 @@
+DONE-CUSTOM
+mbedtls_x509_crt
+mbedtls_x509_crt_init
+mbedtls_x509_crt_parse
+
+CUSTOM
+mbedtls_ssl_context
+mbedtls_ssl_init
+
+mbedtls_ssl_config
+mbedtls_ssl_config_init
+
+EAPP
+mbedtls_entropy_context
+mbedtls_entropy_init
+mbedtls_entropy_func
+
+mbedtls_ctr_drbg_context
+mbedtls_ctr_drbg_init
+mbedtls_ctr_drbg_seed
+
+HOST
+mbedtls_net_context
+mbedtls_net_init
+mbedtls_net_connect
+
+
+DEFINE_EAPP
+- NO 
+    MBEDTLS_THREADING_C
+    MBEDTLS_ENTROPY_NV_SEED
+    MBEDTLS_AES_SETKEY_ENC_ALT
+    MBEDTLS_AES_ROM_TABLES
+    MAY_NEED_TO_ALIGN
+    MBEDTLS_SSL_PROTO_DTLS
+- YES
+    MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES
+    MBEDTLS_PLATFORM_ZEROIZE_ALT
+
+EAPP_SYSCALLS mbedtls_platform_zeroize
