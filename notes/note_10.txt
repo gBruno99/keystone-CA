@@ -120,5 +120,68 @@ mbedtls_entropy_free
 
 
 
+# ./tls-server.riscv &
+[1] 122
+# 
+[S]  . Seeding the random number generator... ok
 
+[S]  . Loading the server cert. and key... ok
+[S]  . Bind on https://localhost:4433/ ... ok
+[S]  . Setting up the SSL data.... ok
+[S]  . Waiting for a remote connection ...
+# ./tls-client-enclave.ke 
+Verifying archive integrity... All good.
+Uncompressing Keystone Enclave Package
+Ticks needed for the creation of the enclave: 5639157d
+
+[C]  . Seeding the random number generator... ok
+[C]  . Loading the CA root certificate ... ok (0 skipped)
+[C]  . Connecting to tcp/localhost/4433... ok
+[S]  . Performing the SSL/TLS handshake... ok
+[C]  . Setting up the SSL/TLS structure... ok
+[C]  . Performing the SSL/TLS handshake...
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001d)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(0017)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(0018)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001e)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(0019)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001a)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001b)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001c)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_tls.c:7367: x509_verify_cert() returned -9984 (-0x2700)
+ ok
+[C]  . Verifying peer X.509 certificate... failed
+  ! The certificate validity starts in the future
+
+[C]  > Write to server:
+[C] 18 bytes written
+
+GET / HTTP/1.0
+
+[C]  < Read from server: 
+ok
+[S]  < Read from client: 18 bytes read
+
+GET / HTTP/1.0
+
+[S]  > Write to client: 156 bytes written
+
+HTTP/1.0 200 OK
+Content-Type: text/html
+
+<h2>mbed TLS Test Server</h2>
+<p>Successful connection using: TLS-ECDHE-RSA-WITH-CHACHA20-POLY1305-SHA256</p>
+
+[S]  . Closing the connection... ok
+ 156 bytes read
+
+HTTP/1.0 200 OK
+Content-Type: text/html
+
+<h2>mbed TLS Test Server</h2>
+<p>Successful connection using: TLS-ECDHE-RSA-WITH-CHACHA20-POLY1305-SHA256</p>
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_msg.c:3942: mbedtls_ssl_handle_message_type() returned -30848 (-0x7880)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_msg.c:5501: mbedtls_ssl_read_record() returned -30848 (-0x7880)
+[S]  . Waiting for a remote connection ...
+# poweroff
 

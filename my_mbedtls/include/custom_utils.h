@@ -8,7 +8,9 @@ typedef unsigned char __uint8_t;
 typedef unsigned int __uint32_t;
 typedef __uint8_t uint8_t;
 typedef __uint32_t uint32_t;
+#ifndef INT_MAX
 #define INT_MAX         2147483647
+#endif
 
 //custom_config.h
 

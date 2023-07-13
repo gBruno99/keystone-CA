@@ -69,4 +69,6 @@ add_subdirectory(enclave-client)
 add_subdirectory(tls-client)
 add_subdirectory(tls-server)
 add_subdirectory(tls-client-enclave)
+add_subdirectory(enclave-Alice)
+add_subdirectory(server-CA)
 
