@@ -62,6 +62,18 @@ int main(void)
     "<h2>mbed TLS Test Server</h2>\r\n" \
     "<p>Successful connection using: %s</p>\r\n"
 
+#define GET_NONCE_REQUEST "GET /nonce HTTP/1.0\r\n\r\n"
+
+#define POST_CSR_REQUEST "POST /csr HTTP/1.0\r\n\r\n"
+
+#define HTTP_NONCE_RESPONSE_START \
+    "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" \
+    "<h2>CA Server - nonce</h2>\r\n" \
+    "<p>"
+
+#define HTTP_NONCE_RESPONSE_END \
+"</p>\r\n"
+
 #define DEBUG_LEVEL 0
 
 
@@ -81,6 +93,11 @@ int main(void)
     mbedtls_net_context listen_fd, client_fd;
     unsigned char buf[1024];
     const char *pers = "ssl_server";
+
+    unsigned char nonce[] = {
+        0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
+        0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
+    };
 
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
@@ -298,8 +315,16 @@ reset:
     mbedtls_printf("[S]  > Write to client:");
     fflush(stdout);
 
+    /*
     len = sprintf((char *) buf, HTTP_RESPONSE,
                   mbedtls_ssl_get_ciphersuite(&ssl));
+    */
+    memcpy(buf, HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1);
+    len = sizeof(HTTP_NONCE_RESPONSE_START)-1;
+    memcpy(buf+len, nonce, sizeof(nonce));
+    len += sizeof(nonce);
+    memcpy(buf+len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END));
+    len += sizeof(HTTP_NONCE_RESPONSE_END);
 
     while ((ret = mbedtls_ssl_write(&ssl, buf, len)) <= 0) {
         if (ret == MBEDTLS_ERR_NET_CONN_RESET) {

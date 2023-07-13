@@ -35,14 +35,71 @@
 #include "mbedtls/error.h"
 #include "certs.h"
 
+#include <stdio.h>
+#include <time.h>
 #include <string.h>
+
+#define PUBLIC_KEY_SIZE     32
+#define PRIVATE_KEY_SIZE    64
+#define PARSE_PUBLIC_KEY    0
+#define PARSE_PRIVATE_KEY   1
+#define CERTS_MAX_LEN       512
+#define CSR_SIZE            2048
+#define HASH_LEN            64
+#define SIG_LEN             64
+#define NONCE_LEN           32
+#define MDSIZE              64
+#define SIGNATURE_SIZE      64
+#define ATTEST_DATA_MAXLEN  1024
 
 #define SERVER_PORT "4433"
 #define SERVER_NAME "localhost"
 #define GET_REQUEST "GET / HTTP/1.0\r\n\r\n"
+#define GET_NONCE_REQUEST "GET /nonce HTTP/1.0\r\n\r\n"
+#define POST_CSR_REQUEST "POST /csr HTTP/1.0\r\n\r\n"
+#define HTTP_NONCE_RESPONSE_START \
+    "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" \
+    "<h2>CA Server - nonce</h2>\r\n" \
+    "<p>"
+
+#define HTTP_NONCE_RESPONSE_END \
+"</p>\r\n"
 
 #define DEBUG_LEVEL 1
 
+typedef unsigned char byte;
+
+struct enclave_report
+{
+  byte hash[MDSIZE];
+  uint64_t data_len;
+  byte data[ATTEST_DATA_MAXLEN];
+  byte signature[SIGNATURE_SIZE];
+};
+
+struct sm_report
+{
+  byte hash[MDSIZE];
+  byte public_key[PUBLIC_KEY_SIZE];
+  byte signature[SIGNATURE_SIZE];
+};
+
+struct report
+{
+  struct enclave_report enclave;
+  struct sm_report sm;
+  byte dev_public_key[PUBLIC_KEY_SIZE];
+};
+
+int print_hex_string(char* name, unsigned char* value, int size){
+  printf("%s: 0x", name);
+  for(int i = 0; i< size; i++){
+    printf("%02x", value[i]);
+  }
+  printf("\n");
+  printf("%s_len: %d\n", name, size);
+  return 0;
+}
 
 static void my_debug(void *ctx, int level,
                      const char *file, int line,
@@ -60,7 +117,7 @@ int main(void)
     int exit_code = MBEDTLS_EXIT_FAILURE;
     mbedtls_net_context server_fd;
     uint32_t flags;
-    unsigned char buf[1024];
+    unsigned char buf[2048];
     const char *pers = "ssl_client1";
 
     mbedtls_entropy_context entropy;
@@ -68,6 +125,32 @@ int main(void)
     mbedtls_ssl_context ssl;
     mbedtls_ssl_config conf;
     mbedtls_x509_crt cacert;
+
+    unsigned char nonce[128];
+
+    time_t rawtime;
+    struct tm * timeinfo;
+
+    time(&rawtime);
+    timeinfo = localtime(&rawtime);
+    printf("Current local time and date: %s\n", asctime(timeinfo));
+    
+    
+    // print tci sm and tci enclave
+    char report[2048] = {0};
+    attest_enclave((void*) report, "test", 5);
+    struct report *parsed_report = (struct report*) report;
+    print_hex_string("TCI enclave", parsed_report->enclave.hash, 64);
+    print_hex_string("TCI sm", parsed_report->sm.hash, 64);
+    printf("\n");
+
+    // Client - Step 1: Create LDevID keypair
+    printf("Step 1: Generating LDevID...\n\n");
+    unsigned char pk[PUBLIC_KEY_SIZE] = {0};
+    create_keypair(pk, 15);
+
+    print_hex_string("LDevID PK", pk, PUBLIC_KEY_SIZE);
+    printf("\n");
 
 #if defined(MBEDTLS_DEBUG_C)
     mbedtls_debug_set_threshold(DEBUG_LEVEL);
@@ -204,7 +287,7 @@ int main(void)
     mbedtls_printf("[C]  > Write to server:");
     fflush(stdout);
 
-    len = sprintf((char *) buf, GET_REQUEST);
+    len = sprintf((char *) buf, GET_NONCE_REQUEST);
 
     while ((ret = mbedtls_ssl_write(&ssl, buf, len)) <= 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
@@ -247,6 +330,21 @@ int main(void)
 
         len = ret;
         mbedtls_printf(" %d bytes read\n\n%s", len, (char *) buf);
+
+        print_hex_string("buf", buf, sizeof(HTTP_NONCE_RESPONSE_START)-1);
+        print_hex_string("exp", (unsigned char *) HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1);
+        if(memcmp(buf, HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1)!=0) {
+            mbedtls_printf("[C] cannot read nonce 1\n\n");
+            break;
+        }
+        memcpy(nonce, buf+sizeof(HTTP_NONCE_RESPONSE_START)-1, NONCE_LEN);
+        if(memcmp(buf+sizeof(HTTP_NONCE_RESPONSE_START)-1+NONCE_LEN, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END))!=0){
+            mbedtls_printf("[C] cannot read nonce 2\n\n");
+            goto exit;
+        }
+        print_hex_string("nonce", nonce, NONCE_LEN);
+        break;
+
     } while (1);
 
     mbedtls_ssl_close_notify(&ssl);
