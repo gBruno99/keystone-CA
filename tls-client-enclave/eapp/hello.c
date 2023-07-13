@@ -17,25 +17,15 @@
  *  limitations under the License.
  */
 
+#include "app/eapp_utils.h"
+#include "edge/edge_call.h"
+#include "app/syscall.h"
+
+#include "eapp/eapp_net.h"
+
 #include "mbedtls/build_info.h"
 
 #include "mbedtls/platform.h"
-
-#if !defined(MBEDTLS_BIGNUM_C) || !defined(MBEDTLS_ENTROPY_C) ||     \
-    !defined(MBEDTLS_SSL_TLS_C) || !defined(MBEDTLS_SSL_CLI_C) ||    \
-    !defined(MBEDTLS_NET_C) || !defined(MBEDTLS_RSA_C) ||            \
-    !defined(MBEDTLS_PEM_PARSE_C) || !defined(MBEDTLS_CTR_DRBG_C) || \
-    !defined(MBEDTLS_X509_CRT_PARSE_C)
-int main(void)
-{
-    mbedtls_printf("MBEDTLS_BIGNUM_C and/or MBEDTLS_ENTROPY_C and/or "
-                   "MBEDTLS_SSL_TLS_C and/or MBEDTLS_SSL_CLI_C and/or "
-                   "MBEDTLS_NET_C and/or MBEDTLS_RSA_C and/or "
-                   "MBEDTLS_CTR_DRBG_C and/or MBEDTLS_X509_CRT_PARSE_C "
-                   "not defined.\n");
-    mbedtls_exit(0);
-}
-#else
 
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/debug.h"
@@ -86,7 +76,7 @@ int main(void)
     /*
      * 0. Initialize the RNG and the session data
      */
-    mbedtls_net_init(&server_fd);
+    custom_net_init(&server_fd);
     mbedtls_ssl_init(&ssl);
     mbedtls_ssl_config_init(&conf);
     mbedtls_x509_crt_init(&cacert);
@@ -98,7 +88,7 @@ int main(void)
     mbedtls_entropy_init(&entropy);
     if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
                                      (const unsigned char *) pers,
-                                     strlen(pers))) != 0) {
+                                     strlen((char*)pers))) != 0) {
         mbedtls_printf(" failed\n[C]  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
         goto exit;
     }
@@ -127,7 +117,7 @@ int main(void)
     mbedtls_printf("[C]  . Connecting to tcp/%s/%s...", SERVER_NAME, SERVER_PORT);
     fflush(stdout);
 
-    if ((ret = mbedtls_net_connect(&server_fd, SERVER_NAME,
+    if ((ret = custom_net_connect(&server_fd, SERVER_NAME,
                                    SERVER_PORT, MBEDTLS_NET_PROTO_TCP)) != 0) {
         mbedtls_printf(" failed\n[C]  ! mbedtls_net_connect returned %d\n\n", ret);
         goto exit;
@@ -273,7 +263,7 @@ exit:
     }
 #endif
 
-    mbedtls_net_free(&server_fd);
+    custom_net_free(&server_fd);
 
     mbedtls_x509_crt_free(&cacert);
     mbedtls_ssl_free(&ssl);
@@ -283,6 +273,4 @@ exit:
 
     mbedtls_exit(exit_code);
 }
-#endif /* MBEDTLS_BIGNUM_C && MBEDTLS_ENTROPY_C && MBEDTLS_SSL_TLS_C &&
-          MBEDTLS_SSL_CLI_C && MBEDTLS_NET_C && MBEDTLS_RSA_C &&
-          MBEDTLS_PEM_PARSE_C && MBEDTLS_CTR_DRBG_C && MBEDTLS_X509_CRT_PARSE_C */
+
