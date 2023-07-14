@@ -38,7 +38,7 @@ int custom_x509_get_serial(unsigned char **p, const unsigned char *end,
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("custom_x509_get_serial - serial", serial->p, serial->len);
-    custom_printf("custom_x509_get_serial - serial_tag = %02x\n", serial->tag);
+    printf("custom_x509_get_serial - serial_tag = %02x\n", serial->tag);
     #endif
     return 0;
 }
@@ -54,9 +54,9 @@ int custom_x509_get_alg(unsigned char **p, const unsigned char *end,
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("custom_x509_get_alg - alg", alg->p, alg->len);
-    custom_printf("custom_x509_get_alg - alg_tag = %02x\n", alg->tag);
+    printf("custom_x509_get_alg - alg_tag = %02x\n", alg->tag);
     print_hex_string("custom_x509_get_alg - params", params->p, params->len);
-    custom_printf("custom_x509_get_alg - params_tag = %02x\n", params->tag);
+    printf("custom_x509_get_alg - params_tag = %02x\n", params->tag);
     #endif
     return 0;
 }
@@ -124,10 +124,10 @@ static int x509_get_attr_type_value(unsigned char **p,
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("x509_get_attr_type_value - cur->oid", cur->oid.p, cur->oid.len);
-    custom_printf("x509_get_attr_type_value - cur->oid_tag = %02x\n", cur->oid.tag);
+    printf("x509_get_attr_type_value - cur->oid_tag = %02x\n", cur->oid.tag);
     print_hex_string("x509_get_attr_type_value - cur->val", cur->val.p, cur->val.len);
-    custom_printf("x509_get_attr_type_value - cur->val = %02x\n", cur->val.tag);
-    custom_printf("x509_get_attr_type_value - cur->val_next = %p\n", cur->next);
+    printf("x509_get_attr_type_value - cur->val = %02x\n", cur->val.tag);
+    printf("x509_get_attr_type_value - cur->val_next = %p\n", cur->next);
     #endif
 
     return 0;
@@ -174,7 +174,7 @@ int custom_x509_get_name(unsigned char **p, const unsigned char *end,
             }
 
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("custom_x509_get_name - calloc: %lu\n", sizeof(custom_x509_name));
+            printf("custom_x509_get_name - calloc: %lu\n", sizeof(custom_x509_name));
             #endif
             cur = cur->next;
         }
@@ -185,10 +185,10 @@ int custom_x509_get_name(unsigned char **p, const unsigned char *end,
         if (*p == end) {
             #if CUSTOM_DEBUG_PRINTS
             print_hex_string("custom_x509_get_name - cur->oid", cur->oid.p, cur->oid.len);
-            custom_printf("custom_x509_get_name - cur->oid_tag = %02x\n", cur->oid.tag);
+            printf("custom_x509_get_name - cur->oid_tag = %02x\n", cur->oid.tag);
             print_hex_string("custom_x509_get_name - cur->val", cur->val.p, cur->val.len);
-            custom_printf("custom_x509_get_name - cur->val = %02x\n", cur->val.tag);
-            custom_printf("custom_x509_get_name - cur->val_next = %p\n", cur->next);
+            printf("custom_x509_get_name - cur->val = %02x\n", cur->val.tag);
+            printf("custom_x509_get_name - cur->val_next = %p\n", cur->next);
             #endif
             return 0;
         }
@@ -201,7 +201,7 @@ int custom_x509_get_name(unsigned char **p, const unsigned char *end,
         }
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_x509_get_name - calloc: %lu\n", sizeof(custom_x509_name));
+        printf("custom_x509_get_name - calloc: %lu\n", sizeof(custom_x509_name));
         #endif
         cur = cur->next;
     }
@@ -228,7 +228,7 @@ static int x509_parse_int(unsigned char **p, size_t n, int *res)
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_parse_int - int: %d\n", *res);
+    printf("x509_parse_int - int: %d\n", *res);
     #endif
     return 0;
 }
@@ -324,7 +324,7 @@ static int x509_parse_time(unsigned char **p, size_t len, size_t yearlen,
     CHECK(x509_date_is_valid(tm));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_parse_time - tm\n- year: %d, mon: %d, day: %d\n- hour: %d, min: %d, sec: %d\n", 
+    printf("x509_parse_time - tm\n- year: %d, mon: %d, day: %d\n- hour: %d, min: %d, sec: %d\n", 
         tm->year, tm->mon, tm->day, tm->hour, tm->min, tm->sec);
     #endif
     return 0;
@@ -388,7 +388,7 @@ int custom_x509_get_sig(unsigned char **p, const unsigned char *end, custom_x509
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("custom_x509_get_sig - sig", sig->p, sig->len);
-    custom_printf("custom_x509_get_sig - sig_tag = %02x\n", sig->tag);
+    printf("custom_x509_get_sig - sig_tag = %02x\n", sig->tag);
     #endif
     return 0;
 }
@@ -407,7 +407,7 @@ int custom_x509_get_sig_alg(const custom_x509_buf *sig_oid, const custom_x509_bu
     *md_alg = CUSTOM_MD_KEYSTONE_SHA3;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_get_sig_alg\n");
+    printf("custom_x509_get_sig_alg\n");
     #endif
     return 0;
 }
@@ -446,7 +446,7 @@ int custom_x509_get_ext(unsigned char **p, const unsigned char *end,
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("custom_x509_get_ext - ext", ext->p, ext->len);
-    custom_printf("custom_x509_get_ext - ext_tag = %02x\n", ext->tag);
+    printf("custom_x509_get_ext - ext_tag = %02x\n", ext->tag);
     #endif
     return 0;
 }
@@ -707,7 +707,7 @@ int custom_x509_get_subject_alt_name(unsigned char **p,
             }
 
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("custom_x509_get_subject_alt_name - calloc: %lu\n", sizeof(custom_asn1_sequence));
+            printf("custom_x509_get_subject_alt_name - calloc: %lu\n", sizeof(custom_asn1_sequence));
             #endif
 
             cur = cur->next;
@@ -994,7 +994,7 @@ int custom_x509_string_to_names(custom_asn1_named_data **head, const char *name)
     char *d = data;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_string_to_names - name: %s\n", name);
+    printf("custom_x509_string_to_names - name: %s\n", name);
     #endif
     /* Clear existing chain if present */
     custom_asn1_free_named_data_list(head);
@@ -1034,7 +1034,7 @@ int custom_x509_string_to_names(custom_asn1_named_data **head, const char *name)
             cur->val.tag = attr_descr->default_tag;
 
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("stored:\n- oid: %s\n- oid_len: %d\n- data: %s\n- data_len: %d\n", cur->oid.p, cur->oid.len, cur->val.p, cur->val.len);
+            printf("stored:\n- oid: %s\n- oid_len: %d\n- data: %s\n- data_len: %d\n", cur->oid.p, cur->oid.len, cur->val.p, cur->val.len);
             #endif
             while (c < end && *(c + 1) == ' ') {
                 c++;
@@ -1109,7 +1109,7 @@ static int x509_write_name(unsigned char **p,
                                                      CUSTOM_ASN1_SET));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_write_name - len = %d\n", len);
+    printf("x509_write_name - len = %d\n", len);
     #endif
     return (int) len;
 }
@@ -1131,7 +1131,7 @@ int custom_x509_write_names(unsigned char **p, unsigned char *start,
                                                      CUSTOM_ASN1_SEQUENCE));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_write_names - len = %d\n", len);
+    printf("custom_x509_write_names - len = %d\n", len);
     #endif
     return (int) len;
 }
@@ -1167,7 +1167,7 @@ int custom_x509_write_sig(unsigned char **p, unsigned char *start,
                                                                       oid_len, 0));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_write_sig - len = %d\n", len);
+    printf("custom_x509_write_sig - len = %d\n", len);
     #endif
     return (int) len;
 }
@@ -1197,7 +1197,7 @@ static int x509_write_extension(unsigned char **p, unsigned char *start,
                                                      CUSTOM_ASN1_SEQUENCE));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_write_extension - len = %d\n", len);
+    printf("x509_write_extension - len = %d\n", len);
     #endif
     return (int) len;
 }
@@ -1218,7 +1218,7 @@ int custom_x509_write_extensions(unsigned char **p, unsigned char *start,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_write_extensions - len = %d\n", len);
+    printf("custom_x509_write_extensions - len = %d\n", len);
     #endif
     return (int) len;
 }

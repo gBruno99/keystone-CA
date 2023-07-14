@@ -49,14 +49,14 @@ int custom_pk_setup(custom_pk_context *ctx, const custom_pk_info_t *info)
 {
     if (info == NULL || ctx->pk_info != NULL) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("PK - pk setup: err 1\n");
+        printf("PK - pk setup: err 1\n");
         #endif
         return CUSTOM_ERR_PK_BAD_INPUT_DATA;
     }
 
     if ((ctx->pk_ctx = info->ctx_alloc_func()) == NULL) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("PK - pk setup: err 2\n");
+        printf("PK - pk setup: err 2\n");
         #endif
         return CUSTOM_ERR_PK_ALLOC_FAILED;
     }
@@ -100,20 +100,20 @@ int custom_pk_verify_restartable(custom_pk_context *ctx,
                                   custom_pk_restart_ctx *rs_ctx)
 {
     if ((md_alg != CUSTOM_MD_NONE || hash_len != 0) && hash == NULL) {
-        custom_printf("custom_pk_verify_restartable - exit 1\n");
+        printf("custom_pk_verify_restartable - exit 1\n");
         return CUSTOM_ERR_PK_BAD_INPUT_DATA;
     }
 
     if (ctx->pk_info == NULL ||
         pk_hashlen_helper(md_alg, &hash_len) != 0) {
-        custom_printf("custom_pk_verify_restartable - exit 2\n");
+        printf("custom_pk_verify_restartable - exit 2\n");
         return CUSTOM_ERR_PK_BAD_INPUT_DATA;
     }
 
     (void) rs_ctx;
 
     if (ctx->pk_info->verify_func == NULL) {
-        custom_printf("custom_pk_verify_restartable - exit 3\n");
+        printf("custom_pk_verify_restartable - exit 3\n");
         return CUSTOM_ERR_PK_TYPE_MISMATCH;
     }
 
@@ -135,30 +135,30 @@ int custom_pk_verify_ext(custom_pk_type_t type, const void *options,
                           const unsigned char *sig, size_t sig_len)
 {
     if ((md_alg != CUSTOM_MD_NONE || hash_len != 0) && hash == NULL) {
-        custom_printf("custom_pk_verify_ext - exit 1\n");
+        printf("custom_pk_verify_ext - exit 1\n");
         return CUSTOM_ERR_PK_BAD_INPUT_DATA;
     }
 
     if (ctx->pk_info == NULL) {
-        custom_printf("custom_pk_verify_ext - exit 2\n");
+        printf("custom_pk_verify_ext - exit 2\n");
         return CUSTOM_ERR_PK_BAD_INPUT_DATA;
     }
 
     if (!custom_pk_can_do(ctx, type)) {
-        custom_printf("custom_pk_verify_ext - exit 3\n");
+        printf("custom_pk_verify_ext - exit 3\n");
         return CUSTOM_ERR_PK_TYPE_MISMATCH;
     }
 
     if (type != CUSTOM_PK_RSASSA_PSS) {
         /* General case: no options */
         if (options != NULL) {
-            custom_printf("custom_pk_verify_ext - exit 4\n");
+            printf("custom_pk_verify_ext - exit 4\n");
             return CUSTOM_ERR_PK_BAD_INPUT_DATA;
         }
 
         return custom_pk_verify(ctx, md_alg, hash, hash_len, sig, sig_len);
     }
-    custom_printf("custom_pk_verify_ext - exit 5\n");
+    printf("custom_pk_verify_ext - exit 5\n");
     return CUSTOM_ERR_PK_FEATURE_UNAVAILABLE;
 }
 
@@ -251,7 +251,7 @@ static int pk_get_pk_alg(unsigned char **p,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("pk_get_pk_alg\n");
+    printf("pk_get_pk_alg\n");
     #endif
     return 0;
 }
@@ -308,7 +308,7 @@ int custom_pk_parse_subpubkey(unsigned char **p, const unsigned char *end,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_pk_parse_subpubkey - %s\n", pk->pk_info->name);
+    printf("custom_pk_parse_subpubkey - %s\n", pk->pk_info->name);
     print_hex_string("custom_pk_parse_subpubkey - pk",custom_pk_ed25519(*pk)->pub_key, PUBLIC_KEY_SIZE);
     #endif 
     return ret;
@@ -322,14 +322,14 @@ int custom_pk_parse_public_key(custom_pk_context *ctx,
     const custom_pk_info_t *pk_info;
     if (keylen == 0) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("PK - parse pk: err 1\n");
+        printf("PK - parse pk: err 1\n");
         #endif
         return CUSTOM_ERR_PK_KEY_INVALID_FORMAT;
     }
 
     if ((pk_info = custom_pk_info_from_type(CUSTOM_PK_ED25519)) == NULL) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("PK - parse pk: err 2\n");
+        printf("PK - parse pk: err 2\n");
         #endif
         return CUSTOM_ERR_PK_UNKNOWN_PK_ALG;
     }
@@ -340,7 +340,7 @@ int custom_pk_parse_public_key(custom_pk_context *ctx,
 
     if (ctx->pk_info == NULL && (ret = custom_pk_setup(ctx, pk_info)) != 0) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("PK - parse pk: err 3\n");
+        printf("PK - parse pk: err 3\n");
         #endif
         return ret;
     }
@@ -373,7 +373,7 @@ int custom_pk_write_pubkey(unsigned char **p, unsigned char *start,
 
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_pk_write_pubkey - len = %d\n", len);
+    printf("custom_pk_write_pubkey - len = %d\n", len);
     #endif
 
     return (int) len;
@@ -429,7 +429,7 @@ int custom_pk_write_pubkey_der(const custom_pk_context *key, unsigned char *buf,
                                                      CUSTOM_ASN1_SEQUENCE));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_pk_write_pubkey_der - len = %d\n", len);
+    printf("custom_pk_write_pubkey_der - len = %d\n", len);
     #endif
     return (int) len;
 }

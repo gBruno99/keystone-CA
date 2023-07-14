@@ -2,8 +2,8 @@
 #define CUSTOM_FUNCTIONS_H
 #include "custom_x509.h"
 #include "custom_string.h"
-#include "printf.h"
 #include "app/syscall.h"
+#include <stdio.h>
 #define CUSTOM_DEBUG_PRINTS 0
 
 // asn1.h

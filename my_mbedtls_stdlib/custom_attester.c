@@ -21,19 +21,19 @@ int  checkTCIValue(const custom_x509_name *id, const custom_x509_buf *tci) {
 
     if(id_len == 12 && custom_strncmp(id_name, "Manufacturer", 12) == 0){
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("Cert is: Manufacturer\n");
+        printf("Cert is: Manufacturer\n");
         #endif
         return 0;
     }
     if(id_len == 13 && custom_strncmp(id_name, "Root of Trust", 13) == 0){
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("Cert is: Root of Trust\n");
+        printf("Cert is: Root of Trust\n");
         #endif
         return 0;
     }
     if(id_len == 16 && custom_strncmp(id_name, "Security Monitor", 16) == 0){
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("Cert is: Security Monitor\n");
+        printf("Cert is: Security Monitor\n");
         #endif
         return checkWithRefMeasure(tci_value, tci_len, _reference_tci_sm, _reference_tci_sm_len);
     }

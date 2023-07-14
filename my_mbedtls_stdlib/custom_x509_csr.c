@@ -6,7 +6,7 @@ static int custom_x509_get_nonce(unsigned char **p, const unsigned char *end, cu
     custom_x509_bitstring bs = { 0, 0, NULL };
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_get_nonce\n");
+    printf("custom_x509_get_nonce\n");
     #endif
 
     if ((ret = custom_asn1_get_bitstring(p, end, &bs)) != 0) {
@@ -35,7 +35,7 @@ static int custom_x509_get_attestation_proof(unsigned char **p, const unsigned c
     custom_x509_bitstring bs = { 0, 0, NULL };
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_get_attestation_proof\n");
+    printf("custom_x509_get_attestation_proof\n");
     #endif
 
     if ((ret = custom_asn1_get_bitstring(p, end, &bs)) != 0) {
@@ -139,7 +139,7 @@ static int x509_csr_parse_extensions(custom_x509_csr *csr,
     while (*p < end) {
         
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_csr_parse_extensions - ...\n");
+        printf("x509_csr_parse_extensions - ...\n");
         #endif
 
         custom_x509_buf extn_oid = { 0, 0, NULL };
@@ -149,7 +149,7 @@ static int x509_csr_parse_extensions(custom_x509_csr *csr,
         if ((ret = custom_asn1_get_tag(p, end, &len,
                                         CUSTOM_ASN1_CONSTRUCTED | CUSTOM_ASN1_SEQUENCE)) != 0) {
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_csr_parse_extensions - error 1\n");
+            printf("x509_csr_parse_extensions - error 1\n");
             #endif
             return CUSTOM_ERROR_ADD(CUSTOM_ERR_X509_INVALID_EXTENSIONS, ret);
         }
@@ -160,7 +160,7 @@ static int x509_csr_parse_extensions(custom_x509_csr *csr,
         if ((ret = custom_asn1_get_tag(p, end_ext_data, &extn_oid.len,
                                         CUSTOM_ASN1_OID)) != 0) {
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_csr_parse_extensions - error 2\n");
+            printf("x509_csr_parse_extensions - error 2\n");
             #endif
             return CUSTOM_ERROR_ADD(CUSTOM_ERR_X509_INVALID_EXTENSIONS, ret);
         }
@@ -173,14 +173,14 @@ static int x509_csr_parse_extensions(custom_x509_csr *csr,
         if ((ret = custom_asn1_get_tag(p, end_ext_data, &len,
                                         CUSTOM_ASN1_OCTET_STRING)) != 0) {
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_csr_parse_extensions - error 3\n");
+            printf("x509_csr_parse_extensions - error 3\n");
             #endif
             return CUSTOM_ERROR_ADD(CUSTOM_ERR_X509_INVALID_EXTENSIONS, ret);
         }
 
         if (*p + len != end_ext_data) {
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_csr_parse_extensions - error 4\n");
+            printf("x509_csr_parse_extensions - error 4\n");
             #endif
             return CUSTOM_ERROR_ADD(CUSTOM_ERR_X509_INVALID_EXTENSIONS,
                                      CUSTOM_ERR_ASN1_LENGTH_MISMATCH);
@@ -195,7 +195,7 @@ static int x509_csr_parse_extensions(custom_x509_csr *csr,
             /* Forbid repeated extensions */
             if ((csr->ext_types & ext_type) != 0) {
                 #if CUSTOM_DEBUG_PRINTS
-                custom_printf("x509_csr_parse_extensions - error 5\n");
+                printf("x509_csr_parse_extensions - error 5\n");
                 #endif
                 return CUSTOM_ERROR_ADD(CUSTOM_ERR_X509_INVALID_EXTENSIONS,
                                          CUSTOM_ERR_ASN1_INVALID_DATA);
@@ -353,7 +353,7 @@ int custom_x509_csr_parse_der(custom_x509_csr *csr,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_csr_parse_der - calloc: %lu\n", len);
+    printf("custom_x509_csr_parse_der - calloc: %lu\n", len);
     #endif
 
     custom_memcpy(p, buf, buflen);
@@ -382,7 +382,7 @@ int custom_x509_csr_parse_der(custom_x509_csr *csr,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_csr_parse_der - sequence\n");
+    printf("custom_x509_csr_parse_der - sequence\n");
     #endif
 
     /*
@@ -400,7 +400,7 @@ int custom_x509_csr_parse_der(custom_x509_csr *csr,
     csr->cri.len = end - csr->cri.p;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_csr_parse_der - info\n");
+    printf("custom_x509_csr_parse_der - info\n");
     #endif
 
     /*
@@ -419,7 +419,7 @@ int custom_x509_csr_parse_der(custom_x509_csr *csr,
     csr->version++;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_csr_parse_der - version\n");
+    printf("custom_x509_csr_parse_der - version\n");
     #endif
 
     /*
@@ -441,7 +441,7 @@ int custom_x509_csr_parse_der(custom_x509_csr *csr,
     csr->subject_raw.len = p - csr->subject_raw.p;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_csr_parse_der - subject\n");
+    printf("custom_x509_csr_parse_der - subject\n");
     #endif
 
     /*
@@ -453,7 +453,7 @@ int custom_x509_csr_parse_der(custom_x509_csr *csr,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_csr_parse_der - pk \n");
+    printf("custom_x509_csr_parse_der - pk \n");
     #endif
 
     /*
@@ -483,7 +483,7 @@ int custom_x509_csr_parse_der(custom_x509_csr *csr,
     end = csr->raw.p + csr->raw.len;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_csr_parse_der - attributes\n");
+    printf("custom_x509_csr_parse_der - attributes\n");
     #endif
 
     /*
@@ -508,7 +508,7 @@ int custom_x509_csr_parse_der(custom_x509_csr *csr,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_csr_parse_der - signature\n");
+    printf("custom_x509_csr_parse_der - signature\n");
     #endif
 
     if (p != end) {
@@ -518,7 +518,7 @@ int custom_x509_csr_parse_der(custom_x509_csr *csr,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509_csr_parse_der - success\n");
+    printf("custom_x509_csr_parse_der - success\n");
     #endif
 
     return 0;
@@ -550,7 +550,7 @@ void custom_x509_csr_free(custom_x509_csr *csr)
         custom_platform_zeroize(csr->raw.p, csr->raw.len);
         custom_free(csr->raw.p);
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_x509_csr_free - free: %lu\n", csr->raw.len);
+        printf("custom_x509_csr_free - free: %lu\n", csr->raw.len);
         #endif
     }
 
@@ -635,7 +635,7 @@ int custom_x509write_csr_set_subject_alternative_name(custom_x509write_csr *ctx,
         return CUSTOM_ERR_ASN1_ALLOC_FAILED;
     }
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509write_csr_set_subject_alternative_name - calloc: %lu\n", buflen);
+    printf("custom_x509write_csr_set_subject_alternative_name - calloc: %lu\n", buflen);
     #endif
 
     custom_platform_zeroize(buf, buflen);
@@ -696,7 +696,7 @@ int custom_x509write_csr_set_subject_alternative_name(custom_x509write_csr *ctx,
 cleanup:
     custom_free(buf);
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509write_csr_set_subject_alternative_name - free: %lu\n", buflen);
+    printf("custom_x509write_csr_set_subject_alternative_name - free: %lu\n", buflen);
     #endif
     return ret;
 }
@@ -906,7 +906,7 @@ int custom_x509write_csr_der(custom_x509write_csr *ctx, unsigned char *buf,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509write_csr_der - calloc: %lu\n", CUSTOM_PK_SIGNATURE_MAX_SIZE);
+    printf("custom_x509write_csr_der - calloc: %lu\n", CUSTOM_PK_SIGNATURE_MAX_SIZE);
     #endif
 
     ret = x509write_csr_der_internal(ctx, buf, size,
@@ -916,7 +916,7 @@ int custom_x509write_csr_der(custom_x509write_csr *ctx, unsigned char *buf,
     custom_free(sig);
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_x509write_csr_der - free: %lu\n", CUSTOM_PK_SIGNATURE_MAX_SIZE);
+    printf("custom_x509write_csr_der - free: %lu\n", CUSTOM_PK_SIGNATURE_MAX_SIZE);
     #endif
 
     return ret;

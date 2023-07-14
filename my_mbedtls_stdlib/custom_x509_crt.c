@@ -200,7 +200,7 @@ static int x509_get_version(unsigned char **p,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_get_version - int = %d\n", *ver);
+    printf("x509_get_version - int = %d\n", *ver);
     #endif
     return 0;
 }
@@ -234,9 +234,9 @@ static int x509_get_dates(unsigned char **p,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_get_dates - from\n- year: %d, mon: %d, day: %d\n- hour: %d, min: %d, sec: %d\n", 
+    printf("x509_get_dates - from\n- year: %d, mon: %d, day: %d\n- hour: %d, min: %d, sec: %d\n", 
         from->year, from->mon, from->day, from->hour, from->min, from->sec);
-    custom_printf("x509_get_dates - to\n- year: %d, mon: %d, day: %d\n- hour: %d, min: %d, sec: %d\n", 
+    printf("x509_get_dates - to\n- year: %d, mon: %d, day: %d\n- hour: %d, min: %d, sec: %d\n", 
         to->year, to->mon, to->day, to->hour, to->min, to->sec);
     #endif
     return 0;
@@ -269,7 +269,7 @@ static int x509_get_uid(unsigned char **p,
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("x509_get_uid - uid", uid->p, uid->len);
-    custom_printf("x509_get_uid - uid_tag = %02x\n", uid->tag);
+    printf("x509_get_uid - uid_tag = %02x\n", uid->tag);
     #endif
     return 0;
 }
@@ -349,7 +349,7 @@ static int x509_get_crt_ext(unsigned char **p,
     unsigned char *end_ext_data /**start_ext_octet*/, *end_ext_octet;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_get_crt_ext\n");
+    printf("x509_get_crt_ext\n");
     #endif
 
     // unsigned char oid_ext1[] = {0xff, 0x20, 0xff};
@@ -590,7 +590,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
     end = p + len;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_parse_der_core - certificate\n");
+    printf("x509_crt_parse_der_core - certificate\n");
     #endif
     /*
      * Certificate  ::=  SEQUENCE  {
@@ -614,7 +614,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
         }
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_parse_der_core - calloc: %lu\n", crt->raw.len);
+        printf("x509_crt_parse_der_core - calloc: %lu\n", crt->raw.len);
         #endif
         custom_memcpy(crt->raw.p, buf, crt->raw.len);
         crt->own_buffer = 1;
@@ -627,7 +627,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_parse_der_core - tbs cert\n");
+    printf("x509_crt_parse_der_core - tbs cert\n");
     #endif
     /*
      * TBSCertificate  ::=  SEQUENCE  {
@@ -644,7 +644,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
     crt->tbs.len = end - crt->tbs.p;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_parse_der_core - version\n");
+    printf("x509_crt_parse_der_core - version\n");
     #endif
     /*
      * Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
@@ -676,7 +676,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_parse_der_core - issuer\n");
+    printf("x509_crt_parse_der_core - issuer\n");
     #endif
     /*
      * issuer               Name
@@ -697,7 +697,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
     crt->issuer_raw.len = p - crt->issuer_raw.p;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_parse_der_core - validity\n");
+    printf("x509_crt_parse_der_core - validity\n");
     #endif
     /*
      * Validity ::= SEQUENCE {
@@ -712,7 +712,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_parse_der_core - subject\n");
+    printf("x509_crt_parse_der_core - subject\n");
     #endif
     /*
      * subject              Name
@@ -733,7 +733,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
     crt->subject_raw.len = p - crt->subject_raw.p;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_parse_der_core - subPKInfo\n");
+    printf("x509_crt_parse_der_core - subPKInfo\n");
     #endif
     /*
      * SubjectPublicKeyInfo
@@ -746,7 +746,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
     crt->pk_raw.len = p - crt->pk_raw.p;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_parse_der_core - uid and exts\n");
+    printf("x509_crt_parse_der_core - uid and exts\n");
     #endif
     /*
      *  issuerUniqueID  [1]  IMPLICIT UniqueIdentifier OPTIONAL,
@@ -789,7 +789,7 @@ static int x509_crt_parse_der_core(custom_x509_crt *crt,
     end = crt_end;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_parse_der_core - signature\n");
+    printf("x509_crt_parse_der_core - signature\n");
     #endif
     /*
      *  }
@@ -861,7 +861,7 @@ static int custom_x509_crt_parse_der_internal(custom_x509_crt *chain,
         }
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_x509_crt_parse_der_internal - calloc: %lu\n", sizeof(custom_x509_crt));
+        printf("custom_x509_crt_parse_der_internal - calloc: %lu\n", sizeof(custom_x509_crt));
         #endif
         prev = crt;
         custom_x509_crt_init(crt->next);
@@ -877,7 +877,7 @@ static int custom_x509_crt_parse_der_internal(custom_x509_crt *chain,
         if (crt != chain) {
             custom_free(crt);
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("custom_x509_crt_parse_der_internal - free: %lu\n", sizeof(custom_x509_crt));
+            printf("custom_x509_crt_parse_der_internal - free: %lu\n", sizeof(custom_x509_crt));
             #endif
         }
 
@@ -1057,7 +1057,7 @@ static int x509_crt_check_signature(const custom_x509_crt *child,
     /* Note: hash errors can happen only after an internal error */
     if (custom_md(md_info, child->tbs.p, child->tbs.len, hash) != 0) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_check_signature - exit 1\n");
+        printf("x509_crt_check_signature - exit 1\n");
         #endif
         return -1;
     }
@@ -1065,7 +1065,7 @@ static int x509_crt_check_signature(const custom_x509_crt *child,
     /* Skip expensive computation on obvious mismatch */
     if (!custom_pk_can_do(&parent->pk, child->sig_pk)) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_check_signature - exit 2\n");
+        printf("x509_crt_check_signature - exit 2\n");
         #endif
         return -1;
     }
@@ -1086,7 +1086,7 @@ static int x509_crt_check_parent(const custom_x509_crt *child,
     /* Parent must be the issuer */
     if (x509_name_cmp(&child->issuer, &parent->subject) != 0) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_check_parent - exit 1\n");
+        printf("x509_crt_check_parent - exit 1\n");
         #endif
         return -1;
     }
@@ -1095,7 +1095,7 @@ static int x509_crt_check_parent(const custom_x509_crt *child,
     need_ca_bit = 1;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_check_parent - top=%d, version=%d\n", top, parent->version);
+    printf("x509_crt_check_parent - top=%d, version=%d\n", top, parent->version);
     #endif
 
     /* Exception: v1/v2 certificates that are locally trusted. */
@@ -1104,12 +1104,12 @@ static int x509_crt_check_parent(const custom_x509_crt *child,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_check_parent - need_ca_bit=%d, ca_istrue=%d\n", need_ca_bit, parent->ca_istrue);
+    printf("x509_crt_check_parent - need_ca_bit=%d, ca_istrue=%d\n", need_ca_bit, parent->ca_istrue);
     #endif
 
     if (need_ca_bit && !parent->ca_istrue) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_check_parent - exit 2\n");
+        printf("x509_crt_check_parent - exit 2\n");
         #endif
         return -1;
     }
@@ -1117,13 +1117,13 @@ static int x509_crt_check_parent(const custom_x509_crt *child,
     if (need_ca_bit &&
         custom_x509_crt_check_key_usage(parent, CUSTOM_X509_KU_KEY_CERT_SIGN) != 0) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_check_parent - exit 3\n");
+        printf("x509_crt_check_parent - exit 3\n");
         #endif
         return -1;
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_check_parent - return\n");
+    printf("x509_crt_check_parent - return\n");
     #endif
     return 0;
 }
@@ -1150,14 +1150,14 @@ static int x509_crt_find_parent_in(
     for (parent = candidates; parent != NULL; parent = parent->next) {
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_find_parent_in - iteration %d\n", i);
+        printf("x509_crt_find_parent_in - iteration %d\n", i);
         #endif
         i++;
 
         /* basic parenting skills (name, CA bit, key usage) */
         if (x509_crt_check_parent(child, parent, top) != 0) {
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_crt_find_parent_in - continue 1\n");
+            printf("x509_crt_find_parent_in - continue 1\n");
             #endif
             continue;
         }
@@ -1166,7 +1166,7 @@ static int x509_crt_find_parent_in(
         if (parent->max_pathlen > 0 &&
             (size_t) parent->max_pathlen < 1 + path_cnt - self_cnt) {
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_crt_find_parent_in - continue 2\n");
+            printf("x509_crt_find_parent_in - continue 2\n");
             #endif
             continue;
         }
@@ -1179,7 +1179,7 @@ static int x509_crt_find_parent_in(
         signature_is_good = ret == 0;
         if (top && !signature_is_good) {
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_crt_find_parent_in - continue 3\n");
+            printf("x509_crt_find_parent_in - continue 3\n");
             #endif
             continue;
         }
@@ -1193,7 +1193,7 @@ static int x509_crt_find_parent_in(
             }
 
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_crt_find_parent_in - continue 4\n");
+            printf("x509_crt_find_parent_in - continue 4\n");
             #endif
             continue;
         }
@@ -1202,7 +1202,7 @@ static int x509_crt_find_parent_in(
         *r_signature_is_good = signature_is_good;
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_find_parent_in - break\n");
+        printf("x509_crt_find_parent_in - break\n");
         #endif
         break;
     }
@@ -1211,12 +1211,12 @@ static int x509_crt_find_parent_in(
         *r_parent = fallback_parent;
         *r_signature_is_good = fallback_signature_is_good;
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_find_parent_in - parent is NULL\n");
+        printf("x509_crt_find_parent_in - parent is NULL\n");
         #endif
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_find_parent_in - return\n");    
+    printf("x509_crt_find_parent_in - return\n");    
     #endif
 
     return 0;
@@ -1243,7 +1243,7 @@ static int x509_crt_find_parent(
         search_list = *parent_is_trusted ? trust_ca : child->next;
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_find_parent - iteration %d\n", i);
+        printf("x509_crt_find_parent - iteration %d\n", i);
         #endif
         i++;
 
@@ -1334,7 +1334,7 @@ static int x509_crt_verify_chain(
         flags = &cur->flags;
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_verify_chain - iteration %d\n", i);
+        printf("x509_crt_verify_chain - iteration %d\n", i);
         #endif
         i++;
 
@@ -1349,7 +1349,7 @@ static int x509_crt_verify_chain(
 
         if(checkTCIValue(&child->subject, &child->hash)){
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_crt_verify_chain - failed TCI\n");
+            printf("x509_crt_verify_chain - failed TCI\n");
             #endif
             *flags |= CUSTOM_X509_BADCERT_OTHER;
         }
@@ -1357,7 +1357,7 @@ static int x509_crt_verify_chain(
         /* Stop here for trusted roots (but not for trusted EE certs) */
         if (child_is_trusted) {
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_crt_verify_chain - exit 1\n");
+            printf("x509_crt_verify_chain - exit 1\n");
             #endif
             return 0;
         }
@@ -1375,7 +1375,7 @@ static int x509_crt_verify_chain(
         if (ver_chain->len == 1 &&
             x509_crt_check_ee_locally_trusted(child, trust_ca) == 0) {
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_crt_verify_chain - exit 2\n");
+            printf("x509_crt_verify_chain - exit 2\n");
             #endif
             return 0;
         }
@@ -1413,7 +1413,7 @@ static int x509_crt_verify_chain(
         if (parent == NULL) {
             *flags |= CUSTOM_X509_BADCERT_NOT_TRUSTED;
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_crt_verify_chain - exit 3\n");
+            printf("x509_crt_verify_chain - exit 3\n");
             #endif
             return 0;
         }
@@ -1432,7 +1432,7 @@ static int x509_crt_verify_chain(
             ver_chain->len > CUSTOM_X509_MAX_INTERMEDIATE_CA) {
             /* return immediately to avoid overflow the chain array */
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("x509_crt_verify_chain - exit 4\n");
+            printf("x509_crt_verify_chain - exit 4\n");
             #endif
             return CUSTOM_ERR_X509_FATAL_ERROR;
         }
@@ -1543,7 +1543,7 @@ static int x509_crt_merge_flags_with_cb(
         cur = &ver_chain->items[i-1];
         cur_flags = cur->flags;
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_merge_flags_with_cb - %d - cur_flags=%u\n", i, cur_flags);
+        printf("x509_crt_merge_flags_with_cb - %d - cur_flags=%u\n", i, cur_flags);
         #endif
 
         if (NULL != f_vrfy) {
@@ -1584,7 +1584,7 @@ static int x509_crt_verify_restartable_ca_cb(custom_x509_crt *crt,
     if (profile == NULL) {
         ret = CUSTOM_ERR_X509_BAD_INPUT_DATA;
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_verify_restartable_ca_cb - exit 1\n");
+        printf("x509_crt_verify_restartable_ca_cb - exit 1\n");
         #endif
         goto exit;
     }
@@ -1595,7 +1595,7 @@ static int x509_crt_verify_restartable_ca_cb(custom_x509_crt *crt,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_verify_restartable_ca_cb - 1-ee_flags=%u\n", ee_flags);
+    printf("x509_crt_verify_restartable_ca_cb - 1-ee_flags=%u\n", ee_flags);
     #endif
 
     /* Check the type and size of the key */
@@ -1606,7 +1606,7 @@ static int x509_crt_verify_restartable_ca_cb(custom_x509_crt *crt,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_verify_restartable_ca_cb - 2-ee_flags=%u\n", ee_flags);
+    printf("x509_crt_verify_restartable_ca_cb - 2-ee_flags=%u\n", ee_flags);
     #endif
 
     if (x509_profile_check_key(profile, &crt->pk) != 0) {
@@ -1614,7 +1614,7 @@ static int x509_crt_verify_restartable_ca_cb(custom_x509_crt *crt,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_verify_restartable_ca_cb - 3-ee_flags=%u\n", ee_flags);
+    printf("x509_crt_verify_restartable_ca_cb - 3-ee_flags=%u\n", ee_flags);
     #endif
 
     /* Check the chain */
@@ -1624,7 +1624,7 @@ static int x509_crt_verify_restartable_ca_cb(custom_x509_crt *crt,
 
     if (ret != 0) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_verify_restartable_ca_cb - exit 2\n");
+        printf("x509_crt_verify_restartable_ca_cb - exit 2\n");
         #endif
         goto exit;
     }
@@ -1633,7 +1633,7 @@ static int x509_crt_verify_restartable_ca_cb(custom_x509_crt *crt,
     ver_chain.items[0].flags |= ee_flags;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_crt_verify_restartable_ca_cb - 4-item_flags=%u\n", ver_chain.items[0].flags);
+    printf("x509_crt_verify_restartable_ca_cb - 4-item_flags=%u\n", ver_chain.items[0].flags);
     #endif
 
     /* Build final flags, calling callback on the way if any */
@@ -1652,7 +1652,7 @@ exit:
      * callback means a fatal error so it shouldn't be ignored */
     if (ret == CUSTOM_ERR_X509_CERT_VERIFY_FAILED) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_verify_restartable_ca_cb - exit 3\n");
+        printf("x509_crt_verify_restartable_ca_cb - exit 3\n");
         #endif
         ret = CUSTOM_ERR_X509_FATAL_ERROR;
     }
@@ -1660,14 +1660,14 @@ exit:
     if (ret != 0) {
         *flags = (uint32_t) -1;
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_verify_restartable_ca_cb - exit 4\n");
+        printf("x509_crt_verify_restartable_ca_cb - exit 4\n");
         #endif
         return ret;
     }
 
     if (*flags != 0) {
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("x509_crt_verify_restartable_ca_cb - exit 5\n");
+        printf("x509_crt_verify_restartable_ca_cb - exit 5\n");
         #endif
         return CUSTOM_ERR_X509_CERT_VERIFY_FAILED;
     }
@@ -1716,7 +1716,7 @@ void custom_x509_crt_free(custom_x509_crt *crt)
             custom_platform_zeroize(cert_cur->raw.p, cert_cur->raw.len);
             custom_free(cert_cur->raw.p);
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("custom_x509_crt_free - free: %lu\n", cert_cur->raw.len);
+            printf("custom_x509_crt_free - free: %lu\n", cert_cur->raw.len);
             #endif
         }
 
@@ -1727,7 +1727,7 @@ void custom_x509_crt_free(custom_x509_crt *crt)
         if (cert_prv != crt) {
             custom_free(cert_prv);
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("custom_x509_crt_free - free: %lu\n", sizeof(custom_x509_crt));
+            printf("custom_x509_crt_free - free: %lu\n", sizeof(custom_x509_crt));
             #endif
         }
     }
@@ -1877,7 +1877,7 @@ static int x509_write_time(unsigned char **p, unsigned char *start,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("x509_write_time - len = %d\n", len);
+    printf("x509_write_time - len = %d\n", len);
     #endif
     return (int) len;
 }
@@ -1941,7 +1941,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("len - extensions: %d\n", len);
+    printf("len - extensions: %d\n", len);
     #endif
     /*
      *  SubjectPublicKeyInfo
@@ -1953,7 +1953,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
     len += pub_len;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("len - subPKInfo: %d\n", len);
+    printf("len - subPKInfo: %d\n", len);
     #endif
     /*
      *  Subject  ::=  Name
@@ -1963,7 +1963,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
                                                   ctx->subject));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("len - subject: %d\n", len);
+    printf("len - subject: %d\n", len);
     #endif
     /*
      *  Validity ::= SEQUENCE {
@@ -1988,7 +1988,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
                                                 CUSTOM_ASN1_SEQUENCE));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("len - validity: %d\n", len);
+    printf("len - validity: %d\n", len);
     #endif
     /*
      *  Issuer  ::=  Name
@@ -1997,7 +1997,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
                                                        ctx->issuer));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("len - issuer: %d\n", len);
+    printf("len - issuer: %d\n", len);
     #endif
     /*
      *  Signature   ::=  AlgorithmIdentifier
@@ -2007,7 +2007,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
                                                                  sig_oid, sig_oid_len, 0));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("len - aId: %d\n", len);
+    printf("len - aId: %d\n", len);
     #endif
     /*
      *  Serial   ::=  INTEGER
@@ -2036,7 +2036,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
                                                      CUSTOM_ASN1_INTEGER));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("len - serial: %d\n", len);
+    printf("len - serial: %d\n", len);
     #endif
     /*
      *  Version  ::=  INTEGER  {  v1(0), v2(1), v3(2)  }
@@ -2062,7 +2062,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
                                                 CUSTOM_ASN1_SEQUENCE));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("len - version: %d\n", len);
+    printf("len - version: %d\n", len);
     #endif
     /* *
      *
@@ -2135,7 +2135,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
                                                      CUSTOM_ASN1_SEQUENCE));
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("len - signature: %d\n", len);
+    printf("len - signature: %d\n", len);
     #endif
     return (int) len;
 }

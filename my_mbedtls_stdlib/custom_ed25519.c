@@ -105,7 +105,7 @@ int pk_write_ed25519_pubkey(unsigned char **p, unsigned char *start, custom_ed25
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("pk_write_ed25519_pubkey - pk", buf, len);
-    custom_printf("pk_write_ed25519_pubkey - len = %d\n", len);
+    printf("pk_write_ed25519_pubkey - len = %d\n", len);
     #endif
     custom_memcpy(*p, buf, len);
     return (int)len;
@@ -213,7 +213,7 @@ int ed25519_verify_wrap(void *ctx, custom_md_type_t md_alg,
     print_hex_string("verify pk", ed25519->pub_key, PUBLIC_KEY_SIZE);
     print_hex_string("verify hash", (unsigned char *)hash, hash_len);
     print_hex_string("verify sig", (unsigned char *)sig, sig_len);
-    custom_printf("verify returned %d\n", ret);
+    printf("verify returned %d\n", ret);
     #endif
     return ret==1?0:1;
     // return 0;
@@ -284,7 +284,7 @@ void *ed25519_alloc_wrap(void)
         custom_ed25519_init((custom_ed25519_context *)ctx);
     }
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("ed25519_alloc_wrap - calloc: %lu\n", sizeof(custom_ed25519_context));
+    printf("ed25519_alloc_wrap - calloc: %lu\n", sizeof(custom_ed25519_context));
     #endif
     return ctx;
 }
@@ -294,6 +294,6 @@ void ed25519_free_wrap(void *ctx)
     custom_ed25519_free((custom_ed25519_context *)ctx);
     custom_free(ctx);
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("ed25519_free_wrap - free: %lu\n", sizeof(custom_ed25519_context));
+    printf("ed25519_free_wrap - free: %lu\n", sizeof(custom_ed25519_context));
     #endif
 }

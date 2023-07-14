@@ -61,7 +61,7 @@ int custom_asn1_get_len(unsigned char **p,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_get_len - len = %lu\n", *len);
+    printf("custom_asn1_get_len - len = %lu\n", *len);
     #endif
     return 0;
 }
@@ -81,7 +81,7 @@ int custom_asn1_get_tag(unsigned char **p,
     (*p)++;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_get_tag - tag = %02x\n", tag);
+    printf("custom_asn1_get_tag - tag = %02x\n", tag);
     #endif
     return custom_asn1_get_len(p, end, len);
 }
@@ -105,7 +105,7 @@ int custom_asn1_get_bool(unsigned char **p,
     (*p)++;
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_get_bool - bool = %d\n", *val);
+    printf("custom_asn1_get_bool - bool = %d\n", *val);
     #endif
     return 0;
 }
@@ -155,7 +155,7 @@ static int asn1_get_tagged_int(unsigned char **p,
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("asn1_get_tagged_int - int = %d\n", *val);
+    printf("asn1_get_tagged_int - int = %d\n", *val);
     #endif
     return 0;
 }
@@ -221,7 +221,7 @@ int custom_asn1_get_bitstring_null(unsigned char **p, const unsigned char *end,
     ++(*p);
 
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_get_bitstring_null - len = %lu\n", *len);
+    printf("custom_asn1_get_bitstring_null - len = %lu\n", *len);
     #endif
 
     return 0;
@@ -233,7 +233,7 @@ void custom_asn1_sequence_free(custom_asn1_sequence *seq)
         custom_asn1_sequence *next = seq->next;
         custom_free(seq);
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_sequence_free - free: %lu\n", sizeof(custom_asn1_sequence));
+        printf("custom_asn1_sequence_free - free: %lu\n", sizeof(custom_asn1_sequence));
         #endif
         seq = next;
     }
@@ -267,7 +267,7 @@ int custom_asn1_get_alg(unsigned char **p,
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("custom_asn1_get_alg - alg", alg->p, alg->len);
-    custom_printf("custom_asn1_get_alg - alg_tag = %02x\n", alg->tag);
+    printf("custom_asn1_get_alg - alg_tag = %02x\n", alg->tag);
     #endif
 
     if (*p == end) {
@@ -291,7 +291,7 @@ int custom_asn1_get_alg(unsigned char **p,
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("custom_asn1_get_alg - params", params->p, params->len);
-    custom_printf("custom_asn1_get_alg - params_tag = %02x\n", params->tag);
+    printf("custom_asn1_get_alg - params_tag = %02x\n", params->tag);
     #endif
 
     return 0;
@@ -305,15 +305,15 @@ void custom_asn1_free_named_data_list(custom_asn1_named_data **head)
         *head = cur->next;
         custom_free(cur->oid.p);
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_free_named_data_list - free: %lu\n", cur->oid.len);
+        printf("custom_asn1_free_named_data_list - free: %lu\n", cur->oid.len);
         #endif
         custom_free(cur->val.p);
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_free_named_data_list - free: %lu\n", cur->val.len);
+        printf("custom_asn1_free_named_data_list - free: %lu\n", cur->val.len);
         #endif
         custom_free(cur);
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_free_named_data_list - free: %lu\n", sizeof(custom_asn1_named_data));
+        printf("custom_asn1_free_named_data_list - free: %lu\n", sizeof(custom_asn1_named_data));
         #endif
     }
 }
@@ -324,7 +324,7 @@ void custom_asn1_free_named_data_list_shallow(custom_asn1_named_data *name)
         next = name->next;
         custom_free(name);
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_free_named_data_list_shallow - free: %lu\n", sizeof(custom_asn1_named_data));
+        printf("custom_asn1_free_named_data_list_shallow - free: %lu\n", sizeof(custom_asn1_named_data));
         #endif
     }
 }
@@ -333,7 +333,7 @@ void custom_asn1_free_named_data_list_shallow(custom_asn1_named_data *name)
 int custom_asn1_write_len(unsigned char **p, const unsigned char *start, size_t len)
 {
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_write_len - len = %lu\n", len);
+    printf("custom_asn1_write_len - len = %lu\n", len);
     #endif
     if (len < 0x80) {
         if (*p - start < 1) {
@@ -402,7 +402,7 @@ int custom_asn1_write_len(unsigned char **p, const unsigned char *start, size_t 
 int custom_asn1_write_tag(unsigned char **p, const unsigned char *start, unsigned char tag)
 {
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_write_tag - tag = %02x\n", tag);
+    printf("custom_asn1_write_tag - tag = %02x\n", tag);
     #endif
     if (*p - start < 1) {
         return CUSTOM_ERR_ASN1_BUF_TOO_SMALL;
@@ -435,7 +435,7 @@ int custom_asn1_write_raw_buffer(unsigned char **p, const unsigned char *start,
 int custom_asn1_write_null(unsigned char **p, const unsigned char *start)
 {
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_write_null\n");
+    printf("custom_asn1_write_null\n");
     #endif
     int ret = CUSTOM_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
@@ -470,7 +470,7 @@ int custom_asn1_write_algorithm_identifier(unsigned char **p, const unsigned cha
                                             size_t par_len)
 {
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_write_algorithm_identifier\n");
+    printf("custom_asn1_write_algorithm_identifier\n");
     #endif
     int ret = CUSTOM_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
@@ -494,7 +494,7 @@ int custom_asn1_write_algorithm_identifier(unsigned char **p, const unsigned cha
 int custom_asn1_write_bool(unsigned char **p, const unsigned char *start, int boolean)
 {
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_write_bool - bool = %d\n", boolean);
+    printf("custom_asn1_write_bool - bool = %d\n", boolean);
     #endif
     int ret = CUSTOM_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
@@ -515,7 +515,7 @@ int custom_asn1_write_bool(unsigned char **p, const unsigned char *start, int bo
 static int asn1_write_tagged_int(unsigned char **p, const unsigned char *start, int val, int tag)
 {
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("asn1_write_tagged_int - val = %d, tag = %d\n", val, tag);
+    printf("asn1_write_tagged_int - val = %d, tag = %d\n", val, tag);
     #endif
     int ret = CUSTOM_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
@@ -546,7 +546,7 @@ static int asn1_write_tagged_int(unsigned char **p, const unsigned char *start, 
 int custom_asn1_write_int(unsigned char **p, const unsigned char *start, int val)
 {
     #if CUSTOM_DEBUG_PRINTS
-    custom_printf("custom_asn1_write_int - val = %d\n", val);
+    printf("custom_asn1_write_int - val = %d\n", val);
     #endif
     return asn1_write_tagged_int(p, start, val, CUSTOM_ASN1_INTEGER);
 }
@@ -556,7 +556,7 @@ int custom_asn1_write_tagged_string(unsigned char **p, const unsigned char *star
 {
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("custom_asn1_write_tagged_string - buf", (unsigned char*)text, text_len);
-    custom_printf("custom_asn1_write_tagged_string - tag = %d\n", tag);
+    printf("custom_asn1_write_tagged_string - tag = %d\n", tag);
     #endif
     int ret = CUSTOM_ERR_ERROR_CORRUPTION_DETECTED;
     size_t len = 0;
@@ -682,7 +682,7 @@ custom_asn1_named_data *custom_asn1_store_named_data(
         }
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_store_named_data - calloc: %lu\n", sizeof(custom_asn1_named_data));
+        printf("custom_asn1_store_named_data - calloc: %lu\n", sizeof(custom_asn1_named_data));
         #endif
 
         cur->oid.len = oid_len;
@@ -690,13 +690,13 @@ custom_asn1_named_data *custom_asn1_store_named_data(
         if (cur->oid.p == NULL) {
             custom_free(cur);
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("custom_asn1_store_named_data - free: %lu\n", sizeof(custom_asn1_named_data));
+            printf("custom_asn1_store_named_data - free: %lu\n", sizeof(custom_asn1_named_data));
             #endif
             return NULL;
         }
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_store_named_data - calloc: %lu\n", oid_len);
+        printf("custom_asn1_store_named_data - calloc: %lu\n", oid_len);
         #endif
 
         custom_memcpy(cur->oid.p, oid, oid_len);
@@ -707,16 +707,16 @@ custom_asn1_named_data *custom_asn1_store_named_data(
             if (cur->val.p == NULL) {
                 custom_free(cur->oid.p);
                 #if CUSTOM_DEBUG_PRINTS
-                custom_printf("custom_asn1_store_named_data - free: %lu\n", cur->val.len);
+                printf("custom_asn1_store_named_data - free: %lu\n", cur->val.len);
                 #endif
                 custom_free(cur);
                 #if CUSTOM_DEBUG_PRINTS
-                custom_printf("custom_asn1_store_named_data - free: %lu\n", sizeof(custom_asn1_named_data));
+                printf("custom_asn1_store_named_data - free: %lu\n", sizeof(custom_asn1_named_data));
                 #endif
                 return NULL;
             }
             #if CUSTOM_DEBUG_PRINTS
-            custom_printf("custom_asn1_store_named_data - calloc: %lu\n", val_len);
+            printf("custom_asn1_store_named_data - calloc: %lu\n", val_len);
             #endif
         }
 
@@ -725,7 +725,7 @@ custom_asn1_named_data *custom_asn1_store_named_data(
     } else if (val_len == 0) {
         custom_free(cur->val.p);
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_store_named_data - free: %lu\n", cur->val.len);
+        printf("custom_asn1_store_named_data - free: %lu\n", cur->val.len);
         #endif
         cur->val.p = NULL;
     } else if (cur->val.len != val_len) {
@@ -740,11 +740,11 @@ custom_asn1_named_data *custom_asn1_store_named_data(
         }
 
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_store_named_data - calloc: %lu\n", val_len);
+        printf("custom_asn1_store_named_data - calloc: %lu\n", val_len);
         #endif
         custom_free(cur->val.p);
         #if CUSTOM_DEBUG_PRINTS
-        custom_printf("custom_asn1_store_named_data - free: %lu\n", cur->val.len);
+        printf("custom_asn1_store_named_data - free: %lu\n", cur->val.len);
         #endif
         cur->val.p = p;
         cur->val.len = val_len;
