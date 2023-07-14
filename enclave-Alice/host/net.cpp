@@ -6,7 +6,7 @@
 #define SERVER_PORT "4433"
 #define SERVER_NAME "localhost"
 
-#define RECV_BUFFER_SIZE 2048
+#define RECV_BUFFER_SIZE 4096
 
 typedef struct {
   int fd;
@@ -92,10 +92,10 @@ net_recv_wrapper(void* buffer) {
 
   unsigned char recv_buffer[RECV_BUFFER_SIZE+sizeof(int)] = {0};
 
-  if(arg_len < RECV_BUFFER_SIZE)
+  if(arg_len > RECV_BUFFER_SIZE)
     ret_val = -1;
   else {
-    ret_val = mbedtls_net_recv(&server_fd, recv_buffer+sizeof(int), RECV_BUFFER_SIZE);
+    ret_val = mbedtls_net_recv(&server_fd, recv_buffer+sizeof(int), arg_len);
   }
 
   *((int*)recv_buffer) = ret_val;

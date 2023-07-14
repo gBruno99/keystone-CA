@@ -1,6 +1,7 @@
 #include "eapp/eapp_net.h"
 #include "app/syscall.h"
 #include <string.h>
+// #include <stdio.h>
 
 #define OCALL_NET_CONNECT 1
 #define OCALL_NET_SEND    2
@@ -38,12 +39,13 @@ int custom_net_send(void *ctx, const unsigned char *buf, size_t len) {
 
 int custom_net_recv(void *ctx, unsigned char *buf, size_t len) {
     int ret;
-    unsigned char tmp_buf[2048+sizeof(int)];
-    if(tmp_buf == NULL)
-        return -1;
+    unsigned char tmp_buf[4096+sizeof(int)];
     ret = ocall(OCALL_NET_RECV, tmp_buf, len, tmp_buf, len + sizeof(int));
+    // printf("ocall returned %d\n", ret);
     int retval = * ((int*)tmp_buf);
     memcpy(buf, tmp_buf+sizeof(int), len);
+    // printf("Asked for %lu bytes, received %d: %s\n", len, retval, tmp_buf+sizeof(int));
+    // fflush(stdout);
     return ret|retval;
 }
 
