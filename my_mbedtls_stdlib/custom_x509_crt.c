@@ -2099,7 +2099,7 @@ int custom_x509write_crt_der(custom_x509write_cert *ctx,
         ed25519_sign(sig, hash, 64, ed25519->pub_key, ed25519->priv_key);
         sig_len = 64;
     } else {
-        crypto_interface(2, (void*) hash, CUSTOM_HASH_MAX_SIZE, sig, &sig_len, ed25519->pub_key);
+        return CUSTOM_ERR_X509_FEATURE_UNAVAILABLE;
     }
     
     /* Move CRT to the front of the buffer to have space

@@ -63,7 +63,7 @@ then
   python3 -m pip install --user -r scripts/basic.requirements.txt
   patch -p1 < $DEMO_DIR/patches/mbedtls_eapp.patch
   mkdir build && cd build
-  cmake -DCMAKE_TOOLCHAIN_FILE=$DEMO_DIR/riscv-toolchain.cmake -DENABLE_TESTING=0ff ..
+  cmake --static -DCMAKE_TOOLCHAIN_FILE=$DEMO_DIR/riscv-toolchain.cmake -DENABLE_TESTING=0ff -USE_SHARED_MBEDTLS_LIBRARY=Off -USE_STATIC_MBEDTLS_LIBRARY=On ..
   cmake --build .
   cd ../..
 fi

@@ -6,7 +6,7 @@
 #define SERVER_PORT "4433"
 #define SERVER_NAME "localhost"
 
-#define RECV_BUFFER_SIZE 4096
+#define RECV_BUFFER_SIZE 16896
 
 typedef struct {
   int fd;

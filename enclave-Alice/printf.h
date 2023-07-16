@@ -101,6 +101,9 @@ int fctprintf(void (*out)(char character, void* arg), void* arg, const char* for
 
 int custom_printf(const char* format, ...);
 
+typedef struct _IO_FILE FILE;
+int custom_fprintf(FILE *stream, const char *format, ...);
+
 int print_hex_string(char* name, unsigned char* value, int size);
 
 int print_custom_asn1_buf(char *name, custom_asn1_buf buf);

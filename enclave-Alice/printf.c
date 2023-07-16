@@ -736,6 +736,17 @@ int custom_printf(const char* format, ...){
   return len;
 }
 
+int custom_fprintf(FILE *stream, const char *format, ...){
+  int len;
+  va_list va;
+  va_start(va, format);
+  char buffer[512];
+  len = vsnprintf(buffer, 512, format, va);
+  va_end(va);
+  rt_print_string(buffer, len+1);
+  return len;
+}
+
 int print_hex_string(char* name, unsigned char* value, int size){
   custom_printf("%s: 0x", name);
   for(int i = 0; i< size; i++){

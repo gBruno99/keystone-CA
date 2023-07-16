@@ -39,7 +39,7 @@ int custom_net_send(void *ctx, const unsigned char *buf, size_t len) {
 
 int custom_net_recv(void *ctx, unsigned char *buf, size_t len) {
     int ret;
-    unsigned char tmp_buf[4096+sizeof(int)];
+    unsigned char tmp_buf[16896+sizeof(int)];
     ret = ocall(OCALL_NET_RECV, tmp_buf, len, tmp_buf, len + sizeof(int));
     // printf("ocall returned %d\n", ret);
     int retval = * ((int*)tmp_buf);

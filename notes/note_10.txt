@@ -185,3 +185,67 @@ Content-Type: text/html
 [S]  . Waiting for a remote connection ...
 # poweroff
 
+# ./enclave-Alice.ke 
+Verifying archive integrity... All good.
+Uncompressing Keystone Enclave Package
+Ticks needed for the creation of the enclave: 3872100d
+Current local time and date: Wed Dec 31 23:59:59 1969
+
+TCI enclave: 0x08b6282aed56de1f56632c8c15186a16a1735773d552840acbf0d9d3e61f867566e929d776b618e5369b9d710ec5de0cfdbe8feb1443db61b2077ae4588d33ab
+TCI enclave_len: 64
+TCI sm: 0x4174151ec0126c38f61db3f0f8f90eaba33239361fa210125a48a3fb031b2b7b9dc42dfd5681c14139208c3a3bced811612aa6bb343786556d5204c58044a719
+TCI sm_len: 64
+
+Step 1: Generating LDevID...
+
+LDevID PK: 0x3bf4f08abd71acfdd0369bbcf207f18105b43c7d21f52b9b210b7cc49da380cc
+LDevID PK_len: 32
+
+
+[C]  . Seeding the random number generator... ok
+[C]  . Loading the CA root certificate ... ok (0 skipped)
+[C]  . Connecting to tcp/localhost/4433... ok
+[S]  . Performing the SSL/TLS handshake... ok
+[C]  . Setting up the SSL/TLS structure... ok
+[C]  . Performing the SSL/TLS handshake...
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001d)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(0017)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(0018)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001e)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(0019)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001a)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001b)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_client.c:0258: got supported group(001c)
+/home/giacomo/Documents/keystone-CA/mbedtls_builds/mbedtls_host/library/ssl_tls.c:7367: x509_verify_cert() returned -9984 (-0x2700)
+ ok
+[C]  . Verifying peer X.509 certificate... failed
+  ! The certificate validity starts in the future
+
+[C]  > Write to server:[C] 23 bytes written
+
+GET /nonce HTTP/1.0
+
+[C]  < Read from server: ok
+[S]  < Read from client: 23 bytes read
+
+GET /nonce HTTP/1.0
+
+[S]  > Write to client: 114 bytes read
+
+HTTP/1.0 200 OK
+Content-Type: text/html
+
+<h2>CA Server - nonce</h2>
+<p>��ͽ�?�(/M��^,#���������o|�</p>
+nonce: 0x95b2cdbd9c3fe928162f4d86c65e2c230faad4ff01178583baa588966f7c1ff3
+nonce_len: 32
+ 114 bytes written
+
+HTTP/1.0 200 OK
+Content-Type: text/html
+
+<h2>CA Server - nonce</h2>
+<p>��ͽ�?�(/M��^,#���������o|�</p>
+
+[S]  . Closing the connection... ok
+[S]  . Waiting for a remote connection ...

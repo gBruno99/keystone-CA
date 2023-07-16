@@ -1,0 +1,69 @@
+libmbedtls.a(ssl_tls.c.obj): in function `.L494':                           ssl_tls.c:(.text+0x3742): undefined reference to `__bswapsi2'
+libmbedtls.a(ssl_tls.c.obj): in function `mbedtls_ssl_context_save':        ssl_tls.c:(.text+0x37f8): undefined reference to `__bswapsi2'
+libmbedtls.a(ssl_tls.c.obj): in function `.L962':                           ssl_tls.c:(.text+0x8504): undefined reference to `__bswapsi2'
+libmbedtls.a(ssl_tls.c.obj): in function `.L961':                           ssl_tls.c:(.text+0x8684): undefined reference to `__bswapsi2'
+
+libmbedtls.a(ssl_tls12_server.c.obj): in function `.L446':                  ssl_tls12_server.c:(.text+0x5692): undefined reference to `__bswapsi2'
+
+libmbedcrypto.a(bignum_core.c.obj):bignum_core.c:(.text+0x15c):             more undefined references to `__bswapsi2' follow
+
+libmbedcrypto.a(gcm.c.obj): in function `.L26':                             gcm.c:(.text+0x6c6): undefined reference to `__bswapdi2'
+libmbedcrypto.a(gcm.c.obj): in function `mbedtls_gcm_finish':               gcm.c:(.text+0xe56): undefined reference to `__bswapsi2'
+                                                                            gcm.c:(.text+0xe7e): undefined reference to `__bswapsi2'
+                                                                            gcm.c:(.text+0xea2): undefined reference to `__bswapsi2'
+                                                                            gcm.c:(.text+0xec4): undefined reference to `__bswapsi2'
+
+libmbedcrypto.a(nist_kw.c.obj): in function `.L23':                         nist_kw.c:(.text+0x344): undefined reference to `__bswapsi2'
+libmbedcrypto.a(nist_kw.c.obj):nist_kw.c:(.text+0x8c2):                     more undefined references to `__bswapsi2' follow
+
+libmbedcrypto.a(sha512.c.obj): in function `.L16':                          sha512.c:(.text+0x236): undefined reference to `__bswapdi2'
+libmbedcrypto.a(sha512.c.obj): in function `.L41':                          sha512.c:(.text+0xe4a): undefined reference to `__bswapdi2'
+libmbedcrypto.a(sha512.c.obj): in function `.L40':                          sha512.c:(.text+0xe6c): undefined reference to `__bswapdi2'
+                                                                            sha512.c:(.text+0xeac): undefined reference to `__bswapdi2'
+                                                                            sha512.c:(.text+0xed0): undefined reference to `__bswapdi2'
+libmbedcrypto.a(sha512.c.obj):sha512.c:(.text+0xef2):                       more undefined references to `__bswapdi2' follow
+
+libmbedcrypto.a(aria.c.obj): in function `.L7':                             aria.c:(.text+0x860): undefined reference to `__bswapsi2'
+libmbedcrypto.a(aria.c.obj): in function `.L9':                             aria.c:(.text+0x8a6): undefined reference to `__bswapsi2'
+                                                                            aria.c:(.text+0x8ec): undefined reference to `__bswapsi2'
+                                                                            
+libmbedcrypto.a(camellia.c.obj): in function `.L19':                        camellia.c:(.text+0x3d8): undefined reference to `__bswapsi2'
+                                                                            camellia.c:(.text+0x416): undefined reference to `__bswapsi2'
+libmbedcrypto.a(camellia.c.obj):camellia.c:(.text+0x476):                   more undefined references to `__bswapsi2' follow
+
+collect2: error: ld returned 1 exit status
+make[2]: *** [enclave-Alice/CMakeFiles/enclave-Alice.dir/build.make:134: enclave-Alice/enclave-Alice] Error 1
+make[1]: *** [CMakeFiles/Makefile2:1105: enclave-Alice/CMakeFiles/enclave-Alice.dir/all] Error 2
+make: *** [Makefile:84: all] Error 2
+
+
+0x308201483081f9a0030201020203000001300706032b65700500301831163014060355040a0c0d526f6f74206f66205472757374301e170d3233303130313030
+  303030305a170d3234303130313030303030305a301b31193017060355040a0c105365637572697479204d6f6e69746f72302c300706037b30780500032100
+  1c5e33a3bae48c41e689933ab4fb8fb8683ad8957be2430639b82ebf337f637fa35f305d30120603551d130101ff040830060101ff02010a30470603ff20ff0440
+  4174151ec0126c38f61db3f0f8f90eaba33239361fa210125a48a3fb031b2b7b9dc42dfd5681c14139208c3a3bced811612aa6bb343786556d5204c58044a719
+  300706032b657005000341003a5918c8843de4124f5b77e900f00f6839c3833ad10a7bee57a5b7fc3f65ab79bbd4bb081d1248d7a87bb36f0dfee0c04748d69e
+  1f3599e991c1b59425edac0b
+
+0x 1c5e33a3bae48c41e689933ab4fb8fb8683ad8957be2430639b82ebf337f637f
+
+
+0xc5531bec6e8aab1c00867a598ddb4a6c9fb10eda2d7c97bf3b45df8f9e86a1c97ddce8cd74a8861502738e614a50287e796a362dc3f51a32a667bd244c307cc5
+0xc5531bec6e8aab1c00867a598ddb4a6c9fb10eda2d7c97bf3b45df8f9e86a1c97ddce8cd74a8861502738e614a50287e796a362dc3f51a32a667bd244c307cc5
+
+c5531bec6e8aab1c00867a598ddb4a6c9fb10eda2d7c97bf3b45df8f9e86a1c97ddce8cd74a8861502738e614a50287e796a362dc3f51a32a667bd244c307cc5
+c5531bec6e8aab1c00867a598ddb4a6c9fb10eda2d7c97bf3b45df8f9e86a1c97ddce8cd74a8861502738e614a50287e796a362dc3f51a32a667bd244c307cc5
+
+
+0x3082015530820105a003020102020400ababab300706032b657005003020311e301c060355040a0c15436572746966696361746520417574686f72697479301e
+  170d3233303130313030303030305a170d3234303130313030303030305a30323110300e06035504030c07436c69656e7431311e301c060355040a0c15436572
+  746966696361746520417574686f72697479302c300706037b3078050003210028e10466a36a87ced5cbf66143b30479e81bdc98f5a7e724d87a28b212453524
+  a34b304930470603ff20ff0440676282e8d3389f45c6d4ba764c70f59437bab9cfc5409659272f52a45af3b1bd6c646de4bd78b0aec5d8dedda756987a5b47bf
+  dd32f2cbefd6445d16befc3589300706032b65700500034100f3372a7f48e6414d0fbda4bccdf42bc55308c56cea3bd1c4b0722aabfd6564e039eb71b092f96c
+  61576d05d666469107bc5d1c6371ce1cb27cfabbe991eb840b
+
+0x3082015530820105a003020102020400ababab300706032b657005003020311e301c060355040a0c15436572746966696361746520417574686f72697479301e
+  170d3233303130313030303030305a170d3234303130313030303030305a30323110300e06035504030c07436c69656e7431311e301c060355040a0c15436572
+  746966696361746520417574686f72697479302c300706037b3078050003210028e10466a36a87ced5cbf66143b30479e81bdc98f5a7e724d87a28b212453524
+  a34b304930470603ff20ff0440676282e8d3389f45c6d4ba764c70f59437bab9cfc5409659272f52a45af3b1bd6c646de4bd78b0aec5d8dedda756987a5b47bf
+  dd32f2cbefd6445d16befc3589300706032b65700500034100f3372a7f48e6414d0fbda4bccdf42bc55308c56cea3bd1c4b0722aabfd6564e039eb71b092f96c
+  61576d05d666469107bc5d1c6371ce1cb27cfabbe991eb840b
