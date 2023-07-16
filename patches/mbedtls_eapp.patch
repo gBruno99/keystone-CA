@@ -1,5 +1,5 @@
 diff --git a/include/mbedtls/mbedtls_config.h b/include/mbedtls/mbedtls_config.h
-index 89d565971..92c7456ab 100644
+index 89d565971..bb6d4ce2a 100644
 --- a/include/mbedtls/mbedtls_config.h
 +++ b/include/mbedtls/mbedtls_config.h
 @@ -140,7 +140,7 @@
@@ -38,7 +38,7 @@ index 89d565971..92c7456ab 100644
  
  /**
   * \def MBEDTLS_PLATFORM_EXIT_ALT
-@@ -230,11 +230,11 @@
+@@ -230,12 +230,12 @@
   * platform function
   */
  //#define MBEDTLS_PLATFORM_SETBUF_ALT
@@ -48,12 +48,14 @@ index 89d565971..92c7456ab 100644
 -//#define MBEDTLS_PLATFORM_FPRINTF_ALT
 -//#define MBEDTLS_PLATFORM_PRINTF_ALT
 -//#define MBEDTLS_PLATFORM_SNPRINTF_ALT
+-//#define MBEDTLS_PLATFORM_VSNPRINTF_ALT
 +#define MBEDTLS_PLATFORM_FPRINTF_ALT
 +#define MBEDTLS_PLATFORM_PRINTF_ALT
 +#define MBEDTLS_PLATFORM_SNPRINTF_ALT
- //#define MBEDTLS_PLATFORM_VSNPRINTF_ALT
++#define MBEDTLS_PLATFORM_VSNPRINTF_ALT
  //#define MBEDTLS_PLATFORM_NV_SEED_ALT
  //#define MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT
+ //#define MBEDTLS_PLATFORM_MS_TIME_ALT
 @@ -1058,7 +1058,7 @@
   *
   * Enable functions that use the filesystem.
@@ -72,6 +74,51 @@ index 89d565971..92c7456ab 100644
  
  /**
   * \def MBEDTLS_ENTROPY_FORCE_SHA256
+@@ -2559,7 +2559,7 @@
+  *
+  * This module provides a generic entropy pool
+  */
+-#define MBEDTLS_ENTROPY_C
++//#define MBEDTLS_ENTROPY_C
+ 
+ /**
+  * \def MBEDTLS_ERROR_C
+@@ -2629,7 +2629,7 @@
+  *
+  * Uncomment to enable the LMS verification algorithm and public key operations.
+  */
+-#define MBEDTLS_LMS_C
++//#define MBEDTLS_LMS_C
+ 
+ /**
+  * \def MBEDTLS_LMS_PRIVATE
+@@ -2743,7 +2743,7 @@
+  *
+  * This module provides networking routines.
+  */
+-#define MBEDTLS_NET_C
++//#define MBEDTLS_NET_C
+ 
+ /**
+  * \def MBEDTLS_OID_C
+@@ -2780,7 +2780,7 @@
+  *
+  * This modules adds support for the VIA PadLock on x86.
+  */
+-#define MBEDTLS_PADLOCK_C
++//#define MBEDTLS_PADLOCK_C
+ 
+ /**
+  * \def MBEDTLS_PEM_PARSE_C
+@@ -2962,7 +2962,7 @@
+  *           or MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG.
+  *
+  */
+-#define MBEDTLS_PSA_CRYPTO_C
++//#define MBEDTLS_PSA_CRYPTO_C
+ 
+ /**
+  * \def MBEDTLS_PSA_CRYPTO_SE_C
 @@ -2991,7 +2991,7 @@
   *           either MBEDTLS_PSA_ITS_FILE_C or a native implementation of
   *           the PSA ITS interface
@@ -90,30 +137,71 @@ index 89d565971..92c7456ab 100644
  
  /**
   * \def MBEDTLS_RIPEMD160_C
+@@ -3333,7 +3333,7 @@
+  *
+  * Module:  library/timing.c
+  */
+-#define MBEDTLS_TIMING_C
++//#define MBEDTLS_TIMING_C
+ 
+ /**
+  * \def MBEDTLS_VERSION_C
 diff --git a/include/mbedtls/platform.h b/include/mbedtls/platform.h
-index f65158719..ebedf948f 100644
+index f65158719..f506feb05 100644
 --- a/include/mbedtls/platform.h
 +++ b/include/mbedtls/platform.h
-@@ -465,6 +465,10 @@ int mbedtls_platform_setup(mbedtls_platform_context *ctx);
+@@ -465,6 +465,13 @@ int mbedtls_platform_setup(mbedtls_platform_context *ctx);
   */
  void mbedtls_platform_teardown(mbedtls_platform_context *ctx);
  
 +int atoi(const char *nptr);
 +int rand(void);
 +void srand(unsigned int seed);
++int strcmp(const char *string1, const char *string2);
++char *strchr(const char *str, int c);
++char *strstr(const char *str, const char *strSearch);
 +
  #ifdef __cplusplus
  }
  #endif
+diff --git a/library/alignment.h b/library/alignment.h
+index 41823485a..647118308 100644
+--- a/library/alignment.h
++++ b/library/alignment.h
+@@ -189,6 +189,7 @@ inline void mbedtls_put_unaligned_uint64(void *p, uint64_t x)
+  * compiler may be able to detect and transform into the relevant bswap or
+  * similar instruction.
+  */
++#undef MBEDTLS_BSWAP16
+ #if !defined(MBEDTLS_BSWAP16)
+ static inline uint16_t mbedtls_bswap16(uint16_t x)
+ {
+@@ -199,6 +200,7 @@ static inline uint16_t mbedtls_bswap16(uint16_t x)
+ #define MBEDTLS_BSWAP16 mbedtls_bswap16
+ #endif /* !defined(MBEDTLS_BSWAP16) */
+ 
++#undef MBEDTLS_BSWAP32
+ #if !defined(MBEDTLS_BSWAP32)
+ static inline uint32_t mbedtls_bswap32(uint32_t x)
+ {
+@@ -211,6 +213,7 @@ static inline uint32_t mbedtls_bswap32(uint32_t x)
+ #define MBEDTLS_BSWAP32 mbedtls_bswap32
+ #endif /* !defined(MBEDTLS_BSWAP32) */
+ 
++#undef MBEDTLS_BSWAP64
+ #if !defined(MBEDTLS_BSWAP64)
+ static inline uint64_t mbedtls_bswap64(uint64_t x)
+ {
 diff --git a/library/platform.c b/library/platform.c
-index b15b7b29a..75be5bed6 100644
+index b15b7b29a..0206be4ff 100644
 --- a/library/platform.c
 +++ b/library/platform.c
-@@ -411,4 +411,29 @@ void mbedtls_platform_teardown(mbedtls_platform_context *ctx)
+@@ -411,4 +411,82 @@ void mbedtls_platform_teardown(mbedtls_platform_context *ctx)
  }
  #endif /* MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT */
  
-+int atoi(const char *nptr){
++int atoi(const char *nptr)
++{
 +    int val = 0;
 +    int i = 0;
 +    while(nptr[i]!='\0'){
@@ -128,14 +216,66 @@ index b15b7b29a..75be5bed6 100644
 +
 +static unsigned long int next = 1;
 +
-+int rand(void){  
++int rand(void)
++{  
 +    // RAND_MAX assumed to be 32767
 +    next = next * 1103515245 + 12345;
 +    return (unsigned int)(next/65536) % 32768;
 +}
 +
-+void srand(unsigned int seed){
++void srand(unsigned int seed)
++{
 +    next = seed;
++}
++
++int strcmp(const char *string1, const char *string2)
++{
++    while(*string1 && (*string1 == *string2))
++    {
++        string1++;
++        string2++;
++    }
++    return *(const unsigned char*)string1 - *(const unsigned char*)string2;
++}
++
++char *strchr(const char *str, int c)
++{
++    char ch;
++
++    ch = c;
++    for (;; ++str) {
++        if (*str == ch)
++            return ((char *)str);
++        if (*str == '\0')
++            return (NULL);
++    }
++    /* NOTREACHED */
++}
++
++char *strstr(const char *str, const char *strSearch)
++{
++    char *a, *b;
++
++    b = (char*) strSearch;
++    if (*b == 0) {
++	    return (char*) str;
++    }
++    for ( ; *str != 0; str += 1) {
++        if (*str != *b) {
++            continue;
++        }
++        a = (char*) str;
++        while (1) {
++            if (*b == 0) {
++                return (char*) str;
++            }
++            if (*a++ != *b++) {
++                break;
++            }
++        }
++        b = (char*) strSearch;
++    }
++    return NULL;
 +}
 +
  #endif /* MBEDTLS_PLATFORM_C */
