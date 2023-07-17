@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Usage (from ./scripts): KEYSTONE_DIR=../../keystone/build ./get_attestation.sh ../my_mbedtls_stdlib/include/
+
 output_path=$1
 
 if [ "${output_path}xxx" = "xxx" ]; then
@@ -45,8 +47,8 @@ extracthash () {
 
 
 extracthash | tee extract_hash.log
-SM_HASH=$(awk '/TCI enclave:/' extract_hash.log  | cut -c 16-)
-EAPP_HASH=$(awk '/TCI sm:/' extract_hash.log  | cut -c 11-)
+SM_HASH=$(awk '/TCI sm:/' extract_hash.log  | cut -c 11-)
+EAPP_HASH=$(awk '/TCI enclave:/' extract_hash.log  | cut -c 16-)
 rm -f extract_hash.log
 cd $output_path
 if [ "${SM_HASH}xxx" = "xxx" ]; then
