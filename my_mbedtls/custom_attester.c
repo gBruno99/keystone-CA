@@ -1,6 +1,6 @@
 #include "custom_functions.h"
-#include "sm_reference_values.h"
-#include "enclave_reference_values.h"
+#include "sm_reference_value.h"
+#include "enclave_reference_value.h"
 
 static int checkWithRefMeasure(const unsigned char* tci, size_t tci_len, const unsigned char* ref_tci, size_t ref_tci_len){
     if(tci_len != ref_tci_len)
@@ -35,7 +35,7 @@ int  checkTCIValue(const custom_x509_name *id, const custom_x509_buf *tci) {
         #if CUSTOM_DEBUG_PRINTS
         custom_printf("Cert is: Security Monitor\n");
         #endif
-        return checkWithRefMeasure(tci_value, tci_len, _reference_tci_sm, _reference_tci_sm_len);
+        return checkWithRefMeasure(tci_value, tci_len, sm_reference_value, sm_reference_value_len);
     }
     return -1;
 }
@@ -55,11 +55,11 @@ int getAttestationPublicKey(custom_x509_csr *csr, unsigned char *pk) {
 }
 
 int getReferenceTCI(custom_x509_csr *csr, unsigned char *tci) {
-    custom_memcpy(tci, _reference_tci_enclave, _reference_tci_enclave_len);
+    custom_memcpy(tci, enclave_reference_value, enclave_reference_value_len);
     return 0;
 }
 
 int checkEnclaveTCI(unsigned char *tci, int tci_len) {
-    if(tci_len != _reference_tci_enclave_len) return -1;
-    return custom_memcmp(tci, _reference_tci_enclave, _reference_tci_enclave_len);
+    if(tci_len != enclave_reference_value_len) return -1;
+    return custom_memcmp(tci, enclave_reference_value, enclave_reference_value_len);
 }
