@@ -21,22 +21,6 @@
 
 #include "mbedtls/platform.h"
 
-#if !defined(MBEDTLS_BIGNUM_C) || !defined(MBEDTLS_PEM_PARSE_C) || \
-    !defined(MBEDTLS_ENTROPY_C) || !defined(MBEDTLS_SSL_TLS_C) ||  \
-    !defined(MBEDTLS_SSL_SRV_C) || !defined(MBEDTLS_NET_C) ||      \
-    !defined(MBEDTLS_RSA_C) || !defined(MBEDTLS_CTR_DRBG_C) ||     \
-    !defined(MBEDTLS_X509_CRT_PARSE_C) || !defined(MBEDTLS_FS_IO)
-int main(void)
-{
-    mbedtls_printf("MBEDTLS_BIGNUM_C and/or MBEDTLS_ENTROPY_C "
-                   "and/or MBEDTLS_SSL_TLS_C and/or MBEDTLS_SSL_SRV_C and/or "
-                   "MBEDTLS_NET_C and/or MBEDTLS_RSA_C and/or "
-                   "MBEDTLS_CTR_DRBG_C and/or MBEDTLS_X509_CRT_PARSE_C "
-                   "and/or MBEDTLS_PEM_PARSE_C not defined.\n");
-    mbedtls_exit(0);
-}
-#else
-
 #include <stdlib.h>
 #include <string.h>
 
@@ -72,10 +56,12 @@ int main(void)
     "POST /csr/size HTTP/1.0\r\nContent-Type: text/html\r\n\r\n" \
     "<h2>Client Alice - csr len</h2>\r\n" \
     "<p>%d</p>\r\n"
+
 #define POST_CSR_REQUEST_START \
     "POST /csr HTTP/1.0\r\nContent-Type: text/html\r\n\r\n" \
     "<h2>Client Alice - csr</h2>\r\n" \
     "<p>"
+
 #define POST_CSR_REQUEST_END \
     "</p>\r\n"
 
@@ -101,6 +87,7 @@ int main(void)
 "</p>\r\n"
 
 #define DEBUG_LEVEL 0
+#define PRINT_STRUCTS 0
 
 #define HASH_LEN 64
 #define PARSE_PUBLIC_KEY    0
@@ -140,12 +127,12 @@ static const unsigned char sanctum_ca_public_key[] = {
 };
 
 int print_hex_string(char* name, unsigned char* value, int size){
-  printf("%s: 0x", name);
+  mbedtls_printf("%s: 0x", name);
   for(int i = 0; i< size; i++){
-    printf("%02x", value[i]);
+    mbedtls_printf("%02x", value[i]);
   }
-  printf("\n");
-  printf("%s_len: %d\n", name, size);
+  mbedtls_printf("\n");
+  mbedtls_printf("%s_len: %d\n", name, size);
   return 0;
 }
 
@@ -165,12 +152,6 @@ int main(void)
     mbedtls_net_context listen_fd, client_fd;
     unsigned char buf[2048];
     const char *pers = "ssl_server";
-
-    unsigned char nonce[] = {
-        0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
-        0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
-    };
-
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_ssl_context ssl;
@@ -180,6 +161,11 @@ int main(void)
 #if defined(MBEDTLS_SSL_CACHE_C)
     mbedtls_ssl_cache_context cache;
 #endif
+
+    unsigned char nonce[] = {
+        0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
+        0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
+    };
 
     mbedtls_net_init(&listen_fd);
     mbedtls_net_init(&client_fd);
@@ -346,6 +332,7 @@ reset:
     mbedtls_printf("[S]  < Read from client:");
     fflush(stdout);
 
+    // Wait for nonce request
     do {
         len = sizeof(buf) - 1;
         memset(buf, 0, sizeof(buf));
@@ -387,10 +374,7 @@ reset:
     mbedtls_printf("[S]  > Write to client:");
     fflush(stdout);
 
-    /*
-    len = sprintf((char *) buf, HTTP_RESPONSE,
-                  mbedtls_ssl_get_ciphersuite(&ssl));
-    */
+    // Write the nonce into the response
     memcpy(buf, HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1);
     len = sizeof(HTTP_NONCE_RESPONSE_START)-1;
     memcpy(buf+len, nonce, sizeof(nonce));
@@ -416,6 +400,7 @@ reset:
     unsigned char recv_csr[2048] = {0};
     int csr_len = 0;
 
+    // Wait for CSR len
     mbedtls_printf("[S]  < Read from client:");
     fflush(stdout);
 
@@ -450,11 +435,12 @@ reset:
         mbedtls_printf(" %d bytes read\n\n%s", len, (char *) buf);
 
         if (ret > 0) {
+            // Read csr len from the request
             if(sscanf((const char *)buf, POST_CSR_SIZE_REQUEST, &csr_len)!=1) {
-                printf("Error in reading csr_len\n");
+                mbedtls_printf("Error in reading csr_len\n");
                 goto exit;
             }
-            printf("[S] csr_len=%d\n", csr_len);
+            mbedtls_printf("[S] csr_len=%d\n", csr_len);
             break;
         }
     } while (1);
@@ -462,6 +448,7 @@ reset:
     mbedtls_printf("[S]  < Read from client:");
     fflush(stdout);
 
+    // Wait for CSR
     do {
         len = sizeof(buf) - 1;
         memset(buf, 0, sizeof(buf));
@@ -493,6 +480,7 @@ reset:
         mbedtls_printf(" %d bytes read\n\n%s", len, (char *) buf);
 
         if (ret > 0) {
+            // Read CSR from the request
             if(memcmp(buf, POST_CSR_REQUEST_START, sizeof(POST_CSR_REQUEST_START)-1)!=0) {
                 mbedtls_printf("[S] cannot read csr 1\n\n");
                 break;
@@ -507,32 +495,33 @@ reset:
         }
     } while (1);
 
-    printf("Step 3-A: Parsing CSR...\n\n");
+    // Parse and verify CSR
+    mbedtls_printf("[S] Parsing CSR...\n\n");
     custom_x509_csr csr;
     custom_x509_csr_init(&csr);
 
     ret = custom_x509_csr_parse_der(&csr, recv_csr, csr_len);
-    printf("Parsing CSR - ret: %d\n", ret);
-    printf("\n");
+    mbedtls_printf("Parsing CSR - ret: %d\n", ret);
+    mbedtls_printf("\n");
 
     // verify CSR signature
-    printf("Step 3-B: Verifying CSR...\n\n");
+    mbedtls_printf("[S] Verifying CSR...\n\n");
     unsigned char csr_hash[64] = {0};
     ret = custom_md(custom_md_info_from_type(csr.sig_md), csr.cri.p, csr.cri.len, csr_hash);
-    printf("Hashing CSR- ret: %d\n", ret);
+    mbedtls_printf("Hashing CSR- ret: %d\n", ret);
     #if PRINT_STRUCTS
     print_hex_string("Hash CSR", csr_hash, HASH_LEN);
     #endif
     ret = custom_pk_verify_ext(csr.sig_pk, csr.sig_opts, &(csr.pk), csr.sig_md, csr_hash, HASH_LEN, csr.sig.p, csr.sig.len);
-    printf("Verify CSR signature - ret: %d\n", ret);
-    printf("\n");
+    mbedtls_printf("Verify CSR signature - ret: %d\n", ret);
+    mbedtls_printf("\n");
 
     // verify nonces equality
     ret = csr.nonce.len != NONCE_LEN;
-    printf("Verify nonce len - ret: %d\n", ret);
+    mbedtls_printf("Verify nonce len - ret: %d\n", ret);
     ret = custom_memcmp(csr.nonce.p, nonce, NONCE_LEN);
-    printf("Verify nonce value - ret: %d\n", ret);
-    printf("\n");
+    mbedtls_printf("Verify nonce value - ret: %d\n", ret);
+    mbedtls_printf("\n");
 
     // parse trusted certificate
     uint32_t flags = 0;
@@ -540,7 +529,7 @@ reset:
 
     custom_x509_crt_init(&trusted_certs);
     ret = custom_x509_crt_parse_der(&trusted_certs, ref_cert_man, ref_cert_man_len);
-    printf("Parsing Trusted Certificate - ret: %d\n", ret);
+    mbedtls_printf("Parsing Trusted Certificate - ret: %d\n", ret);
 
     #if PRINT_STRUCTS
     print_custom_x509_cert("Trusted Certificate", trusted_certs);
@@ -550,8 +539,8 @@ reset:
 
     //  verify chain of certificates
     ret = custom_x509_crt_verify(&(csr.cert_chain), &trusted_certs, NULL, NULL, &flags, NULL, NULL);
-    printf("Verifing Chain of Certificates - ret: %u, flags = %u\n", ret, flags);
-    printf("\n");
+    mbedtls_printf("Verifing Chain of Certificates - ret: %u, flags = %u\n", ret, flags);
+    mbedtls_printf("\n");
 
     custom_x509_crt_free(&trusted_certs);
 
@@ -561,13 +550,17 @@ reset:
     unsigned char fin_hash[HASH_LEN] = {0};
     sha3_ctx_t ctx_hash;
     ret = getAttestationPublicKey(&csr, verification_pk);
-    printf("Getting SM PK - ret: %d\n", ret);
+    mbedtls_printf("Getting SM PK - ret: %d\n", ret);
 
+    #if PRINT_STRUCTS
     print_hex_string("SM PK", verification_pk, PUBLIC_KEY_SIZE);
+    #endif
 
     ret = getReferenceTCI(&csr, reference_tci);
-    printf("Getting Reference Enclave TCI - ret: %d\n", ret);
+    mbedtls_printf("Getting Reference Enclave TCI - ret: %d\n", ret);
+    #if PRINT_STRUCTS
     print_hex_string("Reference Enclave TCI", reference_tci, HASH_LEN);
+    #endif
 
     sha3_init(&ctx_hash, HASH_LEN);
     sha3_update(&ctx_hash, nonce, NONCE_LEN);
@@ -575,29 +568,33 @@ reset:
     sha3_update(&ctx_hash, custom_pk_ed25519(csr.pk)->pub_key, PUBLIC_KEY_SIZE);
     sha3_final(fin_hash, &ctx_hash);
 
+    #if PRINT_STRUCTS
     print_hex_string("fin_hash", fin_hash, HASH_LEN);
+    #endif
 
     custom_pk_context key;
     custom_pk_init(&key);
     ret = custom_pk_parse_public_key(&key, verification_pk, PUBLIC_KEY_SIZE, 0);
+    mbedtls_printf("Parsing SM PK - ret: %d\n", ret);
 
     ret = custom_pk_verify_ext(CUSTOM_PK_ED25519, NULL, &key, CUSTOM_MD_KEYSTONE_SHA3, fin_hash, HASH_LEN, csr.attestation_proof.p, csr.attestation_proof.len);
-    printf("Verifying attestation proof - ret: %d\n", ret);
-    printf("\n");
+    mbedtls_printf("Verifying attestation proof - ret: %d\n", ret);
+    mbedtls_printf("\n");
+    fflush(stdout);
 
     custom_pk_free(&key);
 
-    // CA - Step 3: Generate Enclave Certificate
-    printf("Step 4: Generating Certificate...\n\n");
+    // Generate Enclave Certificate
+    mbedtls_printf("[S] Generating Certificate...\n\n");
 
     custom_x509write_cert cert_encl;
     custom_x509write_crt_init(&cert_encl);
 
     ret = custom_x509write_crt_set_issuer_name(&cert_encl, "O=Certificate Authority");
-    printf("Setting issuer - ret: %d\n", ret);
+    mbedtls_printf("Setting issuer - ret: %d\n", ret);
     
     ret = custom_x509write_crt_set_subject_name(&cert_encl, "CN=Client1,O=Certificate Authority");
-    printf("Setting subject - ret: %d\n", ret);
+    mbedtls_printf("Setting subject - ret: %d\n", ret);
 
     custom_pk_context subj_key;
     custom_pk_init(&subj_key);
@@ -606,45 +603,45 @@ reset:
     custom_pk_init(&issu_key);
     
     ret = custom_pk_parse_public_key(&issu_key, sanctum_ca_private_key, PRIVATE_KEY_SIZE, PARSE_PRIVATE_KEY);
-    printf("Parsing issuer pk - ret: %d\n", ret);
+    mbedtls_printf("Parsing issuer pk - ret: %d\n", ret);
 
     ret = custom_pk_parse_public_key(&issu_key, sanctum_ca_public_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
-    printf("Parsing issuer sk - ret: %d\n", ret);
+    mbedtls_printf("Parsing issuer sk - ret: %d\n", ret);
 
     ret = custom_pk_parse_public_key(&subj_key, custom_pk_ed25519(csr.pk)->pub_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
-    printf("Parsing subject pk - ret: %d\n", ret);
+    mbedtls_printf("Parsing subject pk - ret: %d\n", ret);
 
     custom_x509write_crt_set_subject_key(&cert_encl, &subj_key);
-    printf("Setting subject key\n");
+    mbedtls_printf("Setting subject key\n");
 
     custom_x509write_crt_set_issuer_key(&cert_encl, &issu_key);
-    printf("Setting issuer keys\n");
+    mbedtls_printf("Setting issuer keys\n");
     
     unsigned char serial[] = {0xAB, 0xAB, 0xAB};
 
     ret = custom_x509write_crt_set_serial_raw(&cert_encl, serial, 3);
-    printf("Setting serial - ret: %d\n", ret);
+    mbedtls_printf("Setting serial - ret: %d\n", ret);
     
     custom_x509write_crt_set_md_alg(&cert_encl, CUSTOM_MD_KEYSTONE_SHA3);
-    printf("Setting md algorithm\n");
+    mbedtls_printf("Setting md algorithm\n");
     
     ret = custom_x509write_crt_set_validity(&cert_encl, "20230101000000", "20240101000000");
-    printf("Setting validity - ret: %d\n", ret);
+    mbedtls_printf("Setting validity - ret: %d\n", ret);
 
     char oid_ext[] = {0xff, 0x20, 0xff};
 
     ret = custom_x509write_crt_set_extension(&cert_encl, oid_ext, 3, 0, reference_tci, HASH_LEN);
-    printf("Setting tci - ret: %d\n", ret);
+    mbedtls_printf("Setting tci - ret: %d\n", ret);
 
-    printf("\n");
+    mbedtls_printf("\n");
+
     // Writing certificate
-    
     unsigned char cert_der[1024];
     int effe_len_cert_der;
     size_t len_cert_der_tot = 1024;
 
     ret = custom_x509write_crt_der(&cert_encl, cert_der, len_cert_der_tot, NULL, NULL);
-    printf("Writing Enclave Certificate - ret: %d\n", ret);
+    mbedtls_printf("Writing Enclave Certificate - ret: %d\n", ret);
     effe_len_cert_der = ret;
     
     unsigned char *cert_real = cert_der;
@@ -652,18 +649,20 @@ reset:
     cert_real += dif;
 
     print_hex_string("Enclave Certificate", cert_real, effe_len_cert_der);
+    fflush(stdout);
 
     custom_pk_free(&issu_key);
     custom_pk_free(&subj_key);
     custom_x509write_crt_free(&cert_encl);
     custom_x509_csr_free(&csr);
 
-        /*
+    /*
      * 7. Write the 200 Response
      */
     mbedtls_printf("[S]  > Write to client:");
     fflush(stdout);
 
+     // Write certificate len
     len = sprintf((char *) buf, HTTP_CERTIFICATE_SIZE_RESPONSE, effe_len_cert_der);
 
     while ((ret = mbedtls_ssl_write(&ssl, buf, len)) <= 0) {
@@ -684,10 +683,7 @@ reset:
     mbedtls_printf("[S]  > Write to client:");
     fflush(stdout);
 
-    /*
-    len = sprintf((char *) buf, HTTP_RESPONSE,
-                  mbedtls_ssl_get_ciphersuite(&ssl));
-    */
+    // Write ceritificate into response
     memcpy(buf, HTTP_CERTIFICATE_RESPONSE_START, sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1);
     len = sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1;
     memcpy(buf+len, cert_real, effe_len_cert_der);
@@ -750,7 +746,3 @@ exit:
 
     mbedtls_exit(ret);
 }
-#endif /* MBEDTLS_BIGNUM_C && MBEDTLS_ENTROPY_C &&
-          MBEDTLS_SSL_TLS_C && MBEDTLS_SSL_SRV_C && MBEDTLS_NET_C &&
-          MBEDTLS_RSA_C && MBEDTLS_CTR_DRBG_C && MBEDTLS_X509_CRT_PARSE_C
-          && MBEDTLS_FS_IO && MBEDTLS_PEM_PARSE_C */
