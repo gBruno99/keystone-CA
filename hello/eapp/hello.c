@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 #include "mbedtls/build_info.h"
 #include "mbedtls/platform.h"
 #include "mbedtls/md5.h"
@@ -35,6 +36,12 @@ const size_t mbedtls_test_cas_pem_len = sizeof(mbedtls_test_cas_pem);
 int main()
 {
   printf("hello, world!\n");
+  time_t rawtime;
+  struct tm * timeinfo;
+
+  time(&rawtime);
+  timeinfo = localtime(&rawtime);
+  printf("Current local time and date: %s\n", asctime(timeinfo));
   mbedtls_printf("Mbedtls test\n");
   int i, ret;
   unsigned char digest[16];
