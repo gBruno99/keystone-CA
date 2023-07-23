@@ -52,13 +52,10 @@
 
 #define GET_NONCE_REQUEST "GET /nonce HTTP/1.0\r\n\r\n"
 
-#define POST_CSR_SIZE_REQUEST \
+#define POST_CSR_REQUEST_START \
     "POST /csr/size HTTP/1.0\r\nContent-Type: text/html\r\n\r\n" \
     "<h2>Client Alice - csr len</h2>\r\n" \
-    "<p>%d</p>\r\n"
-
-#define POST_CSR_REQUEST_START \
-    "POST /csr HTTP/1.0\r\nContent-Type: text/html\r\n\r\n" \
+    "<p>%d</p>\r\n" \
     "<h2>Client Alice - csr</h2>\r\n" \
     "<p>"
 
@@ -79,7 +76,6 @@
     "<p>%d</p>\r\n"
 
 #define HTTP_CERTIFICATE_RESPONSE_START \
-    "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" \
     "<h2>CA Server - crt</h2>\r\n" \
     "<p>"
 
@@ -364,6 +360,10 @@ reset:
         mbedtls_printf(" %d bytes read\n\n%s", len, (char *) buf);
 
         if (ret > 0) {
+            if(memcmp(buf, GET_NONCE_REQUEST, sizeof(GET_NONCE_REQUEST))!=0) {
+                mbedtls_printf("Error in reading nonce reuqest\n");
+                goto reset;
+            }
             break;
         }
     } while (1);
@@ -400,7 +400,7 @@ reset:
     unsigned char recv_csr[2048] = {0};
     int csr_len = 0;
 
-    // Wait for CSR len
+    // Wait for CSR
     mbedtls_printf("[S]  < Read from client:");
     fflush(stdout);
 
@@ -436,15 +436,23 @@ reset:
 
         if (ret > 0) {
             // Read csr len from the request
-            if(sscanf((const char *)buf, POST_CSR_SIZE_REQUEST, &csr_len)!=1) {
+            if(sscanf((const char *)buf, POST_CSR_REQUEST_START, &csr_len)!=1) {
                 mbedtls_printf("Error in reading csr_len\n");
                 goto exit;
             }
             mbedtls_printf("[S] csr_len=%d\n", csr_len);
+            // Read CSR from the request
+            memcpy(recv_csr, buf+sizeof(POST_CSR_REQUEST_START), csr_len);
+            print_hex_string("[S] csr", recv_csr, csr_len);
+            if(memcmp(buf+sizeof(POST_CSR_REQUEST_START)+csr_len, POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END))!=0){
+                mbedtls_printf("[S] cannot read csr 2\n\n");
+                goto exit;
+            }
             break;
         }
     } while (1);
 
+    /*
     mbedtls_printf("[S]  < Read from client:");
     fflush(stdout);
 
@@ -494,6 +502,7 @@ reset:
             break;
         }
     } while (1);
+    */
 
     // Parse and verify CSR
     mbedtls_printf("[S] Parsing CSR...\n\n");
@@ -664,6 +673,13 @@ reset:
 
      // Write certificate len
     len = sprintf((char *) buf, HTTP_CERTIFICATE_SIZE_RESPONSE, effe_len_cert_der);
+    // Write ceritificate into response
+    memcpy(buf+len, HTTP_CERTIFICATE_RESPONSE_START, sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1);
+    len += sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1;
+    memcpy(buf+len, cert_real, effe_len_cert_der);
+    len += effe_len_cert_der;
+    memcpy(buf+len, HTTP_CERTIFICATE_RESPONSE_END, sizeof(HTTP_CERTIFICATE_RESPONSE_END));
+    len += sizeof(HTTP_CERTIFICATE_RESPONSE_END);
 
     while ((ret = mbedtls_ssl_write(&ssl, buf, len)) <= 0) {
         if (ret == MBEDTLS_ERR_NET_CONN_RESET) {
@@ -680,6 +696,7 @@ reset:
     len = ret;
     mbedtls_printf(" %d bytes written\n\n%s\n", len, (char *) buf);
 
+    /*
     mbedtls_printf("[S]  > Write to client:");
     fflush(stdout);
 
@@ -705,6 +722,7 @@ reset:
 
     len = ret;
     mbedtls_printf(" %d bytes written\n\n%s\n", len, (char *) buf);
+    */
 
     mbedtls_printf("[S]  . Closing the connection...");
 

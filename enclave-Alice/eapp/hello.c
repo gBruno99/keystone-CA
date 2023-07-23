@@ -62,13 +62,10 @@
 
 #define GET_NONCE_REQUEST "GET /nonce HTTP/1.0\r\n\r\n"
 
-#define POST_CSR_SIZE_REQUEST \
+#define POST_CSR_REQUEST_START \
     "POST /csr/size HTTP/1.0\r\nContent-Type: text/html\r\n\r\n" \
     "<h2>Client Alice - csr len</h2>\r\n" \
-    "<p>%d</p>\r\n"
-    
-#define POST_CSR_REQUEST_START \
-    "POST /csr HTTP/1.0\r\nContent-Type: text/html\r\n\r\n" \
+    "<p>%d</p>\r\n" \
     "<h2>Client Alice - csr</h2>\r\n" \
     "<p>"
 
@@ -92,7 +89,6 @@
 "</p>\r\n"
 
 #define HTTP_CERTIFICATE_RESPONSE_START \
-    "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" \
     "<h2>CA Server - crt</h2>\r\n" \
     "<p>"
 
@@ -163,7 +159,7 @@ void mbedtls_custom_setup() {
 */
 
 
-int get_crt_len(unsigned char *buf, int *len);
+int get_crt(unsigned char *buf, unsigned char *crt, int *len);
 
 void custom_exit(int status);
 
@@ -462,7 +458,7 @@ int main(void)
     unsigned char attest_proof[512];
     size_t attest_proof_len;
     custom_x509write_csr req;
-    unsigned char key_usage = CUSTOM_X509_KU_DIGITAL_SIGNATURE | CUSTOM_X509_KU_KEY_ENCIPHERMENT | CUSTOM_X509_KU_DATA_ENCIPHERMENT | CUSTOM_X509_KU_KEY_AGREEMENT;
+    unsigned char key_usage = CUSTOM_X509_KU_DIGITAL_SIGNATURE;
     const char subject_name[] = "CN=Client,O=Enclave";
 
     mbedtls_printf("Generating attestation proof...\n");
@@ -527,8 +523,12 @@ int main(void)
     mbedtls_printf("[C]  > Write to server:");
     // fflush(stdout);
 
-    // 1 - Send CSR len
-    len = sprintf((char *) buf, POST_CSR_SIZE_REQUEST, csr_len);
+    // 1 - Send CSR
+    len = sprintf((char *) buf, POST_CSR_REQUEST_START, csr_len);
+    memcpy(buf+len-1, gen_csr, csr_len);
+    len += csr_len-1;
+    memcpy(buf+len, POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END));
+    len += sizeof(POST_CSR_REQUEST_END);
 
     while ((ret = mbedtls_ssl_write(&ssl, buf, len)) <= 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
@@ -540,6 +540,7 @@ int main(void)
     len = ret;
     mbedtls_printf("[C] %d bytes written\n\n%s", len, (char *) buf);
 
+    /*
     mbedtls_printf("[C]  > Write to server:");
     // fflush(stdout);
 
@@ -560,12 +561,13 @@ int main(void)
 
     len = ret;
     mbedtls_printf("[C] %d bytes written\n\n%s", len, (char *) buf);
+    */
 
     // Get the certificate issued by CA
     int ldevid_ca_cert_len;
     unsigned char ldevid_ca_cert[1024] = {0};
 
-    // Get crt len
+    // Get crt
     do {
         len = sizeof(buf) - 1;
         memset(buf, 0, sizeof(buf));
@@ -593,7 +595,7 @@ int main(void)
         mbedtls_printf(" %d bytes read\n\n%s", len, (char *) buf);
 
         // Get Certificate len from the response
-        if(get_crt_len(buf, &ldevid_ca_cert_len)!=0) {
+        if(get_crt(buf, (unsigned char *) ldevid_ca_cert, &ldevid_ca_cert_len)!=0) {
             mbedtls_printf("[C] error in reading cert len\n");
         }
         //ldevid_ca_cert_len = 345;
@@ -602,6 +604,7 @@ int main(void)
 
     } while (1);
 
+    /*
     // Get the certificate
     do {
         len = sizeof(buf) - 1;
@@ -644,6 +647,7 @@ int main(void)
         break;
 
     } while (1);
+    */
 
     // Parse the received certificate
     custom_x509_crt cert_gen;
@@ -689,12 +693,12 @@ void custom_exit(int status){
     EAPP_RETURN(status);
 }
 
-int get_crt_len(unsigned char *buf, int *len) {
-    int i = 0, tmp_len = 0;
-    unsigned char start[] = HTTP_CERTIFICATE_SIZE_RESPONSE_START;
-    unsigned char end[] = HTTP_CERTIFICATE_SIZE_RESPONSE_END;
+int get_crt(unsigned char *buf, unsigned char *crt, int *len) {
+    int i = 0, j = 0, tmp_len = 0;
+    unsigned char start_len[] = HTTP_CERTIFICATE_SIZE_RESPONSE_START;
+    unsigned char end_len[] = HTTP_CERTIFICATE_SIZE_RESPONSE_END;
     for(i=0; i<sizeof(HTTP_CERTIFICATE_SIZE_RESPONSE_START)-1; i++){
-        if(buf[i] != start[i])
+        if(buf[i] != start_len[i])
             return -1;
     }
     while(buf[i] >= '0' && buf[i] <= '9'){
@@ -702,11 +706,21 @@ int get_crt_len(unsigned char *buf, int *len) {
         tmp_len += buf[i] - '0';
         i++;
     }
-    for(int j = i; j < i+sizeof(HTTP_CERTIFICATE_SIZE_RESPONSE_END)-1; j++){
-        if(buf[j]!=end[j-i])
+    for(j = i; j < i+sizeof(HTTP_CERTIFICATE_SIZE_RESPONSE_END)-1; j++){
+        if(buf[j]!=end_len[j-i])
             return -1;
     }
     *len = tmp_len;
+    if(memcmp(buf+j, HTTP_CERTIFICATE_RESPONSE_START, sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1)!=0) {
+        mbedtls_printf("[C] cannot read certificate\n\n");
+        return -1;
+    }
+    memcpy(crt, buf+j+sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1, tmp_len);
+    if(memcmp(buf+j+sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1+tmp_len, 
+            HTTP_CERTIFICATE_RESPONSE_END, sizeof(HTTP_CERTIFICATE_RESPONSE_END))!=0){
+        mbedtls_printf("[C] cannot read certificate 2\n\n");
+        return -1;
+    }
     return 0;
 }
 
