@@ -33,13 +33,21 @@ int custom_net_connect(mbedtls_net_context *ctx, const char *host, const char *p
 
 int custom_net_send(void *ctx, const unsigned char *buf, size_t len) {
     int ret, retval;
-    ret = ocall(OCALL_NET_SEND, (unsigned char *)buf, len, &retval, sizeof(int));
+    unsigned  char tmp_buf[2048+sizeof(int)];
+    if(len > 2048)
+        return -1;
+    int *fd = (int*) tmp_buf;
+    *fd = ((mbedtls_net_context *) ctx)->fd;
+    memcpy(tmp_buf+sizeof(int), buf, len);
+    ret = ocall(OCALL_NET_SEND, (unsigned char *)tmp_buf, len+sizeof(int), &retval, sizeof(int));
     return ret|retval;
 }
 
 int custom_net_recv(void *ctx, unsigned char *buf, size_t len) {
     int ret;
     unsigned char tmp_buf[16896+sizeof(int)];
+    int *fd = (int*) tmp_buf;
+    *fd = ((mbedtls_net_context *) ctx)->fd;
     ret = ocall(OCALL_NET_RECV, tmp_buf, len, tmp_buf, len + sizeof(int));
     // printf("ocall returned %d\n", ret);
     int retval = * ((int*)tmp_buf);
@@ -50,5 +58,6 @@ int custom_net_recv(void *ctx, unsigned char *buf, size_t len) {
 }
 
 void custom_net_free(mbedtls_net_context *ctx) {
-    ocall(OCALL_NET_FREE, NULL, 0, NULL, 0);
+    int fd = ((mbedtls_net_context *) ctx)->fd;
+    ocall(OCALL_NET_FREE, (unsigned char *) &fd, sizeof(int), NULL, 0);
 }

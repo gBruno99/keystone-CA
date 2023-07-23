@@ -13,8 +13,6 @@ typedef struct {
   int retval;
 } net_connect_t;
 
-mbedtls_net_context server_fd;
-
 void
 net_connect_wrapper(void* buffer) {
   /* Parse and validate the incoming call data */
@@ -27,6 +25,7 @@ net_connect_wrapper(void* buffer) {
     return;
   }
 
+  mbedtls_net_context server_fd;
   mbedtls_net_init(&server_fd);
   /* Pass the arguments from the eapp to the exported ocall function */
   ret_val = mbedtls_net_connect(&server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP);
@@ -61,8 +60,10 @@ net_send_wrapper(void* buffer) {
     return;
   }
 
+  mbedtls_net_context server_fd;
+  server_fd.fd = *((int*)call_args);
   /* Pass the arguments from the eapp to the exported ocall function */
-  ret_val = mbedtls_net_send(&server_fd, (unsigned char *) call_args, arg_len);
+  ret_val = mbedtls_net_send(&server_fd, (unsigned char *) call_args+sizeof(int), arg_len-sizeof(int));
 
   /* Setup return data from the ocall function */
   uintptr_t data_section = edge_call_data_ptr();
@@ -91,6 +92,8 @@ net_recv_wrapper(void* buffer) {
   }
 
   unsigned char recv_buffer[RECV_BUFFER_SIZE+sizeof(int)] = {0};
+  mbedtls_net_context server_fd;
+  server_fd.fd = *((int*)call_args);
 
   if(arg_len > RECV_BUFFER_SIZE)
     ret_val = -1;
@@ -126,6 +129,8 @@ net_free_wrapper(void* buffer) {
     return;
   }
 
+  mbedtls_net_context server_fd;
+  server_fd.fd = *((int*)call_args);
   mbedtls_net_free(&server_fd);
   ret_val = 0;
 
