@@ -3,25 +3,27 @@
 // custom new_impl
 static int custom_x509_get_nonce(unsigned char **p, const unsigned char *end, custom_x509_buf *nonce) {
     int ret = CUSTOM_ERR_ERROR_CORRUPTION_DETECTED;
-    custom_x509_bitstring bs = { 0, 0, NULL };
+    size_t len = 0;
 
     #if CUSTOM_DEBUG_PRINTS
     printf("custom_x509_get_nonce\n");
     #endif
 
-    if ((ret = custom_asn1_get_bitstring(p, end, &bs)) != 0) {
+    if ((ret = custom_asn1_get_tag(p, end, &len,
+                                        CUSTOM_ASN1_OCTET_STRING)) != 0) {
         return CUSTOM_ERROR_ADD(CUSTOM_ERR_X509_INVALID_EXTENSIONS, ret);
     }
 
-    /* A bitstring with no flags set is still technically valid, as it will mean
-       that the certificate has no designated purpose at the time of creation. */
-    if (bs.len == 0) {
-        return CUSTOM_ERR_X509_INVALID_EXTENSIONS;
+    if (*p + len > end || len != NONCE_LEN) {
+        return CUSTOM_ERROR_ADD(CUSTOM_ERR_X509_INVALID_EXTENSIONS,
+                                    CUSTOM_ERR_ASN1_LENGTH_MISMATCH);
     }
 
     /* Get actual bitstring */
-    nonce->len = bs.len;
-    nonce->p = bs.p;
+    nonce->len = len;
+    nonce->p = custom_calloc(NONCE_LEN, 1);
+    custom_memcpy(nonce->p, *p, NONCE_LEN);
+    *p += len;
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("custom_x509_get_nonce", nonce->p, nonce->len);
@@ -32,25 +34,27 @@ static int custom_x509_get_nonce(unsigned char **p, const unsigned char *end, cu
 
 static int custom_x509_get_attestation_proof(unsigned char **p, const unsigned char *end, custom_x509_buf *attestation_proof) {
     int ret = CUSTOM_ERR_ERROR_CORRUPTION_DETECTED;
-    custom_x509_bitstring bs = { 0, 0, NULL };
+    size_t len = 0;
 
     #if CUSTOM_DEBUG_PRINTS
     printf("custom_x509_get_attestation_proof\n");
     #endif
 
-    if ((ret = custom_asn1_get_bitstring(p, end, &bs)) != 0) {
+    if ((ret = custom_asn1_get_tag(p, end, &len,
+                                        CUSTOM_ASN1_OCTET_STRING)) != 0) {
         return CUSTOM_ERROR_ADD(CUSTOM_ERR_X509_INVALID_EXTENSIONS, ret);
     }
 
-    /* A bitstring with no flags set is still technically valid, as it will mean
-       that the certificate has no designated purpose at the time of creation. */
-    if (bs.len == 0) {
-        return CUSTOM_ERR_X509_INVALID_EXTENSIONS;
+    if (*p + len > end || len != ATTESTATION_PROOF_LEN) {
+        return CUSTOM_ERROR_ADD(CUSTOM_ERR_X509_INVALID_EXTENSIONS,
+                                    CUSTOM_ERR_ASN1_LENGTH_MISMATCH);
     }
 
     /* Get actual bitstring */
-    attestation_proof->len = bs.len;
-    attestation_proof->p = bs.p;
+    attestation_proof->len = len;
+    attestation_proof->p = custom_calloc(ATTESTATION_PROOF_LEN, 1);
+    custom_memcpy(attestation_proof->p, *p, ATTESTATION_PROOF_LEN);
+    *p += len;
 
     #if CUSTOM_DEBUG_PRINTS
     print_hex_string("custom_x509_get_attestation_proof", attestation_proof->p, attestation_proof->len);
@@ -542,6 +546,8 @@ void custom_x509_csr_free(custom_x509_csr *csr)
 #endif
 
     custom_x509_crt_free(&(csr->cert_chain));
+    custom_free(csr->attestation_proof.p);
+    custom_free(csr->nonce.p);
 
     custom_asn1_free_named_data_list_shallow(csr->subject.next);
     custom_asn1_sequence_free(csr->subject_alt_names.next);
@@ -965,45 +971,53 @@ int custom_x509write_csr_set_dice_certs(custom_x509write_csr *ctx, unsigned char
 }
 
 int custom_x509write_csr_set_nonce(custom_x509write_csr *ctx, unsigned char *nonce) {
-    unsigned char buf[NONCE_LEN + 3] = { 0 };
+    unsigned char buf[NONCE_LEN + 2] = { 0 };
     unsigned char *c;
     int ret = CUSTOM_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len = 0;
     
-    c = buf + NONCE_LEN + 3;
+    c = buf + NONCE_LEN + 2;
 
-    ret = custom_asn1_write_named_bitstring(&c, buf, nonce, NONCE_LEN*8);
-    if (ret != (NONCE_LEN + 3)) {
+    CUSTOM_ASN1_CHK_ADD(len, custom_asn1_write_raw_buffer(&c, buf, nonce, NONCE_LEN));
+    CUSTOM_ASN1_CHK_ADD(len, custom_asn1_write_len(&c, buf, len));
+    CUSTOM_ASN1_CHK_ADD(len, custom_asn1_write_tag(&c, buf, CUSTOM_ASN1_OCTET_STRING));
+
+    if (len != (NONCE_LEN + 2)) {
         return ret;
     }
 
     #if CUSTOM_DEBUG_PRINTS
-    print_hex_string("asn1 nonce", c, NONCE_LEN+3);
+    print_hex_string("asn1 nonce", c, NONCE_LEN+2);
     #endif
 
     ret = custom_x509write_csr_set_extension(ctx, CUSTOM_OID_NONCE, CUSTOM_OID_SIZE(CUSTOM_OID_NONCE),
-        0, c, (size_t) ret);
+        0, c, (size_t) len);
 
     return ret;
 }
 
 int custom_x509write_csr_set_attestation_proof(custom_x509write_csr *ctx, unsigned char *attest_proof) {
-    unsigned char buf[ATTESTATION_PROOF_LEN + 3] = { 0 };
+    unsigned char buf[ATTESTATION_PROOF_LEN + 2] = { 0 };
     unsigned char *c;
     int ret = CUSTOM_ERR_ERROR_CORRUPTION_DETECTED;
+    size_t len = 0;
     
-    c = buf + ATTESTATION_PROOF_LEN + 3;
+    c = buf + ATTESTATION_PROOF_LEN + 2;
 
-    ret = custom_asn1_write_named_bitstring(&c, buf, attest_proof, ATTESTATION_PROOF_LEN*8);
-    if (ret != (ATTESTATION_PROOF_LEN + 3)) {
+    CUSTOM_ASN1_CHK_ADD(len, custom_asn1_write_raw_buffer(&c, buf, attest_proof, ATTESTATION_PROOF_LEN));
+    CUSTOM_ASN1_CHK_ADD(len, custom_asn1_write_len(&c, buf, len));
+    CUSTOM_ASN1_CHK_ADD(len, custom_asn1_write_tag(&c, buf, CUSTOM_ASN1_OCTET_STRING));
+
+    if (len != (ATTESTATION_PROOF_LEN + 2)) {
         return ret;
     }
-    
+
     #if CUSTOM_DEBUG_PRINTS
-    print_hex_string("asn1 attest_proof", c, ATTESTATION_PROOF_LEN+3);
+    print_hex_string("asn1 attest_proof", c, ATTESTATION_PROOF_LEN+2);
     #endif
 
     ret = custom_x509write_csr_set_extension(ctx, CUSTOM_OID_ATTESTATION_PROOF, CUSTOM_OID_SIZE(CUSTOM_OID_ATTESTATION_PROOF),
-        0, c, (size_t) ret);
+        0, c, (size_t) len);
 
     return ret;
 }

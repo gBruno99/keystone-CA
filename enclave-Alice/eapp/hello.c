@@ -64,37 +64,32 @@
 #define GET_NONCE_REQUEST "GET /nonce HTTP/1.0\r\n\r\n"
 
 #define POST_CSR_REQUEST_START \
-    "POST /csr/size HTTP/1.0\r\nContent-Type: text/html\r\n\r\n" \
-    "<h2>Client Alice - csr len</h2>\r\n" \
-    "<p>%d</p>\r\n" \
-    "<h2>Client Alice - csr</h2>\r\n" \
-    "<p>"
+    "POST /csr/size HTTP/1.0\r\nContent-Type: application/json\r\n\r\n" \
+    "{\"csr_len\": %d, \"csr\": \"0x" 
 
 #define POST_CSR_REQUEST_END \
-    "</p>\r\n"
+    "\"}\r\n"
 
 #define HTTP_NONCE_RESPONSE_START \
-    "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" \
-    "<h2>CA Server - nonce</h2>\r\n" \
-    "<p>"
+    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\n" \
+    "{\"nonce\": \"0x" 
 
 #define HTTP_NONCE_RESPONSE_END \
-"</p>\r\n"
+    "\"}\r\n"
 
 #define HTTP_CERTIFICATE_SIZE_RESPONSE_START \
-    "HTTP/1.0 200 OK\r\nContent-Type: text/html\r\n\r\n" \
-    "<h2>CA Server - crt len</h2>\r\n" \
-    "<p>"
+    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\n" \
+    "{\"crt_len\": " 
 
 #define HTTP_CERTIFICATE_SIZE_RESPONSE_END \
-"</p>\r\n"
+    ", "
 
 #define HTTP_CERTIFICATE_RESPONSE_START \
-    "<h2>CA Server - crt</h2>\r\n" \
-    "<p>"
+    "\"crt\": \"0x" 
 
 #define HTTP_CERTIFICATE_RESPONSE_END \
-"</p>\r\n"
+    "\"}\r\n"
+
 
 #define DEBUG_LEVEL 1
 
