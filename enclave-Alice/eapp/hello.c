@@ -23,6 +23,7 @@
 #include "app/malloc.h"
 
 #include "eapp/eapp_net.h"
+#include "eapp/eapp_crt.h"
 
 #include "mbedtls/build_info.h"
 
@@ -170,6 +171,8 @@ int main(void)
     mbedtls_net_context server_fd;
     uint32_t flags;
     unsigned char buf[2048];
+    int ldevid_ca_cert_len = 0;
+    unsigned char ldevid_ca_cert[1024] = {0};
     // const char *pers = "ssl_client1";
 
     // mbedtls_entropy_context entropy;
@@ -220,6 +223,15 @@ int main(void)
     print_hex_string("TCI enclave", parsed_report->enclave.hash, 64);
     print_hex_string("TCI sm", parsed_report->sm.hash, 64);
     custom_printf("\n");
+
+    // try to read certificate
+    // mbedtls_printf("Reading cert in memory...\n");
+    ret = read_crt((unsigned char *) ldevid_ca_cert, &ldevid_ca_cert_len);
+    if(ret == -1) {
+        mbedtls_printf("Error in retrieving crt\n");
+    } else {
+        print_hex_string("Stored crt", ldevid_ca_cert, ldevid_ca_cert_len);
+    }
 
     // Client - Step 1: Create LDevID keypair
     mbedtls_printf("[C] Generating LDevID...\n\n");
@@ -564,8 +576,6 @@ int main(void)
     */
 
     // Get the certificate issued by CA
-    int ldevid_ca_cert_len;
-    unsigned char ldevid_ca_cert[1024] = {0};
 
     // Get crt
     do {
@@ -685,6 +695,13 @@ exit:
     mbedtls_ssl_config_free(&conf);
     mbedtls_ctr_drbg_free(&ctr_drbg);
     // mbedtls_entropy_free(&entropy);
+
+    // store the certificate
+    mbedtls_printf("Storing the certificate in memory...\n");
+    ret = store_crt(ldevid_ca_cert, ldevid_ca_cert_len);
+    if(ret == -1) {
+        mbedtls_printf("Error in storing crt\n");
+    }
 
     mbedtls_exit(exit_code);
 }

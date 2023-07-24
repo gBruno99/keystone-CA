@@ -5,6 +5,7 @@
 #include "edge/edge_call.h"
 #include "host/keystone.h"
 #include "net.h"
+#include "crt.h"
 
 using namespace Keystone;
 
@@ -12,6 +13,8 @@ using namespace Keystone;
 #define OCALL_NET_SEND    2
 #define OCALL_NET_RECV    3
 #define OCALL_NET_FREE    4
+#define OCALL_STORE_CRT   5
+#define OCALL_READ_CRT    6
 
 int
 main(int argc, char** argv) {
@@ -29,6 +32,8 @@ main(int argc, char** argv) {
   register_call(OCALL_NET_SEND, net_send_wrapper);
   register_call(OCALL_NET_RECV, net_recv_wrapper);
   register_call(OCALL_NET_FREE, net_free_wrapper);
+  register_call(OCALL_STORE_CRT, store_cert_wrapper);
+  register_call(OCALL_READ_CRT, read_cert_wrapper);
 
   edge_call_init_internals(
       (uintptr_t)enclave.getSharedBuffer(), enclave.getSharedBufferSize());
