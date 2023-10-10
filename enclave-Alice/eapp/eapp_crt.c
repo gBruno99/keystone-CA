@@ -1,12 +1,15 @@
 #include "eapp/eapp_net.h"
 #include "app/syscall.h"
 #include <string.h>
+// #include "psa/crypto.h"
 
 #define OCALL_STORE_CRT   5
 #define OCALL_READ_CRT    6
+#define MAC_KEY           0x12121212
 
 int store_crt(unsigned char *crt, int crt_len) {
     unsigned long ret = -1;
+    // if(psa_mac_compute((mbedtls_svc_key_id_t)MAC_KEY, PSA_ALG_SHA3_512, crt, crt_len, ))
     ocall(OCALL_STORE_CRT, crt, crt_len, &ret, sizeof(unsigned long));
     if(ret != crt_len)
         return -1;

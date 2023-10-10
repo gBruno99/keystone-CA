@@ -355,7 +355,7 @@ reset:
 
         if (ret > 0) {
             if(memcmp(buf, GET_NONCE_REQUEST, sizeof(GET_NONCE_REQUEST))!=0) {
-                mbedtls_printf("Error in reading nonce reuqest\n");
+                mbedtls_printf("Error in reading nonce request\n");
                 goto reset;
             }
             break;
