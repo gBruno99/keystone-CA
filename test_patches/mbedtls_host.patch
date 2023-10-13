@@ -5815,7 +5815,7 @@ index 89bce40eb..e2f0cc5c8 100644
  extern const mbedtls_pk_info_t mbedtls_pk_ecdsa_opaque_info;
  extern const mbedtls_pk_info_t mbedtls_pk_rsa_opaque_info;
 diff --git a/library/pkparse.c b/library/pkparse.c
-index 800e352da..111cbb047 100644
+index 800e352da..e4514641c 100644
 --- a/library/pkparse.c
 +++ b/library/pkparse.c
 @@ -58,6 +58,9 @@
@@ -5844,7 +5844,7 @@ index 800e352da..111cbb047 100644
      }
  
 +    #if MBEDTLS_DEBUG_PRINTS
-+    mbedtls_printf("pk_get_pk_alg\n");
++    mbedtls_printf("pk_get_pk_alg - end\n");
 +    #endif
      return 0;
  }
@@ -6684,7 +6684,7 @@ index 50db95688..966dfd062 100644
  }
  
 diff --git a/library/x509_crt.c b/library/x509_crt.c
-index faf862364..f5453e65d 100644
+index faf862364..9355e3ee5 100644
 --- a/library/x509_crt.c
 +++ b/library/x509_crt.c
 @@ -78,6 +78,9 @@
@@ -6717,7 +6717,7 @@ index faf862364..f5453e65d 100644
  {
      const mbedtls_pk_type_t pk_alg = mbedtls_pk_get_type(pk);
  
-+   if(pk_alg == MBEDTLS_PK_ED25519){
++    if(pk_alg == MBEDTLS_PK_ED25519){
 +        return x509_profile_check_pk_alg(profile, pk_alg);
 +    }
 +
