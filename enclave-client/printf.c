@@ -736,130 +736,13 @@ int custom_printf(const char* format, ...){
   return len;
 }
 
-int print_hex_string(char* name, unsigned char* value, int size){
-  custom_printf("%s: 0x", name);
-  for(int i = 0; i< size; i++){
-    custom_printf("%02x", value[i]);
-  }
-  custom_printf("\n");
-  custom_printf("%s_len: %d\n", name, size);
-  return 0;
-}
-
-// certs prints
-int print_custom_asn1_buf(char *name, custom_asn1_buf buf){
-  custom_printf("%s_tag: %02x\n", name, buf.tag);
-  print_hex_string(name, buf.p, buf.len);
-  return 0;
-}
-
-int print_custom_asn1_named_data(char *name, custom_asn1_named_data buf){
-  char tmp[128] = {0};
-  sprintf(tmp, "%s_oid", name);
-  print_custom_asn1_buf(tmp, buf.oid);
-  sprintf(tmp, "%s_val", name);
-  print_custom_asn1_buf(name, buf.val);
-  custom_printf("%s_next: %p\n", name, buf.next);
-  return 0;
-}
-
-int print_custom_x509_time(char *name, custom_x509_time tm){
-  custom_printf("%s:\n- year=%d, mon=%d, day=%d\n- hour=%d, min=%d, sec=%d\n",
-    name, tm.year, tm.mon, tm.day, tm.hour, tm.min, tm.sec);
-  return 0;
-}
-
-int print_custom_pk_context(char *name, custom_pk_context pk){
-  char tmp[128] = {0};
-  sprintf(tmp, "%s - pk", name);
-  custom_printf("%s: %s\n", name, pk.pk_info->name);
-  print_hex_string(tmp, custom_pk_ed25519(pk)->pub_key, PUBLIC_KEY_SIZE);
-  return 0;
-}
-
-void print_custom_x509_cert(char *name, custom_x509_crt crt){
-  custom_printf("%s:\n", name);
-  print_custom_asn1_buf("raw", crt.raw);
-  print_custom_asn1_buf("tbs", crt.tbs);
-  custom_printf("\n");
-  custom_printf("version: %d\n", crt.version);
-  print_custom_asn1_buf("serial", crt.serial);
-  print_custom_asn1_buf("sig_oid", crt.sig_oid);
-  custom_printf("\n");
-  print_custom_asn1_buf("issuer_raw", crt.issuer_raw);
-  print_custom_asn1_buf("subject_raw", crt.subject_raw);
-  custom_printf("\n");
-  print_custom_asn1_named_data("issuer", crt.issuer);
-  print_custom_asn1_named_data("subject", crt.subject);
-  custom_printf("\n");
-  print_custom_x509_time("valid_from", crt.valid_from);
-  print_custom_x509_time("valid_to", crt.valid_to);
-  custom_printf("\n");
-  print_custom_asn1_buf("pk_raw", crt.pk_raw);
-  print_custom_pk_context("pk", crt.pk);
-  custom_printf("\n");
-  print_custom_asn1_buf("issuer_id", crt.issuer_id);
-  print_custom_asn1_buf("subject_id", crt.subject_id);
-  print_custom_asn1_buf("v3_ext", crt.v3_ext);
-  custom_printf("\n");
-  print_custom_asn1_buf("hash", crt.hash);
-  custom_printf("\n");
-  custom_printf("ca_istrue: %d\n", crt.ca_istrue);
-  custom_printf("max_pathlen: %d\n", crt.max_pathlen);
-  custom_printf("\n");
-  print_custom_asn1_buf("sig", crt.sig);
-  custom_printf("sig_md: %d\n", crt.sig_md);
-  custom_printf("sig_pk: %d\n", crt.sig_pk);
-  custom_printf("\n\n");
-  return;
-}
-
-void print_custom_x509write_csr(char *name, custom_x509write_csr *csr){
-  custom_asn1_named_data *cur;
-  custom_printf("%s:\n", name);
-  print_custom_pk_context("pk", *(csr->key));
-  custom_printf("\n");
-  cur = csr->subject;
-  while(cur!=NULL) {
-    print_custom_asn1_named_data("subject", *cur);
-    cur = cur->next;
-  }
-  custom_printf("\n");
-  cur = csr->extensions;
-  while(cur!=NULL) {
-    print_custom_asn1_named_data("extensions", *cur);
-    cur = cur->next;
-  }
-  custom_printf("\n\n");
-  return;
-}
-
-void print_custom_x509_csr(char *name, custom_x509_csr csr){
-  custom_printf("%s:\n", name);
-  print_custom_asn1_buf("raw", csr.raw);
-  print_custom_asn1_buf("cri", csr.cri);
-  custom_printf("\n");
-  custom_printf("version: %d\n", csr.version);
-  custom_printf("\n");
-  print_custom_asn1_buf("subject_raw", csr.subject_raw);
-  print_custom_asn1_named_data("subject", csr.subject);
-  custom_printf("\n");
-  print_custom_pk_context("pk", csr.pk);
-  custom_printf("\n");
-  custom_printf("key_usage: %d\n", csr.key_usage);
-  custom_printf("\n");
-  print_custom_x509_cert("cert_1", csr.cert_chain);
-  print_custom_x509_cert("cert_2", *(csr.cert_chain.next));
-  print_custom_x509_cert("cert_3", *(*(csr.cert_chain.next)).next);
-  print_custom_asn1_buf("nonce", csr.nonce);
-  print_custom_asn1_buf("attestation_proof", csr.attestation_proof);
-  custom_printf("\n");
-  custom_printf("ext_types: %d\n", csr.ext_types);
-  custom_printf("\n");
-  print_custom_asn1_buf("sig_oid", csr.sig_oid);
-  print_custom_asn1_buf("sig", csr.sig);
-  custom_printf("sig_md: %d\n", csr.sig_md);
-  custom_printf("sig_pk: %d\n", csr.sig_pk);
-  custom_printf("\n\n");
-  return;
+int custom_fprintf(FILE *stream, const char *format, ...){
+  int len;
+  va_list va;
+  va_start(va, format);
+  char buffer[512];
+  len = vsnprintf(buffer, 512, format, va);
+  va_end(va);
+  rt_print_string(buffer, len+1);
+  return len;
 }
