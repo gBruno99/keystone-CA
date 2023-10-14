@@ -36,12 +36,15 @@
 #include "mbedtls/error.h"
 #include "mbedtls/debug.h"
 #include "certs.h"
+#include "mbedtls/x509_csr.h"
+#include "mbedtls/keystone_ext.h"
+#include "mbedtls/print.h"
 
 #if defined(MBEDTLS_SSL_CACHE_C)
 #include "mbedtls/ssl_cache.h"
 #endif
 
-#include "custom_functions.h"
+// #include "mbedtls_functions.h"
 #include "ed25519/ed25519.h"
 #include "sha3/sha3.h"
 
@@ -115,16 +118,6 @@ static const unsigned char sanctum_ca_public_key[] = {
   0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23, 
   0x9b, 0xb4, 0x39, 0x31, 0x9d, 0x50, 0x47, 0xb1, 0xee, 0xe5, 0x62, 0xd9, 0xcc, 0x72, 0x6a, 0xc6
 };
-
-int print_hex_string(char* name, unsigned char* value, int size){
-  mbedtls_printf("%s: 0x", name);
-  for(int i = 0; i< size; i++){
-    mbedtls_printf("%02x", value[i]);
-  }
-  mbedtls_printf("\n");
-  mbedtls_printf("%s_len: %d\n", name, size);
-  return 0;
-}
 
 static void my_debug(void *ctx, int level,
                      const char *file, int line,
@@ -500,52 +493,52 @@ reset:
 
     // Parse and verify CSR
     mbedtls_printf("[S] Parsing CSR...\n\n");
-    custom_x509_csr csr;
-    custom_x509_csr_init(&csr);
+    mbedtls_x509_csr csr;
+    mbedtls_x509_csr_init(&csr);
 
-    ret = custom_x509_csr_parse_der(&csr, recv_csr, csr_len);
+    ret = mbedtls_x509_csr_parse_der(&csr, recv_csr, csr_len);
     mbedtls_printf("Parsing CSR - ret: %d\n", ret);
     mbedtls_printf("\n");
 
     // verify CSR signature
     mbedtls_printf("[S] Verifying CSR...\n\n");
     unsigned char csr_hash[64] = {0};
-    ret = custom_md(custom_md_info_from_type(csr.sig_md), csr.cri.p, csr.cri.len, csr_hash);
+    ret = mbedtls_md(mbedtls_md_info_from_type(csr.MBEDTLS_PRIVATE(sig_md)), csr.cri.p, csr.cri.len, csr_hash);
     mbedtls_printf("Hashing CSR- ret: %d\n", ret);
     #if PRINT_STRUCTS
     print_hex_string("Hash CSR", csr_hash, HASH_LEN);
     #endif
-    ret = custom_pk_verify_ext(csr.sig_pk, csr.sig_opts, &(csr.pk), csr.sig_md, csr_hash, HASH_LEN, csr.sig.p, csr.sig.len);
+    ret = mbedtls_pk_verify_ext(csr.MBEDTLS_PRIVATE(sig_pk), csr.MBEDTLS_PRIVATE(sig_opts), &(csr.pk), csr.MBEDTLS_PRIVATE(sig_md), csr_hash, HASH_LEN, csr.MBEDTLS_PRIVATE(sig).p, csr.MBEDTLS_PRIVATE(sig).len);
     mbedtls_printf("Verify CSR signature - ret: %d\n", ret);
     mbedtls_printf("\n");
 
     // verify nonces equality
     ret = csr.nonce.len != NONCE_LEN;
     mbedtls_printf("Verify nonce len - ret: %d\n", ret);
-    ret = custom_memcmp(csr.nonce.p, nonce, NONCE_LEN);
+    ret = memcmp(csr.nonce.p, nonce, NONCE_LEN);
     mbedtls_printf("Verify nonce value - ret: %d\n", ret);
     mbedtls_printf("\n");
 
     // parse trusted certificate
     uint32_t flags = 0;
-    custom_x509_crt trusted_certs;
+    mbedtls_x509_crt trusted_certs;
 
-    custom_x509_crt_init(&trusted_certs);
-    ret = custom_x509_crt_parse_der(&trusted_certs, ref_cert_man, ref_cert_man_len);
+    mbedtls_x509_crt_init(&trusted_certs);
+    ret = mbedtls_x509_crt_parse_der(&trusted_certs, ref_cert_man, ref_cert_man_len);
     mbedtls_printf("Parsing Trusted Certificate - ret: %d\n", ret);
 
     #if PRINT_STRUCTS
-    print_custom_x509_cert("Trusted Certificate", trusted_certs);
+    print_mbedtls_x509_cert("Trusted Certificate", trusted_certs);
     #endif
 
     // cert_chain.hash.p[15] = 0x56; // Used to break verification
 
     //  verify chain of certificates
-    ret = custom_x509_crt_verify(&(csr.cert_chain), &trusted_certs, NULL, NULL, &flags, NULL, NULL);
+    ret = mbedtls_x509_crt_verify_with_profile(&(csr.cert_chain), &trusted_certs, NULL, &mbedtls_x509_crt_profile_keystone, NULL, &flags, NULL, NULL);
     mbedtls_printf("Verifing Chain of Certificates - ret: %u, flags = %u\n", ret, flags);
     mbedtls_printf("\n");
 
-    custom_x509_crt_free(&trusted_certs);
+    mbedtls_x509_crt_free(&trusted_certs);
 
     // verify attestation proof
     unsigned char verification_pk[PUBLIC_KEY_SIZE] = {0};
@@ -568,72 +561,72 @@ reset:
     sha3_init(&ctx_hash, HASH_LEN);
     sha3_update(&ctx_hash, nonce, NONCE_LEN);
     sha3_update(&ctx_hash, reference_tci, HASH_LEN);
-    sha3_update(&ctx_hash, custom_pk_ed25519(csr.pk)->pub_key, PUBLIC_KEY_SIZE);
+    sha3_update(&ctx_hash, mbedtls_pk_ed25519(csr.pk)->pub_key, PUBLIC_KEY_SIZE);
     sha3_final(fin_hash, &ctx_hash);
 
     #if PRINT_STRUCTS
     print_hex_string("fin_hash", fin_hash, HASH_LEN);
     #endif
 
-    custom_pk_context key;
-    custom_pk_init(&key);
-    ret = custom_pk_parse_public_key(&key, verification_pk, PUBLIC_KEY_SIZE, 0);
+    mbedtls_pk_context key;
+    mbedtls_pk_init(&key);
+    ret = mbedtls_pk_parse_ed25519_key(&key, verification_pk, PUBLIC_KEY_SIZE, 0);
     mbedtls_printf("Parsing SM PK - ret: %d\n", ret);
 
-    ret = custom_pk_verify_ext(CUSTOM_PK_ED25519, NULL, &key, CUSTOM_MD_KEYSTONE_SHA3, fin_hash, HASH_LEN, csr.attestation_proof.p, csr.attestation_proof.len);
+    ret = mbedtls_pk_verify_ext(MBEDTLS_PK_ED25519, NULL, &key, MBEDTLS_MD_KEYSTONE_SHA3, fin_hash, HASH_LEN, csr.attestation_proof.p, csr.attestation_proof.len);
     mbedtls_printf("Verifying attestation proof - ret: %d\n", ret);
     mbedtls_printf("\n");
     fflush(stdout);
 
-    custom_pk_free(&key);
+    mbedtls_pk_free(&key);
 
     // Generate Enclave Certificate
     mbedtls_printf("[S] Generating Certificate...\n\n");
 
-    custom_x509write_cert cert_encl;
-    custom_x509write_crt_init(&cert_encl);
+    mbedtls_x509write_cert cert_encl;
+    mbedtls_x509write_crt_init(&cert_encl);
 
-    ret = custom_x509write_crt_set_issuer_name(&cert_encl, "O=Certificate Authority");
+    ret = mbedtls_x509write_crt_set_issuer_name(&cert_encl, "O=Certificate Authority");
     mbedtls_printf("Setting issuer - ret: %d\n", ret);
     
-    ret = custom_x509write_crt_set_subject_name(&cert_encl, "CN=Client1,O=Certificate Authority");
+    ret = mbedtls_x509write_crt_set_subject_name(&cert_encl, "CN=Client1,O=Certificate Authority");
     mbedtls_printf("Setting subject - ret: %d\n", ret);
 
-    custom_pk_context subj_key;
-    custom_pk_init(&subj_key);
+    mbedtls_pk_context subj_key;
+    mbedtls_pk_init(&subj_key);
 
-    custom_pk_context issu_key;
-    custom_pk_init(&issu_key);
+    mbedtls_pk_context issu_key;
+    mbedtls_pk_init(&issu_key);
     
-    ret = custom_pk_parse_public_key(&issu_key, sanctum_ca_private_key, PRIVATE_KEY_SIZE, PARSE_PRIVATE_KEY);
+    ret = mbedtls_pk_parse_ed25519_key(&issu_key, sanctum_ca_private_key, PRIVATE_KEY_SIZE, PARSE_PRIVATE_KEY);
     mbedtls_printf("Parsing issuer pk - ret: %d\n", ret);
 
-    ret = custom_pk_parse_public_key(&issu_key, sanctum_ca_public_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
+    ret = mbedtls_pk_parse_ed25519_key(&issu_key, sanctum_ca_public_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
     mbedtls_printf("Parsing issuer sk - ret: %d\n", ret);
 
-    ret = custom_pk_parse_public_key(&subj_key, custom_pk_ed25519(csr.pk)->pub_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
+    ret = mbedtls_pk_parse_ed25519_key(&subj_key, mbedtls_pk_ed25519(csr.pk)->pub_key, PUBLIC_KEY_SIZE, PARSE_PUBLIC_KEY);
     mbedtls_printf("Parsing subject pk - ret: %d\n", ret);
 
-    custom_x509write_crt_set_subject_key(&cert_encl, &subj_key);
+    mbedtls_x509write_crt_set_subject_key(&cert_encl, &subj_key);
     mbedtls_printf("Setting subject key\n");
 
-    custom_x509write_crt_set_issuer_key(&cert_encl, &issu_key);
+    mbedtls_x509write_crt_set_issuer_key(&cert_encl, &issu_key);
     mbedtls_printf("Setting issuer keys\n");
     
     unsigned char serial[] = {0xAB, 0xAB, 0xAB};
 
-    ret = custom_x509write_crt_set_serial_raw(&cert_encl, serial, 3);
+    ret = mbedtls_x509write_crt_set_serial_raw(&cert_encl, serial, 3);
     mbedtls_printf("Setting serial - ret: %d\n", ret);
     
-    custom_x509write_crt_set_md_alg(&cert_encl, CUSTOM_MD_KEYSTONE_SHA3);
+    mbedtls_x509write_crt_set_md_alg(&cert_encl, MBEDTLS_MD_KEYSTONE_SHA3);
     mbedtls_printf("Setting md algorithm\n");
     
-    ret = custom_x509write_crt_set_validity(&cert_encl, "20230101000000", "20240101000000");
+    ret = mbedtls_x509write_crt_set_validity(&cert_encl, "20230101000000", "20240101000000");
     mbedtls_printf("Setting validity - ret: %d\n", ret);
 
     char oid_ext[] = {0xff, 0x20, 0xff};
 
-    ret = custom_x509write_crt_set_extension(&cert_encl, oid_ext, 3, 0, reference_tci, HASH_LEN);
+    ret = mbedtls_x509write_crt_set_extension(&cert_encl, oid_ext, 3, 0, reference_tci, HASH_LEN);
     mbedtls_printf("Setting tci - ret: %d\n", ret);
 
     mbedtls_printf("\n");
@@ -643,7 +636,7 @@ reset:
     int effe_len_cert_der;
     size_t len_cert_der_tot = 1024;
 
-    ret = custom_x509write_crt_der(&cert_encl, cert_der, len_cert_der_tot, NULL, NULL);
+    ret = mbedtls_x509write_crt_der(&cert_encl, cert_der, len_cert_der_tot, NULL, NULL);
     mbedtls_printf("Writing Enclave Certificate - ret: %d\n", ret);
     effe_len_cert_der = ret;
     
@@ -654,10 +647,10 @@ reset:
     print_hex_string("Enclave Certificate", cert_real, effe_len_cert_der);
     fflush(stdout);
 
-    custom_pk_free(&issu_key);
-    custom_pk_free(&subj_key);
-    custom_x509write_crt_free(&cert_encl);
-    custom_x509_csr_free(&csr);
+    mbedtls_pk_free(&issu_key);
+    mbedtls_pk_free(&subj_key);
+    mbedtls_x509write_crt_free(&cert_encl);
+    mbedtls_x509_csr_free(&csr);
 
     /*
      * 7. Write the 200 Response
