@@ -34,7 +34,7 @@
 
 #include <stdarg.h>
 #include <stddef.h>
-#include "custom_functions.h"
+//#include "custom_functions.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -103,16 +103,6 @@ int custom_printf(const char* format, ...);
 
 typedef struct _IO_FILE FILE;
 int custom_fprintf(FILE *stream, const char *format, ...);
-
-int print_hex_string(char* name, unsigned char* value, int size);
-
-int print_custom_asn1_buf(char *name, custom_asn1_buf buf);
-int print_custom_asn1_named_data(char *name, custom_asn1_named_data buf);
-int print_custom_x509_time(char *name, custom_x509_time tm);
-int print_custom_pk_context(char *name, custom_pk_context pk);
-void print_custom_x509_cert(char *name, custom_x509_crt crt);
-void print_custom_x509write_csr(char *name, custom_x509write_csr *csr);
-void print_custom_x509_csr(char *name, custom_x509_csr csr);
 
 
 #ifdef __cplusplus
