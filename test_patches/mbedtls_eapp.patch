@@ -7443,7 +7443,7 @@ index 50db95688..75bbc022d 100644
  }
  
 diff --git a/library/x509_crt.c b/library/x509_crt.c
-index faf862364..e92f162b8 100644
+index faf862364..8e74c9356 100644
 --- a/library/x509_crt.c
 +++ b/library/x509_crt.c
 @@ -78,6 +78,9 @@
@@ -7867,7 +7867,7 @@ index faf862364..e92f162b8 100644
              *flags |= MBEDTLS_X509_BADCERT_FUTURE;
          }
  
-+        if(checkTCIValue(&child->subject, &child->hash)){
++        if((child->sig_pk == MBEDTLS_PK_ED25519) && checkTCIValue(&child->subject, &child->hash)){
 +            #if MBEDTLS_DEBUG_PRINTS
 +            mbedtls_printf("x509_crt_verify_chain - failed TCI\n");
 +            #endif
