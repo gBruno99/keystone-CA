@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Usage (from ./scripts): KEYSTONE_BUILD_DIR=../../keystone/build ./get_attestation.sh ../my_mbedtls_stdlib/include/
+# Usage (from ./scripts): KEYSTONE_BUILD_DIR=../../keystone/build ./get_attestation.sh ../mbedtls_builds/mbedtls_host/library/verifier_utils_mock/
 
 output_path=$1
 

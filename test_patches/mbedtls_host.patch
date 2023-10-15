@@ -167,6 +167,51 @@ index 000000000..33c538f3b
 +
 +#endif
 \ No newline at end of file
+diff --git a/include/mbedtls/sha3.h b/include/mbedtls/sha3.h
+new file mode 100644
+index 000000000..e0560f88b
+--- /dev/null
++++ b/include/mbedtls/sha3.h
+@@ -0,0 +1,39 @@
++// sha3.h
++// 19-Nov-11  Markku-Juhani O. Saarinen <mjos@iki.fi>
++
++#ifndef SHA3_H
++#define SHA3_H
++
++#include <stddef.h>
++#include <stdint.h>
++
++#ifndef KECCAKF_ROUNDS
++#define KECCAKF_ROUNDS 24
++#endif
++
++#ifndef ROTL64
++#define ROTL64(x, y) (((x) << (y)) | ((x) >> (64 - (y))))
++#endif
++
++// state context
++typedef struct {
++    union {                                 // state:
++        uint8_t b[200];                     // 8-bit bytes
++        uint64_t q[25];                     // 64-bit words
++    } st;
++    int pt, rsiz, mdlen;                    // these don't overflow
++} sha3_ctx_t;
++
++// Compression function.
++void sha3_keccakf(uint64_t st[25]);
++
++// OpenSSL - like interfece
++int sha3_init(sha3_ctx_t *c, int mdlen);    // mdlen = hash output in bytes
++int sha3_update(sha3_ctx_t *c, const void *data, size_t len);
++int sha3_final(void *md, sha3_ctx_t *c);    // digest goes to md
++
++// compute a sha3 hash (md) of given byte length from "in"
++void *sha3(const void *in, size_t inlen, void *md, int mdlen);
++
++#endif
++
 diff --git a/include/mbedtls/x509.h b/include/mbedtls/x509.h
 index 8dfd1f364..c9af9dcf2 100644
 --- a/include/mbedtls/x509.h
@@ -230,7 +275,7 @@ index f3f9e13a0..60d7cf97c 100644
  
      mbedtls_x509_buf sig_oid;
 diff --git a/library/CMakeLists.txt b/library/CMakeLists.txt
-index 535988303..6e3f0efae 100644
+index 535988303..9d9091869 100644
 --- a/library/CMakeLists.txt
 +++ b/library/CMakeLists.txt
 @@ -11,6 +11,14 @@ if(NOT DEFINED MBEDTLS_DIR)
@@ -243,7 +288,7 @@ index 535988303..6e3f0efae 100644
 +    ed25519/sc.c
 +    ed25519/sign.c
 +    ed25519/verify.c
-+    sha3/sha3.c
++    sha3.c
 +    verifier_utils_mock/verifier_utils_mock.c
      aes.c
      aesni.c
@@ -3159,12 +3204,12 @@ index 000000000..17fde2df1
 +#endif
 diff --git a/library/ed25519/keypair.c b/library/ed25519/keypair.c
 new file mode 100644
-index 000000000..253b2c277
+index 000000000..6dfffb605
 --- /dev/null
 +++ b/library/ed25519/keypair.c
 @@ -0,0 +1,16 @@
 +#include "ed25519.h"
-+#include "sha3/sha3.h"
++#include "mbedtls/sha3.h"
 +#include "ge.h"
 +
 +
@@ -5411,12 +5456,12 @@ index 000000000..e29e7fa5a
 +#endif
 diff --git a/library/ed25519/sign.c b/library/ed25519/sign.c
 new file mode 100644
-index 000000000..4c651cbb5
+index 000000000..ce02b3ef3
 --- /dev/null
 +++ b/library/ed25519/sign.c
 @@ -0,0 +1,31 @@
 +#include "ed25519.h"
-+#include "sha3/sha3.h"
++#include "mbedtls/sha3.h"
 +#include "ge.h"
 +#include "sc.h"
 +
@@ -5448,12 +5493,12 @@ index 000000000..4c651cbb5
 +}
 diff --git a/library/ed25519/verify.c b/library/ed25519/verify.c
 new file mode 100644
-index 000000000..605c63c4e
+index 000000000..63d0b8b74
 --- /dev/null
 +++ b/library/ed25519/verify.c
 @@ -0,0 +1,77 @@
 +#include "ed25519.h"
-+#include "sha3/sha3.h"
++#include "mbedtls/sha3.h"
 +#include "ge.h"
 +#include "sc.h"
 +
@@ -5542,7 +5587,7 @@ index 37e44c6bd..d83ab77fb 100644
  };
  
 diff --git a/library/md.c b/library/md.c
-index bebe3580b..50170a76f 100644
+index bebe3580b..a137c8a3e 100644
 --- a/library/md.c
 +++ b/library/md.c
 @@ -65,6 +65,10 @@
@@ -5550,7 +5595,7 @@ index bebe3580b..50170a76f 100644
  #endif
  
 +#include "mbedtls/keystone_ext.h"
-+#include "sha3/sha3.h"
++#include "mbedtls/sha3.h"
 +#include "mbedtls/print.h"
 +
  #if defined(MBEDTLS_MD_CAN_MD5)
@@ -6120,11 +6165,11 @@ index 000000000..eb23097d5
 +  mbedtls_printf("\n\n");
 +  return;
 +}
-diff --git a/library/sha3/sha3.c b/library/sha3/sha3.c
+diff --git a/library/sha3.c b/library/sha3.c
 new file mode 100644
-index 000000000..198a023bd
+index 000000000..cdaab2f47
 --- /dev/null
-+++ b/library/sha3/sha3.c
++++ b/library/sha3.c
 @@ -0,0 +1,165 @@
 +// sha3.c
 +// 19-Nov-11  Markku-Juhani O. Saarinen <mjos@iki.fi>
@@ -6132,7 +6177,7 @@ index 000000000..198a023bd
 +// Revised 07-Aug-15 to match with official release of FIPS PUB 202 "SHA3"
 +// Revised 03-Sep-15 for portability + OpenSSL - style API
 +
-+#include "sha3.h"
++#include "mbedtls/sha3.h"
 +
 +// update the state with given number of rounds
 +
@@ -6291,64 +6336,19 @@ index 000000000..198a023bd
 +    return md;
 +}
 +
-diff --git a/library/sha3/sha3.h b/library/sha3/sha3.h
-new file mode 100644
-index 000000000..e0560f88b
---- /dev/null
-+++ b/library/sha3/sha3.h
-@@ -0,0 +1,39 @@
-+// sha3.h
-+// 19-Nov-11  Markku-Juhani O. Saarinen <mjos@iki.fi>
-+
-+#ifndef SHA3_H
-+#define SHA3_H
-+
-+#include <stddef.h>
-+#include <stdint.h>
-+
-+#ifndef KECCAKF_ROUNDS
-+#define KECCAKF_ROUNDS 24
-+#endif
-+
-+#ifndef ROTL64
-+#define ROTL64(x, y) (((x) << (y)) | ((x) >> (64 - (y))))
-+#endif
-+
-+// state context
-+typedef struct {
-+    union {                                 // state:
-+        uint8_t b[200];                     // 8-bit bytes
-+        uint64_t q[25];                     // 64-bit words
-+    } st;
-+    int pt, rsiz, mdlen;                    // these don't overflow
-+} sha3_ctx_t;
-+
-+// Compression function.
-+void sha3_keccakf(uint64_t st[25]);
-+
-+// OpenSSL - like interfece
-+int sha3_init(sha3_ctx_t *c, int mdlen);    // mdlen = hash output in bytes
-+int sha3_update(sha3_ctx_t *c, const void *data, size_t len);
-+int sha3_final(void *md, sha3_ctx_t *c);    // digest goes to md
-+
-+// compute a sha3 hash (md) of given byte length from "in"
-+void *sha3(const void *in, size_t inlen, void *md, int mdlen);
-+
-+#endif
-+
 diff --git a/library/verifier_utils_mock/enclave_reference_value.h b/library/verifier_utils_mock/enclave_reference_value.h
 new file mode 100644
-index 000000000..ebc9316b9
+index 000000000..c4cc0c769
 --- /dev/null
 +++ b/library/verifier_utils_mock/enclave_reference_value.h
 @@ -0,0 +1,9 @@
 +unsigned char enclave_reference_value[] = {
-+  0xec, 0x0a, 0x43, 0x75, 0x11, 0xef, 0x9a, 0xf8, 0xd9, 0x06, 0x4e, 0x17,
-+  0xfa, 0xe0, 0x1e, 0x21, 0x10, 0x73, 0xa2, 0x01, 0x01, 0xba, 0x3e, 0x49,
-+  0x54, 0x6c, 0x88, 0x4c, 0x4b, 0x12, 0x7b, 0x54, 0x3c, 0x51, 0x96, 0xac,
-+  0xf0, 0xa8, 0xd8, 0xc4, 0xe2, 0x4e, 0xc6, 0xf5, 0x40, 0x58, 0x2e, 0xa9,
-+  0xc6, 0x53, 0x54, 0x82, 0xc3, 0x26, 0xc5, 0xfc, 0x51, 0x05, 0x1a, 0x7d,
-+  0xa0, 0xb3, 0x72, 0xed
++  0x01, 0xb9, 0xb3, 0x37, 0x89, 0x17, 0x98, 0x9c, 0xb2, 0x89, 0xd4, 0xae,
++  0x21, 0xe8, 0x63, 0xd4, 0xf1, 0x11, 0x81, 0xd3, 0xb6, 0x4f, 0xde, 0xf9,
++  0x13, 0xc5, 0xaf, 0xaa, 0x06, 0x47, 0xe7, 0xc9, 0x3b, 0xbc, 0x58, 0xd1,
++  0x17, 0x37, 0xdc, 0x77, 0x8e, 0x58, 0x1a, 0xd0, 0x21, 0xb7, 0xb6, 0xd2,
++  0xac, 0x41, 0x38, 0x9f, 0x25, 0xd1, 0xc9, 0x30, 0xf0, 0x16, 0x35, 0x15,
++  0x28, 0xb8, 0xe8, 0x6e
 +};
 +unsigned int enclave_reference_value_len = 64;
 diff --git a/library/verifier_utils_mock/sm_reference_value.h b/library/verifier_utils_mock/sm_reference_value.h
@@ -7610,7 +7610,7 @@ index cd117cbd4..fb4b648ae 100644
  
      mbedtls_platform_zeroize(csr, sizeof(mbedtls_x509_csr));
 diff --git a/library/x509write_crt.c b/library/x509write_crt.c
-index 70d7e93db..dd7ecba52 100644
+index 70d7e93db..f2f369b83 100644
 --- a/library/x509write_crt.c
 +++ b/library/x509write_crt.c
 @@ -47,6 +47,10 @@
@@ -7618,7 +7618,7 @@ index 70d7e93db..dd7ecba52 100644
  #include "hash_info.h"
  
 +#include "mbedtls/keystone_ext.h"
-+#include "sha3/sha3.h"
++#include "mbedtls/sha3.h"
 +#include "mbedtls/print.h"
 +
  void mbedtls_x509write_crt_init(mbedtls_x509write_cert *ctx)
