@@ -47,8 +47,10 @@
 #include <string.h>
 
 #define CERTS_MAX_LEN           512
-#define CSR_MAX_LEN             2048
+#define CSR_MAX_LEN             3072
 #define ATTEST_DATA_MAX_LEN     1024
+#define NONCE_MAX_LEN           128
+#define BUF_SIZE                2048
 
 #define PRINT_STRUCTS 0
 
@@ -97,15 +99,15 @@ int main(void)
     int exit_code = MBEDTLS_EXIT_FAILURE;
     mbedtls_net_context server_fd;
     uint32_t flags;
-    unsigned char buf[2048];
-    char report[2048] = {0};
+    unsigned char buf[BUF_SIZE];
+    char report[BUF_SIZE] = {0};
     struct report *parsed_report;
     unsigned char pk[PUBLIC_KEY_SIZE] = {0};
-    unsigned char nonce[128];
-    unsigned char csr[3072];
+    unsigned char nonce[NONCE_MAX_LEN];
+    unsigned char csr[CSR_MAX_LEN];
     int csr_len;
     int ldevid_ca_cert_len = 0;
-    unsigned char ldevid_ca_cert[1024] = {0};
+    unsigned char ldevid_ca_cert[2*CERTS_MAX_LEN] = {0};
     mbedtls_x509_crt cert_gen;
 
     // const char *pers = "ssl_client1";
@@ -136,8 +138,8 @@ int main(void)
     mbedtls_printf("[C] Getting TCI values...\n");
     attest_enclave((void*) report, "test", 5);
     parsed_report = (struct report*) report;
-    print_hex_string("TCI enclave", parsed_report->enclave.hash, 64);
-    print_hex_string("TCI sm", parsed_report->sm.hash, 64);
+    print_hex_string("TCI enclave", parsed_report->enclave.hash, KEYSTONE_HASH_MAX_SIZE);
+    print_hex_string("TCI sm", parsed_report->sm.hash, KEYSTONE_HASH_MAX_SIZE);
     mbedtls_printf("\n");
 
     // Try to read certificate in memory
@@ -291,51 +293,15 @@ int main(void)
     // Send request to get the nonce
     len = sprintf((char *) buf, GET_NONCE_REQUEST);
 
-    if(send_buf(&ssl, buf, &len)!=0){
+    if((ret = send_buf(&ssl, buf, &len))!=-1){
         goto exit;
     }
 
     // Read the nonce from the response
-    /*
-    if(recv_buf(&ssl, buf, &len, nonce, NULL, get_nonce)!=0){
+
+    if((ret = recv_buf(&ssl, buf, &len, nonce, NULL, get_nonce))!=-1){
         goto exit;
     }
-    */
-    mbedtls_printf("[C]  < Read from server:");
-    do {
-        len = sizeof(buf) - 1;
-        memset(buf, 0, sizeof(buf));
-        ret = mbedtls_ssl_read(&ssl, buf, len);
-
-        if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
-            continue;
-        }
-
-        if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
-            break;
-        }
-
-        if (ret < 0) {
-            mbedtls_printf("failed\n[C]  ! mbedtls_ssl_read returned %d\n\n", ret);
-            break;
-        }
-
-        if (ret == 0) {
-            mbedtls_printf("\n\n[C] EOF\n\n");
-            break;
-        }
-
-        len = ret;
-        mbedtls_printf(" %d bytes read\n\n%s", len, (char *) buf);
-
-        // Get the data from the response
-        if(get_nonce(buf, nonce, NULL) != 0){
-            return -1;
-        } 
-        
-        break;
-
-    } while (1);
 
     // Nonce contained in the response
     print_hex_string("nonce", nonce, NONCE_LEN);
@@ -362,7 +328,7 @@ int main(void)
     memcpy(buf+len, POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END));
     len += sizeof(POST_CSR_REQUEST_END);
 
-    if(send_buf(&ssl, buf, &len)!=0){
+    if((ret = send_buf(&ssl, buf, &len))!=-1){
         goto exit;
     }
 
@@ -370,47 +336,10 @@ int main(void)
     mbedtls_printf("[C] Getting LDevID_crt...\n");
 
     // Get crt from the response
-    /*
-    if(recv_buf(&ssl, buf, &len, ldevid_ca_cert, &ldevid_ca_cert_len, get_crt)!=0){
+    if((ret = recv_buf(&ssl, buf, &len, ldevid_ca_cert, &ldevid_ca_cert_len, get_crt))!=-1){
         goto exit;
     }
-    */
-    mbedtls_printf("[C]  < Read from server:");
-     do {
-        len = sizeof(buf) - 1;
-        memset(buf, 0, (len)+1);
-        ret = mbedtls_ssl_read(&ssl, buf, len);
-
-        if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
-            continue;
-        }
-
-        if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
-            break;
-        }
-
-        if (ret < 0) {
-            mbedtls_printf("failed\n[C]  ! mbedtls_ssl_read returned %d\n\n", ret);
-            break;
-        }
-
-        if (ret == 0) {
-            mbedtls_printf("\n\n[C] EOF\n\n");
-            break;
-        }
-
-        len = ret;
-        mbedtls_printf(" %d bytes read\n\n%s", len, (char *) buf);
-
-        // Get the data from the response
-        if(get_crt(buf, ldevid_ca_cert, &ldevid_ca_cert_len) != 0){
-            return -1;
-        } 
-        
-        break;
-
-    } while (1);
-
+    
     print_hex_string("LDevID_crt", ldevid_ca_cert, ldevid_ca_cert_len);
     mbedtls_printf("\n");
 
@@ -428,7 +357,7 @@ int main(void)
 
     // Store the certificate
     mbedtls_printf("Storing the certificate in memory...\n");
-    if(store_crt(ldevid_ca_cert, ldevid_ca_cert_len) == -1) {
+    if((ret = store_crt(ldevid_ca_cert, ldevid_ca_cert_len)) == -1) {
         mbedtls_printf("Error in storing LDevID_crt\n");
         goto exit;
     }
@@ -520,22 +449,23 @@ int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, int *len){
     while ((ret = mbedtls_ssl_write(ssl, buf, *len)) <= 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
             mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_write returned %d\n\n", ret);
-            return -1;
+            return ret;
         }
     }
 
     *len = ret;
     mbedtls_printf("[C] %d bytes written\n\n%s", *len, (char *) buf);
-    return 0;
+    return -1;
 }
 
+// buf must be BUF_SIZE byte long
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, int *len, unsigned char *data, int *data_len, 
     int (*handler)(unsigned char *recv_buf, unsigned char *out_data, int *out_len)){
     int ret;
     mbedtls_printf("[C]  < Read from server:");
-     do {
-        *len = sizeof(buf) - 1;
-        memset(buf, 0, (*len)+1);
+    do {
+        *len = BUF_SIZE - 1;
+        memset(buf, 0, BUF_SIZE);
         ret = mbedtls_ssl_read(ssl, buf, *len);
 
         if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
@@ -561,25 +491,25 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, int *len, unsigned ch
 
         // Get the data from the response
         if(handler(buf, data, data_len) != 0){
-            return -1;
+            return -2;
         } 
-        
+        ret = -1;
         break;
 
     } while (1);
-    return 0;
+    return ret;
 }
 
 int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *csr, int *csr_len){
     unsigned char *certs[3];
     int sizes[3];
     mbedtls_pk_context key;
-    unsigned char attest_proof[512];
+    unsigned char attest_proof[ATTEST_DATA_MAX_LEN];
     size_t attest_proof_len;
     mbedtls_x509write_csr req;
     unsigned char key_usage = MBEDTLS_X509_KU_DIGITAL_SIGNATURE;
     const char subject_name[] = "CN=Client,O=Enclave";
-    unsigned char out_csr[3072];
+    unsigned char out_csr[CSR_MAX_LEN];
 
     certs[0] = mbedtls_calloc(1, CERTS_MAX_LEN);
     if(certs[0]==NULL)
@@ -644,11 +574,11 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *csr, int 
     print_mbedtls_x509write_csr("CSR write struct", &req);
     #endif
 
-    *csr_len = mbedtls_x509write_csr_der(&req, out_csr, 3072, NULL, NULL);
+    *csr_len = mbedtls_x509write_csr_der(&req, out_csr, CSR_MAX_LEN, NULL, NULL);
     mbedtls_printf("Writing CSR - ret: %d\n", *csr_len);
 
     unsigned char *gen_csr = out_csr;
-    int dif_csr = 3072-*csr_len;
+    int dif_csr = CSR_MAX_LEN-(*csr_len);
     gen_csr += dif_csr;
 
     memcpy(csr, gen_csr, *csr_len);
