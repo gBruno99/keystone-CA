@@ -1,9 +1,9 @@
 diff --git a/include/mbedtls/keystone_ext.h b/include/mbedtls/keystone_ext.h
 new file mode 100644
-index 000000000..5df5b8d4d
+index 000000000..12a936766
 --- /dev/null
 +++ b/include/mbedtls/keystone_ext.h
-@@ -0,0 +1,71 @@
+@@ -0,0 +1,73 @@
 +#ifndef MBEDTLS_KEYSTONE_EXT_H
 +#define MBEDTLS_KEYSTONE_EXT_H
 +
@@ -17,6 +17,8 @@ index 000000000..5df5b8d4d
 +#define ATTESTATION_PROOF_LEN   64
 +#define PRIVATE_KEY_SIZE        64 // includes public key
 +#define PUBLIC_KEY_SIZE         32
++#define ED25519_PARSE_PUBLIC_KEY    0
++#define ED25519_PARSE_PRIVATE_KEY   1
 +#define KEYSTONE_PK_SIGNATURE_MAX_SIZE  64
 +#define KEYSTONE_HASH_MAX_SIZE          64
 +
