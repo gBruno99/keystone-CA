@@ -76,8 +76,13 @@ then
   cd mbedtls_host
   git checkout 3c3b94a31b9d91e1579c48165658486171c82a36
   python3 -m pip install --user -r scripts/basic.requirements.txt
-  mkdir build && cd build
+  patch -p1 < $DEMO_DIR/patches/mbedtls_host.patch
+  mkdir build_riscv && cd build_riscv
   cmake -DCMAKE_TOOLCHAIN_FILE=$DEMO_DIR/riscv-toolchain.cmake -DENABLE_TESTING=0ff ..
+  cmake --build .
+  cd ..
+  mkdir build_linux && cd build_linux
+  cmake  -DENABLE_TESTING=0ff ..
   cmake --build .
   cd ../..
 fi
@@ -86,41 +91,41 @@ export MBEDTLS_DIR_HOST=$(pwd)/mbedtls_host
 
 cd ..
 
-if [ ! -d openssl ]
-then
-  git clone https://github.com/openssl/openssl.git openssl
-  cd openssl
-  CC=gcc CXX=g++ CROSS_COMPILE=riscv64-unknown-linux-gnu- ./Configure linux64-riscv64 --prefix=/home/giacomo/Documents/keystone-CA/openssl_install_dir --openssldir=/home/giacomo/Documents/keystone-CA/openssl_install_dir/ssl --cross-compile-prefix=riscv64-unknown-linux-gnu- no-deprecated no-hw no-threads no-apps no-async no-shared no-dynamic-engine no-comp no-dso no-module no-pinshared -static
-  make
-  make install
-  cd ..
-fi
+# if [ ! -d openssl ]
+# then
+#   git clone https://github.com/openssl/openssl.git openssl
+#   cd openssl
+#   CC=gcc CXX=g++ CROSS_COMPILE=riscv64-unknown-linux-gnu- ./Configure linux64-riscv64 --prefix=/home/giacomo/Documents/keystone-CA/openssl_install_dir --openssldir=/home/giacomo/Documents/keystone-CA/openssl_install_dir/ssl --cross-compile-prefix=riscv64-unknown-linux-gnu- no-deprecated no-hw no-threads no-apps no-async no-shared no-dynamic-engine no-comp no-dso no-module no-pinshared -static
+#   make
+#   make install
+#   cd ..
+# fi
 
-export OPENSSL_DIR=$(pwd)/openssl_install_dir 
+# export OPENSSL_DIR=$(pwd)/openssl_install_dir 
 
 # Build the demo
 mkdir -p build
 cd build
 cmake ..
 make
-make hello-package
-#make client-package
-make hello-native-package
-make enclave-client-package
-make tls-client-package
-make tls-client-enclave-package
+# make hello-package
+# make client-package
+# make hello-native-package
+# make enclave-client-package
+# make tls-client-package
+# make tls-client-enclave-package
 make enclave-Alice-package
 
-# copy enclave packages - only for me
-cp hello/hello.ke ../../keystone/build/overlay/root/
-#cp client/client.ke ../../keystone/build/overlay/root/
-cp hello-native/hello-native.ke ../../keystone/build/overlay/root/
-cp enclave-client/enclave-client.ke ../../keystone/build/overlay/root/
-cp tls-client/tls-client.ke ../../keystone/build/overlay/root/
-cp tls-client-enclave/tls-client-enclave.ke ../../keystone/build/overlay/root/
-cp tls-server/tls-server.riscv ../../keystone/build/overlay/root/
+# Copy enclave packages - only for me
+# cp hello/hello.ke ../../keystone/build/overlay/root/
+# cp client/client.ke ../../keystone/build/overlay/root/
+# cp hello-native/hello-native.ke ../../keystone/build/overlay/root/
+# cp enclave-client/enclave-client.ke ../../keystone/build/overlay/root/
+# cp tls-client/tls-client.ke ../../keystone/build/overlay/root/
+# cp tls-client-enclave/tls-client-enclave.ke ../../keystone/build/overlay/root/
+# cp tls-server/tls-server.riscv ../../keystone/build/overlay/root/
 cp enclave-Alice/enclave-Alice.ke ../../keystone/build/overlay/root/
-cp server-CA/server-CA.riscv ../../keystone/build/overlay/root/
+# cp server-CA/server-CA.riscv ../../keystone/build/overlay/root/
 
 # Done!
 echo -e "************ Demo binaries built and copied into overlay directory. ***************

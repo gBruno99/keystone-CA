@@ -36,7 +36,7 @@ target_include_directories(${eapp_bin}
 # host
 
 add_executable(${host_bin} ${host_src} host/net.cpp host/net.h host/crt.cpp host/crt.h)
-target_link_libraries(${host_bin} ${KEYSTONE_LIB_HOST} ${KEYSTONE_LIB_EDGE} ${MBEDTLS_LIB_TLS_HOST} ${MBEDTLS_LIB_X509_HOST} ${MBEDTLS_LIB_CRYPTO_HOST})
+target_link_libraries(${host_bin} ${KEYSTONE_LIB_HOST} ${KEYSTONE_LIB_EDGE} ${MBEDTLS_LIB_TLS_HOST_RISCV} ${MBEDTLS_LIB_X509_HOST_RISCV} ${MBEDTLS_LIB_CRYPTO_HOST_RISCV})
 target_include_directories(${host_bin}
   PUBLIC ${KEYSTONE_SDK_DIR}/include/host
   PUBLIC ${KEYSTONE_SDK_DIR}/include/edge

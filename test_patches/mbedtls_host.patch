@@ -1,3 +1,15 @@
+diff --git a/.gitignore b/.gitignore
+index 8824ecea0..2e71a6295 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -57,3 +57,7 @@ massif-*
+ /TAGS
+ /cscope*.out
+ /tags
++
++# Build directories for Keystone project
++/build_riscv/
++/build_linux/
 diff --git a/include/mbedtls/keystone_ext.h b/include/mbedtls/keystone_ext.h
 new file mode 100644
 index 000000000..25a40c882
