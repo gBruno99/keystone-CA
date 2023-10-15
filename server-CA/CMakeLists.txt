@@ -10,7 +10,7 @@ set(ed25519_files ../my_mbedtls_stdlib/ed25519/ed25519.h ../my_mbedtls_stdlib/ed
 ../my_mbedtls_stdlib/ed25519/ge.h ../my_mbedtls_stdlib/ed25519/ge.c ../my_mbedtls_stdlib/ed25519/keypair.c ../my_mbedtls_stdlib/ed25519/precomp_data.h
 ../my_mbedtls_stdlib/ed25519/sc.h ../my_mbedtls_stdlib/ed25519/sc.c ../my_mbedtls_stdlib/ed25519/sign.c ../my_mbedtls_stdlib/ed25519/verify.c)
 
-add_executable(${host_bin} ${host_src} certs.c certs.h
+add_executable(${host_bin} ${host_src} certs.c certs.h host/ref_certs.c host/ref_certs.h host/net.h
 ${sha3_dir}/sha3.h ${sha3_dir}/sha3.c ${ed25519_files})
 target_link_libraries(${host_bin} ${MBEDTLS_LIB_TLS_HOST} ${MBEDTLS_LIB_X509_HOST} ${MBEDTLS_LIB_CRYPTO_HOST})
 target_include_directories(${host_bin} 
