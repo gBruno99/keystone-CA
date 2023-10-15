@@ -52,6 +52,9 @@
 #define NONCE_MAX_LEN           128
 #define BUF_SIZE                2048
 
+#define NET_SUCCESS     -1
+#define HANDLER_ERROR   -2
+
 #define PRINT_STRUCTS 0
 
 #define DEBUG_LEVEL 1
@@ -293,13 +296,13 @@ int main(void)
     // Send request to get the nonce
     len = sprintf((char *) buf, GET_NONCE_REQUEST);
 
-    if((ret = send_buf(&ssl, buf, &len))!=-1){
+    if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
         goto exit;
     }
 
     // Read the nonce from the response
 
-    if((ret = recv_buf(&ssl, buf, &len, nonce, NULL, get_nonce))!=-1){
+    if((ret = recv_buf(&ssl, buf, &len, nonce, NULL, get_nonce))!=NET_SUCCESS){
         goto exit;
     }
 
@@ -328,7 +331,7 @@ int main(void)
     memcpy(buf+len, POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END));
     len += sizeof(POST_CSR_REQUEST_END);
 
-    if((ret = send_buf(&ssl, buf, &len))!=-1){
+    if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
         goto exit;
     }
 
@@ -336,7 +339,7 @@ int main(void)
     mbedtls_printf("[C] Getting LDevID_crt...\n");
 
     // Get crt from the response
-    if((ret = recv_buf(&ssl, buf, &len, ldevid_ca_cert, &ldevid_ca_cert_len, get_crt))!=-1){
+    if((ret = recv_buf(&ssl, buf, &len, ldevid_ca_cert, &ldevid_ca_cert_len, get_crt))!=NET_SUCCESS){
         goto exit;
     }
     
@@ -455,7 +458,7 @@ int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, int *len){
 
     *len = ret;
     mbedtls_printf("[C] %d bytes written\n\n%s", *len, (char *) buf);
-    return -1;
+    return NET_SUCCESS;
 }
 
 // buf must be BUF_SIZE byte long
@@ -491,9 +494,9 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, int *len, unsigned ch
 
         // Get the data from the response
         if(handler(buf, data, data_len) != 0){
-            return -2;
+            return HANDLER_ERROR;
         } 
-        ret = -1;
+        ret = NET_SUCCESS;
         break;
 
     } while (1);
