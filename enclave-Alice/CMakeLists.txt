@@ -21,7 +21,7 @@ endif()
 # ../my_mbedtls/ed25519/ge.h ../my_mbedtls/ed25519/ge.c ../my_mbedtls/ed25519/keypair.c ../my_mbedtls/ed25519/precomp_data.h
 # ../my_mbedtls/ed25519/sc.h ../my_mbedtls/ed25519/sc.c ../my_mbedtls/ed25519/sign.c ../my_mbedtls/ed25519/verify.c)
 
-add_executable(${eapp_bin} ${eapp_src} certs.c certs.h eapp/eapp_net.h eapp/eapp_net.c eapp/eapp_crt.h eapp/eapp_crt.c eapp/printf.h eapp/printf.c) 
+add_executable(${eapp_bin} ${eapp_src} certs.c certs.h eapp/ref_certs.c eapp/ref_certs.h eapp/eapp_net.h eapp/eapp_net.c eapp/eapp_crt.h eapp/eapp_crt.c eapp/printf.h eapp/printf.c) 
 # ${my_mbedtls_files} ${sha3_dir}/sha3.h ${sha3_dir}/sha3.c ${ed25519_files})
 target_link_libraries(${eapp_bin} "-nostdlib -static -T ${CMAKE_CURRENT_SOURCE_DIR}/app.lds" ${KEYSTONE_LIB_EAPP} ${KEYSTONE_LIB_EDGE} ${MBEDTLS_LIB_TLS_EAPP} ${MBEDTLS_LIB_X509_EAPP} ${MBEDTLS_LIB_CRYPTO_EAPP})
 target_include_directories(${eapp_bin} 
