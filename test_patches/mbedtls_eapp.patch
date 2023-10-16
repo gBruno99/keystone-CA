@@ -1,3 +1,48 @@
+diff --git a/include/mbedtls/ed25519.h b/include/mbedtls/ed25519.h
+new file mode 100644
+index 000000000..b5b1560dc
+--- /dev/null
++++ b/include/mbedtls/ed25519.h
+@@ -0,0 +1,39 @@
++#ifndef ED25519_H
++#define ED25519_H
++
++#include <stddef.h>
++
++#if defined(_WIN32)
++    #if defined(ED25519_BUILD_DLL)
++        #define ED25519_DECLSPEC __declspec(dllexport)
++    #elif defined(ED25519_DLL)
++        #define ED25519_DECLSPEC __declspec(dllimport)
++    #else
++        #define ED25519_DECLSPEC
++    #endif
++#else
++    #define ED25519_DECLSPEC
++#endif
++
++
++#ifdef __cplusplus
++extern "C" {
++#endif
++
++#ifndef ED25519_NO_SEED
++int ED25519_DECLSPEC ed25519_create_seed(unsigned char *seed);
++#endif
++
++void ED25519_DECLSPEC ed25519_create_keypair(unsigned char *public_key, unsigned char *private_key, const unsigned char *seed);
++void ED25519_DECLSPEC ed25519_sign(unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key, const unsigned char *private_key);
++int ED25519_DECLSPEC ed25519_verify(const unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key);
++
++//void ED25519_DECLSPEC ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar);
++//void ED25519_DECLSPEC ed25519_key_exchange(unsigned char *shared_secret, const unsigned char *public_key, const unsigned char *private_key);
++
++
++#ifdef __cplusplus
++}
++#endif
++
++#endif
 diff --git a/include/mbedtls/keystone_ext.h b/include/mbedtls/keystone_ext.h
 new file mode 100644
 index 000000000..12a936766
@@ -933,12 +978,12 @@ index acc4208cc..c65cfb9b3 100644
  
 diff --git a/library/ed25519.c b/library/ed25519.c
 new file mode 100644
-index 000000000..d9f579165
+index 000000000..28fc6208a
 --- /dev/null
 +++ b/library/ed25519.c
 @@ -0,0 +1,361 @@
 +#include "mbedtls/keystone_ext.h"
-+#include "ed25519/ed25519.h"
++#include "mbedtls/ed25519.h"
 +#include "hash_info.h"
 +#include "mbedtls/print.h"
 +
@@ -1321,51 +1366,6 @@ index 000000000..8a573d83a
 +
 +3. This notice may not be removed or altered from any source distribution.
 +
-diff --git a/library/ed25519/ed25519.h b/library/ed25519/ed25519.h
-new file mode 100644
-index 000000000..b5b1560dc
---- /dev/null
-+++ b/library/ed25519/ed25519.h
-@@ -0,0 +1,39 @@
-+#ifndef ED25519_H
-+#define ED25519_H
-+
-+#include <stddef.h>
-+
-+#if defined(_WIN32)
-+    #if defined(ED25519_BUILD_DLL)
-+        #define ED25519_DECLSPEC __declspec(dllexport)
-+    #elif defined(ED25519_DLL)
-+        #define ED25519_DECLSPEC __declspec(dllimport)
-+    #else
-+        #define ED25519_DECLSPEC
-+    #endif
-+#else
-+    #define ED25519_DECLSPEC
-+#endif
-+
-+
-+#ifdef __cplusplus
-+extern "C" {
-+#endif
-+
-+#ifndef ED25519_NO_SEED
-+int ED25519_DECLSPEC ed25519_create_seed(unsigned char *seed);
-+#endif
-+
-+void ED25519_DECLSPEC ed25519_create_keypair(unsigned char *public_key, unsigned char *private_key, const unsigned char *seed);
-+void ED25519_DECLSPEC ed25519_sign(unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key, const unsigned char *private_key);
-+int ED25519_DECLSPEC ed25519_verify(const unsigned char *signature, const unsigned char *message, size_t message_len, const unsigned char *public_key);
-+
-+//void ED25519_DECLSPEC ed25519_add_scalar(unsigned char *public_key, unsigned char *private_key, const unsigned char *scalar);
-+//void ED25519_DECLSPEC ed25519_key_exchange(unsigned char *shared_secret, const unsigned char *public_key, const unsigned char *private_key);
-+
-+
-+#ifdef __cplusplus
-+}
-+#endif
-+
-+#endif
 diff --git a/library/ed25519/fe.c b/library/ed25519/fe.c
 new file mode 100644
 index 000000000..2105eb7b2
@@ -3543,11 +3543,11 @@ index 000000000..17fde2df1
 +#endif
 diff --git a/library/ed25519/keypair.c b/library/ed25519/keypair.c
 new file mode 100644
-index 000000000..6dfffb605
+index 000000000..a2260a3d2
 --- /dev/null
 +++ b/library/ed25519/keypair.c
 @@ -0,0 +1,16 @@
-+#include "ed25519.h"
++#include "mbedtls/ed25519.h"
 +#include "mbedtls/sha3.h"
 +#include "ge.h"
 +
@@ -5795,11 +5795,11 @@ index 000000000..e29e7fa5a
 +#endif
 diff --git a/library/ed25519/sign.c b/library/ed25519/sign.c
 new file mode 100644
-index 000000000..ce02b3ef3
+index 000000000..d338b4ec3
 --- /dev/null
 +++ b/library/ed25519/sign.c
 @@ -0,0 +1,31 @@
-+#include "ed25519.h"
++#include "mbedtls/ed25519.h"
 +#include "mbedtls/sha3.h"
 +#include "ge.h"
 +#include "sc.h"
@@ -5832,11 +5832,11 @@ index 000000000..ce02b3ef3
 +}
 diff --git a/library/ed25519/verify.c b/library/ed25519/verify.c
 new file mode 100644
-index 000000000..63d0b8b74
+index 000000000..a37c2ae33
 --- /dev/null
 +++ b/library/ed25519/verify.c
 @@ -0,0 +1,77 @@
-+#include "ed25519.h"
++#include "mbedtls/ed25519.h"
 +#include "mbedtls/sha3.h"
 +#include "ge.h"
 +#include "sc.h"
