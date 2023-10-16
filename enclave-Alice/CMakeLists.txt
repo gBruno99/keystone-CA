@@ -1,5 +1,5 @@
 set(eapp_bin enclave-Alice)
-set(eapp_src eapp/hello_new.c)
+set(eapp_src eapp/eapp.c)
 set(host_bin enclave-Alice-runner)
 set(host_src host/host.cpp)
 set(package_name "enclave-Alice.ke")
