@@ -281,6 +281,7 @@ reset:
     // Step 1: Receive request and send nonce
     // Read request
     if((ret = recv_buf(&ssl, buf, &len, NULL, NULL, check_nonce_request))!=NET_SUCCESS){
+        if(ret == HANDLER_ERROR) ret = -1;
         goto reset;
     }
 
@@ -310,10 +311,13 @@ reset:
     // Step 2: Receive CSR and verify it
     // Wait for CSR
     if((ret = recv_buf(&ssl, buf, &len, recv_csr, &csr_len, get_csr))!=NET_SUCCESS){
+        if(ret == HANDLER_ERROR) ret = -1;
         goto exit;
     }
 
+    mbedtls_printf("\n");
     print_hex_string("[S] CSR", recv_csr, csr_len);
+    mbedtls_printf("\n");
     
     // Parse and verify CSR
     if((ret = verify_csr(recv_csr, csr_len, nonce))!=0){
@@ -396,7 +400,7 @@ exit:
 
 int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len) {
     if(memcmp(buf, GET_NONCE_REQUEST, sizeof(GET_NONCE_REQUEST))!=0) {
-        mbedtls_printf("Error in reading nonce request\n");
+        mbedtls_printf("[S] error in reading nonce request\n\n");
         return -1;
     }
     return 0;
@@ -409,7 +413,7 @@ int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len) {
     int digits = 0;
     // Read csr_len from the request
     if (sscanf((const char *)buf, POST_CSR_REQUEST_START, &enc_csr_len) != 1) {
-        mbedtls_printf("Error in reading csr_len\n");
+        mbedtls_printf("[S] error in reading csr_len\n\n");
         return -1;
     }
 
@@ -453,7 +457,7 @@ int verify_csr(unsigned char *recv_csr, size_t csr_len, unsigned char *nonce) {
     }
 
     // Verify CSR signature
-    mbedtls_printf("[S] Verifying CSR...\n");
+    mbedtls_printf("Verifying CSR...\n");
     ret = mbedtls_md(mbedtls_md_info_from_type(csr.MBEDTLS_PRIVATE(sig_md)), csr.cri.p, csr.cri.len, csr_hash);
     mbedtls_printf("Hashing CSR- ret: %d\n", ret);
     if(ret != 0) {
@@ -590,7 +594,7 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
 
     // Get enclave reference TCI
     ret = getReferenceTCI(&csr, reference_tci);
-    mbedtls_printf("Getting Reference Enclave TCI - ret: %d\n", ret);
+    mbedtls_printf("Getting Reference Enclave TCI - ret: %d\n\n", ret);
     #if PRINT_STRUCTS
     print_hex_string("Reference Enclave TCI", reference_tci, KEYSTONE_HASH_MAX_SIZE);
     #endif
@@ -602,6 +606,7 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
     // Set certificate fields
     mbedtls_x509write_crt_init(&cert_encl);
 
+    mbedtls_printf("Setting Certificate fields...\n");
     ret = mbedtls_x509write_crt_set_issuer_name(&cert_encl, "O=Certificate Authority");
     mbedtls_printf("Setting issuer - ret: %d\n", ret);
     if(ret != 0) {
@@ -712,6 +717,7 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
     *crt_len = effe_len_cert_der;
 
     print_hex_string("Enclave Certificate", cert_real, effe_len_cert_der);
+    mbedtls_printf("\n");
     fflush(stdout);
 
     mbedtls_pk_free(&issu_key);

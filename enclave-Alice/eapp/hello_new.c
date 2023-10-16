@@ -150,7 +150,7 @@ int main(void)
     mbedtls_printf("\n");
 
     // Try to read certificate in memory
-    mbedtls_printf("Retrieving cert from memory...\n");
+    mbedtls_printf("[C] Retrieving cert from memory...\n");
     ret = read_crt((unsigned char *) ldevid_ca_cert, &ldevid_ca_cert_len);
     if(ret == -1) {
         mbedtls_printf("Error in retrieving crt\n");
@@ -307,6 +307,7 @@ int main(void)
     // Read the nonce from the response
 
     if((ret = recv_buf(&ssl, buf, &len, nonce, NULL, get_nonce))!=NET_SUCCESS){
+        if(ret == HANDLER_ERROR) ret = -1;
         goto exit;
     }
 
@@ -343,13 +344,16 @@ int main(void)
     }
 
     // Step 6: Get the certificate issued by CA
+    mbedtls_printf(" ...\n");
     mbedtls_printf("[C] Getting LDevID_crt...\n");
 
     // Get crt from the response
     if((ret = recv_buf(&ssl, buf, &len, ldevid_ca_cert, &ldevid_ca_cert_len, get_crt))!=NET_SUCCESS){
+        if(ret == HANDLER_ERROR) ret = -1;
         goto exit;
     }
     
+    mbedtls_printf(" ...\n");
     print_hex_string("LDevID_crt", ldevid_ca_cert, ldevid_ca_cert_len);
     mbedtls_printf("\n");
 
@@ -366,7 +370,7 @@ int main(void)
     mbedtls_x509_crt_free(&cert_gen);
 
     // Store the certificate
-    mbedtls_printf("Storing the certificate in memory...\n");
+    mbedtls_printf("[C] Storing the certificate in memory...\n");
     if((ret = store_crt(ldevid_ca_cert, ldevid_ca_cert_len)) == -1) {
         mbedtls_printf("Error in storing LDevID_crt\n");
         goto exit;
@@ -470,7 +474,7 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
         return -1;
     }
 
-    return mbedtls_base64_decode(crt, CERTS_MAX_LEN, crt_len, enc_crt, enc_crt_len);;
+    return mbedtls_base64_decode(crt, CERTS_MAX_LEN, crt_len, enc_crt, enc_crt_len);
 }
 
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len){
