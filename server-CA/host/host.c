@@ -40,6 +40,7 @@
 #include "mbedtls/keystone_ext.h"
 #include "mbedtls/print.h"
 #include "mbedtls/oid.h"
+#include "mbedtls/base64.h"
 
 #if defined(MBEDTLS_SSL_CACHE_C)
 #include "mbedtls/ssl_cache.h"
@@ -54,6 +55,7 @@
 #define BUF_SIZE                2048
 #define CSR_MAX_LEN             3072
 #define CERTS_MAX_LEN           1024
+#define NONCE_MAX_LEN           128
 
 #define NET_SUCCESS     -1
 #define HANDLER_ERROR   -2
@@ -64,18 +66,18 @@
 
 #define DEBUG_LEVEL 0
 
-int check_nonce_request(unsigned char *buf, unsigned char *nonce, int *nonce_len);
+int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
 
-int get_csr(unsigned char *buf, unsigned char *csr, int *csr_len);
+int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len);
 
-int verify_csr(unsigned char *recv_csr, int csr_len, unsigned char *nonce);
+int verify_csr(unsigned char *recv_csr, size_t csr_len, unsigned char *nonce);
 
-int issue_crt(unsigned char *recv_csr, int csr_len, unsigned char *crt, int *crt_len);
+int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_t *crt_len);
 
-int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, int *len);
+int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
 
-int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, int *len, unsigned char *data, int *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, int *out_len));
+int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
+    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len));
 
 static void my_debug(void *ctx, int level,
                      const char *file, int line,
@@ -89,7 +91,8 @@ static void my_debug(void *ctx, int level,
 
 int main(void)
 {
-    int ret, len;
+    int ret; 
+    size_t len;
     mbedtls_net_context listen_fd, client_fd;
     unsigned char buf[BUF_SIZE];
     const char *pers = "ssl_server";
@@ -107,10 +110,14 @@ int main(void)
         0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
         0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
     };
+    unsigned char enc_nonce[NONCE_MAX_LEN];
+    size_t enc_nonce_len = 0;
     unsigned char recv_csr[CSR_MAX_LEN] = {0};
-    int csr_len = 0;
+    size_t csr_len = 0;
     unsigned char crt[CERTS_MAX_LEN] = {0};
-    int crt_len = 0;
+    size_t crt_len = 0;
+    unsigned char enc_crt[CERTS_MAX_LEN];
+    size_t enc_crt_len = 0;
 
     mbedtls_net_init(&listen_fd);
     mbedtls_net_init(&client_fd);
@@ -278,10 +285,12 @@ reset:
     }
 
     // Write the nonce into the response
-    memcpy(buf, HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1);
-    len = sizeof(HTTP_NONCE_RESPONSE_START)-1;
-    memcpy(buf+len, nonce, sizeof(nonce));
-    len += sizeof(nonce);
+    if((ret = mbedtls_base64_encode(enc_nonce, NONCE_MAX_LEN, &enc_nonce_len, nonce, NONCE_LEN))!=0) {
+        goto exit;
+    }
+    len = sprintf((char*) buf, HTTP_NONCE_RESPONSE_START, enc_nonce_len);
+    memcpy(buf+len, enc_nonce, enc_nonce_len);
+    len += enc_nonce_len;
     memcpy(buf+len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END));
     len += sizeof(HTTP_NONCE_RESPONSE_END);
 
@@ -321,12 +330,13 @@ reset:
 
     // Generate response
     // Write certificate len
-    len = sprintf((char *) buf, HTTP_CERTIFICATE_SIZE_RESPONSE, crt_len);
+    if((ret = mbedtls_base64_encode(enc_crt, CERTS_MAX_LEN, &enc_crt_len, crt, crt_len))!=0) {
+        goto exit;
+    }
+    len = sprintf((char *) buf, HTTP_CERTIFICATE_RESPONSE_START, enc_crt_len);
     // Write ceritificate into response
-    memcpy(buf+len, HTTP_CERTIFICATE_RESPONSE_START, sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1);
-    len += sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1;
-    memcpy(buf+len, crt, crt_len);
-    len += crt_len;
+    memcpy(buf+len, enc_crt, enc_crt_len);
+    len += enc_crt_len;
     memcpy(buf+len, HTTP_CERTIFICATE_RESPONSE_END, sizeof(HTTP_CERTIFICATE_RESPONSE_END));
     len += sizeof(HTTP_CERTIFICATE_RESPONSE_END);
 
@@ -384,7 +394,7 @@ exit:
     mbedtls_exit(ret);
 }
 
-int check_nonce_request(unsigned char *buf, unsigned char *nonce, int *nonce_len) {
+int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len) {
     if(memcmp(buf, GET_NONCE_REQUEST, sizeof(GET_NONCE_REQUEST))!=0) {
         mbedtls_printf("Error in reading nonce request\n");
         return -1;
@@ -392,24 +402,35 @@ int check_nonce_request(unsigned char *buf, unsigned char *nonce, int *nonce_len
     return 0;
 }
 
-int get_csr(unsigned char *buf, unsigned char *csr, int *csr_len) {
+int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len) {
+    unsigned char enc_csr[CSR_MAX_LEN];
+    size_t enc_csr_len;
+    size_t tmp_len = 0;
+    int digits = 0;
     // Read csr_len from the request
-    if (sscanf((const char *)buf, POST_CSR_REQUEST_START, csr_len) != 1) {
+    if (sscanf((const char *)buf, POST_CSR_REQUEST_START, &enc_csr_len) != 1) {
         mbedtls_printf("Error in reading csr_len\n");
         return -1;
     }
-    mbedtls_printf("[S] csr_len=%d\n", *csr_len);
+
+    tmp_len = enc_csr_len;
+    while(tmp_len > 0) { 
+        digits++;
+        tmp_len/=10;
+    } 
+    digits -= 3;
+
     // Read CSR from the request
-    memcpy(csr, buf + sizeof(POST_CSR_REQUEST_START), *csr_len);
+    memcpy(enc_csr, buf + sizeof(POST_CSR_REQUEST_START)-1+digits, enc_csr_len);
     
-    if (memcmp(buf + sizeof(POST_CSR_REQUEST_START) + (*csr_len), POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END)) != 0) {
+    if (memcmp(buf + sizeof(POST_CSR_REQUEST_START) + digits + enc_csr_len -1 , POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END)) != 0) {
         mbedtls_printf("[S] cannot read csr 2\n\n");
         return -1;
     }
-    return 0;
+    return mbedtls_base64_decode(csr, CSR_MAX_LEN, csr_len, enc_csr, enc_csr_len);
 }
 
-int verify_csr(unsigned char *recv_csr, int csr_len, unsigned char *nonce) {
+int verify_csr(unsigned char *recv_csr, size_t csr_len, unsigned char *nonce) {
     int ret;
     mbedtls_x509_csr csr;
     unsigned char csr_hash[KEYSTONE_HASH_MAX_SIZE] = {0};
@@ -543,7 +564,7 @@ int verify_csr(unsigned char *recv_csr, int csr_len, unsigned char *nonce) {
     return 0;
 }
 
-int issue_crt(unsigned char *recv_csr, int csr_len, unsigned char *crt, int *crt_len) {
+int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_t *crt_len) {
     int ret;
     mbedtls_x509_csr csr;
     mbedtls_x509write_cert cert_encl;
@@ -700,7 +721,7 @@ int issue_crt(unsigned char *recv_csr, int csr_len, unsigned char *crt, int *crt
     return 0;
 }
 
-int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, int *len) {
+int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len) {
     int ret;
     mbedtls_printf("[S]  > Write to client:");
     fflush(stdout);
@@ -720,12 +741,12 @@ int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, int *len) {
     }
 
     *len = ret;
-    mbedtls_printf(" %d bytes written\n\n%s\n", *len, (char *) buf);
+    mbedtls_printf(" %lu bytes written\n\n%s\n", *len, (char *) buf);
     return NET_SUCCESS;
 }
 
-int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, int *len, unsigned char *data, int *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, int *out_len)) {
+int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
+    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len)) {
     int ret;
     mbedtls_printf("[S]  < Read from client:");
     fflush(stdout);
@@ -757,7 +778,7 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, int *len, unsigned ch
         }
 
         *len = ret;
-        mbedtls_printf(" %d bytes read\n\n%s", *len, (char *) buf);
+        mbedtls_printf(" %lu bytes read\n\n%s", *len, (char *) buf);
 
         if (ret > 0) {
             if(handler(buf, data, data_len)!=0) {

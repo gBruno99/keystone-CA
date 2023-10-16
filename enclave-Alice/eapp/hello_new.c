@@ -36,6 +36,7 @@
 #include "mbedtls/ctr_drbg.h"
 #include "mbedtls/error.h"
 #include "mbedtls/x509_csr.h"
+#include "mbedtls/base64.h"
 #include "mbedtls/print.h"
 #include "mbedtls/keystone_ext.h"
 #include "certs.h"
@@ -83,22 +84,23 @@ struct report
   byte dev_public_key[PUBLIC_KEY_SIZE];
 };
 
-int get_nonce(unsigned char *buf, unsigned char *nonce, int *nonce_len);
+int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
 
-int get_crt(unsigned char *buf, unsigned char *crt, int *len);
+int get_crt(unsigned char *buf, unsigned char *crt, size_t *len);
 
 void custom_exit(int status);
 
-int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *csr, int *csr_len);
+int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *csr, size_t *csr_len);
 
-int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, int *len);
+int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
 
-int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, int *len, unsigned char *data, int *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, int *out_len));
+int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
+    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len));
 
 int main(void)
 {
-    int ret = 1, len;
+    int ret = 1;
+    size_t len;
     int exit_code = MBEDTLS_EXIT_FAILURE;
     mbedtls_net_context server_fd;
     uint32_t flags;
@@ -108,10 +110,12 @@ int main(void)
     unsigned char pk[PUBLIC_KEY_SIZE] = {0};
     unsigned char nonce[NONCE_MAX_LEN];
     unsigned char csr[CSR_MAX_LEN];
-    int csr_len;
-    int ldevid_ca_cert_len = 0;
+    size_t csr_len;
+    size_t ldevid_ca_cert_len = 0;
     unsigned char ldevid_ca_cert[2*CERTS_MAX_LEN] = {0};
     mbedtls_x509_crt cert_gen;
+    unsigned char enc_csr[CSR_MAX_LEN];
+    size_t enc_csr_len;
 
     // const char *pers = "ssl_client1";
 
@@ -325,9 +329,12 @@ int main(void)
     mbedtls_printf("[C] Sending CSR...\n");
 
     // Send CSR
-    len = sprintf((char *) buf, POST_CSR_REQUEST_START, csr_len);
-    memcpy(buf+len-1, csr, csr_len);
-    len += csr_len-1;
+    if((ret = mbedtls_base64_encode(enc_csr, CSR_MAX_LEN, &enc_csr_len, csr, csr_len))!=0) {
+        goto exit;
+    }
+    len = sprintf((char *) buf, POST_CSR_REQUEST_START, enc_csr_len);
+    memcpy(buf+len, enc_csr, enc_csr_len);
+    len += enc_csr_len;
     memcpy(buf+len, POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END));
     len += sizeof(POST_CSR_REQUEST_END);
 
@@ -398,55 +405,75 @@ void custom_exit(int status){
     EAPP_RETURN(status);
 }
 
-int get_nonce(unsigned char *buf, unsigned char *nonce, int *nonce_len){
+int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
+    int i, ret = 0;
+    unsigned char enc_nonce[NONCE_MAX_LEN] = {0};
+    size_t enc_nonce_len = 0;
+    size_t dec_nonce_len = 0;
+
     if(memcmp(buf, HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1)!=0) {
         mbedtls_printf("[C] cannot read nonce 1\n\n");
         return -1;
     }
-    memcpy(nonce, buf+sizeof(HTTP_NONCE_RESPONSE_START)-1, NONCE_LEN);
-    if(memcmp(buf+sizeof(HTTP_NONCE_RESPONSE_START)-1+NONCE_LEN, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END))!=0){
+    i = sizeof(HTTP_NONCE_RESPONSE_START)-1;
+
+    while(buf[i] >= '0' && buf[i] <= '9'){
+        enc_nonce_len *= 10;
+        enc_nonce_len += buf[i] - '0';
+        i++;
+    }
+
+    if(memcmp(buf+i, HTTP_NONCE_RESPONSE_MIDDLE, sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-1)!=0) {
         mbedtls_printf("[C] cannot read nonce 2\n\n");
         return -1;
     }
-    return 0;
+    i += sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-1;
+
+    memcpy(enc_nonce, buf+i, enc_nonce_len);
+
+    if(memcmp(buf+i+enc_nonce_len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END))!=0){
+        mbedtls_printf("[C] cannot read nonce 3\n\n");
+        return -1;
+    }
+
+    ret = mbedtls_base64_decode(nonce, NONCE_MAX_LEN, &dec_nonce_len, enc_nonce, enc_nonce_len);
+    return ret || (dec_nonce_len != NONCE_LEN);
 }
 
-int get_crt(unsigned char *buf, unsigned char *crt, int *crt_len) {
-    int i = 0, j = 0, tmp_len = 0;
-    unsigned char start_len[] = HTTP_CERTIFICATE_SIZE_RESPONSE_START;
-    unsigned char end_len[] = HTTP_CERTIFICATE_SIZE_RESPONSE_END;
-    for(i=0; i<sizeof(HTTP_CERTIFICATE_SIZE_RESPONSE_START)-1; i++){
-        if(buf[i] != start_len[i]){
-            mbedtls_printf("[C] cannot read certificate 1\n\n");
-            return -1;
-        }
+int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
+    int i;
+    unsigned char enc_crt[CERTS_MAX_LEN] = {0};
+    size_t enc_crt_len = 0;
+
+    if(memcmp(buf, HTTP_CERTIFICATE_RESPONSE_START, sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1)!=0) {
+        mbedtls_printf("[C] cannot read certificate 1\n\n");
+        return -1;
     }
+    i = sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1;
+
     while(buf[i] >= '0' && buf[i] <= '9'){
-        tmp_len *= 10;
-        tmp_len += buf[i] - '0';
+        enc_crt_len *= 10;
+        enc_crt_len += buf[i] - '0';
         i++;
     }
-    for(j = i; j < i+sizeof(HTTP_CERTIFICATE_SIZE_RESPONSE_END)-1; j++){
-        if(buf[j]!=end_len[j-i]){
-            mbedtls_printf("[C] cannot read certificate 2\n\n");
-            return -1;
-        }     
+
+    if(memcmp(buf+i, HTTP_CERTIFICATE_RESPONSE_MIDDLE, sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-1)!=0) {
+        mbedtls_printf("[C] cannot read certificate 2\n\n");
+        return -1;
     }
-    *crt_len = tmp_len;
-    if(memcmp(buf+j, HTTP_CERTIFICATE_RESPONSE_START, sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1)!=0) {
+    i += sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-1;
+
+    memcpy(enc_crt, buf+i, enc_crt_len);
+
+    if(memcmp(buf+i+enc_crt_len, HTTP_CERTIFICATE_RESPONSE_END, sizeof(HTTP_CERTIFICATE_RESPONSE_END))!=0){
         mbedtls_printf("[C] cannot read certificate 3\n\n");
         return -1;
     }
-    memcpy(crt, buf+j+sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1, tmp_len);
-    if(memcmp(buf+j+sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1+tmp_len, 
-            HTTP_CERTIFICATE_RESPONSE_END, sizeof(HTTP_CERTIFICATE_RESPONSE_END))!=0){
-        mbedtls_printf("[C] cannot read certificate 4\n\n");
-        return -1;
-    }
-    return 0;
+
+    return mbedtls_base64_decode(crt, CERTS_MAX_LEN, crt_len, enc_crt, enc_crt_len);;
 }
 
-int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, int *len){
+int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len){
     int ret;
     mbedtls_printf("[C]  > Write to server:");
     while ((ret = mbedtls_ssl_write(ssl, buf, *len)) <= 0) {
@@ -462,8 +489,8 @@ int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, int *len){
 }
 
 // buf must be BUF_SIZE byte long
-int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, int *len, unsigned char *data, int *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, int *out_len)){
+int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
+    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len)){
     int ret;
     mbedtls_printf("[C]  < Read from server:");
     do {
@@ -503,7 +530,7 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, int *len, unsigned ch
     return ret;
 }
 
-int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *csr, int *csr_len){
+int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *csr, size_t *csr_len){
     unsigned char *certs[3];
     int sizes[3];
     mbedtls_pk_context key;

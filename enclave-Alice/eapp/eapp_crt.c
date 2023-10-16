@@ -7,7 +7,7 @@
 #define OCALL_READ_CRT    6
 #define MAC_KEY           0x12121212
 
-int store_crt(unsigned char *crt, int crt_len) {
+int store_crt(unsigned char *crt, size_t crt_len) {
     unsigned long ret = -1;
     // if(psa_mac_compute((mbedtls_svc_key_id_t)MAC_KEY, PSA_ALG_SHA3_512, crt, crt_len, ))
     ocall(OCALL_STORE_CRT, crt, crt_len, &ret, sizeof(unsigned long));
@@ -16,7 +16,7 @@ int store_crt(unsigned char *crt, int crt_len) {
     return 0;
 }
 
-int read_crt(unsigned char *crt, int *crt_len) {
+int read_crt(unsigned char *crt, size_t *crt_len) {
     unsigned long ret = -1;
     unsigned char tmp[1024+sizeof(unsigned long)] = {0};
     ocall(OCALL_READ_CRT, NULL, 0, tmp, 1024+sizeof(unsigned long));
