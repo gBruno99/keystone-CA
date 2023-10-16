@@ -3,8 +3,8 @@
 
 #include "mbedtls/net_sockets.h"
 
-#define SERVER_PORT "4433"
-#define SERVER_NAME "localhost"
+#define SERVER_PORT "8067"
+#define SERVER_NAME "192.168.100.2"
 
 #define GET_REQUEST "GET / HTTP/1.0\r\n\r\n"
 

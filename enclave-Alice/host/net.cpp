@@ -3,8 +3,8 @@
 #include "host/keystone.h"
 #include "net.h"
 
-#define SERVER_PORT "4433"
-#define SERVER_NAME "localhost"
+#define SERVER_PORT "8067"
+#define SERVER_NAME "192.168.100.2"
 
 #define RECV_BUFFER_SIZE 16896
 

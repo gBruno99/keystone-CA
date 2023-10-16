@@ -181,10 +181,10 @@ int main(void)
     /*
      * 3. Setup the listening TCP socket
      */
-    mbedtls_printf("[S]  . Bind on https://localhost:4433/ ...");
+    mbedtls_printf("[S]  . Bind on https://localhost:8067/ ...");
     fflush(stdout);
 
-    if ((ret = mbedtls_net_bind(&listen_fd, NULL, "4433", MBEDTLS_NET_PROTO_TCP)) != 0) {
+    if ((ret = mbedtls_net_bind(&listen_fd, NULL, "8067", MBEDTLS_NET_PROTO_TCP)) != 0) {
         mbedtls_printf(" failed\n[S]  ! mbedtls_net_bind returned %d\n\n", ret);
         goto exit;
     }
