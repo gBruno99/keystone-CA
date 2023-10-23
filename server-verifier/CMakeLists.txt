@@ -4,7 +4,7 @@ set(CMAKE_CXX_COMPILER /usr/bin/g++)
 set(CMAKE_ASM_COMPILER /usr/bin/gcc)
 set(CMAKE_LINKER /usr/bin/ld)
 
-set(host_bin server-verifer)
+set(host_bin server-verifier)
 set(host_src host/host.c)
 
 # host

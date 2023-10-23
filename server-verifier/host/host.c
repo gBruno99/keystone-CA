@@ -92,9 +92,9 @@ static void my_debug(void *ctx, int level,
 int main(void)
 {
     int ret; 
-    size_t len;
+    // size_t len;
     mbedtls_net_context listen_fd, client_fd;
-    unsigned char buf[BUF_SIZE];
+    // unsigned char buf[BUF_SIZE];
     const char *pers = "ssl_server";
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
@@ -107,6 +107,7 @@ int main(void)
     mbedtls_ssl_cache_context cache;
 #endif
 
+    /*
     unsigned char nonce[] = {
         0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
         0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
@@ -119,6 +120,7 @@ int main(void)
     size_t crt_len = 0;
     unsigned char enc_crt[CERTS_MAX_LEN];
     size_t enc_crt_len = 0;
+    */
 
     mbedtls_net_init(&listen_fd);
     mbedtls_net_init(&client_fd);
@@ -190,10 +192,10 @@ int main(void)
     /*
      * 3. Setup the listening TCP socket
      */
-    mbedtls_printf("[S]  . Bind on https://localhost:8067/ ...");
+    mbedtls_printf("[S]  . Bind on https://localhost:8068/ ...");
     fflush(stdout);
 
-    if ((ret = mbedtls_net_bind(&listen_fd, NULL, "8067", MBEDTLS_NET_PROTO_TCP)) != 0) {
+    if ((ret = mbedtls_net_bind(&listen_fd, NULL, "8068", MBEDTLS_NET_PROTO_TCP)) != 0) {
         mbedtls_printf(" failed\n[S]  ! mbedtls_net_bind returned %d\n\n", ret);
         goto exit;
     }
@@ -281,6 +283,7 @@ reset:
 
     mbedtls_printf(" ok\n");
 
+/*
     // Step 1: Receive request and send nonce
     // Read request
     if((ret = recv_buf(&ssl, buf, &len, NULL, NULL, check_nonce_request))!=NET_SUCCESS){
@@ -359,6 +362,7 @@ reset:
         }
         goto reset;
     }
+*/
 
     mbedtls_printf("[S]  . Closing the connection...");
 

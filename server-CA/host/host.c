@@ -106,6 +106,16 @@ int main(void)
     mbedtls_ssl_cache_context cache;
 #endif
 
+    int exit_code = MBEDTLS_EXIT_FAILURE;
+    mbedtls_net_context verifier_fd;
+    uint32_t flags;
+    const char *pers_ver = "ssl_verifier_client";
+    mbedtls_entropy_context entropy_ver;
+    mbedtls_ctr_drbg_context ctr_drbg_ver;
+    mbedtls_ssl_context ssl_ver;
+    mbedtls_ssl_config conf_ver;
+    mbedtls_x509_crt cert_ver;
+
     unsigned char nonce[] = {
         0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
         0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
@@ -221,6 +231,7 @@ int main(void)
                                    mbedtls_ssl_cache_set);
 #endif
 
+    // mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
     mbedtls_ssl_conf_ca_chain(&conf, srvcert.next, NULL);
     if ((ret = mbedtls_ssl_conf_own_cert(&conf, &srvcert, &pkey)) != 0) {
         mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
@@ -285,6 +296,128 @@ reset:
         goto reset;
     }
 
+    mbedtls_net_init(&verifier_fd);
+    mbedtls_ssl_init(&ssl_ver);
+    mbedtls_ssl_config_init(&conf_ver);
+    mbedtls_x509_crt_init(&cert_ver);
+    mbedtls_ctr_drbg_init(&ctr_drbg_ver);
+
+    mbedtls_printf("\n  . Seeding the random number generator...");
+    fflush(stdout);
+
+    mbedtls_entropy_init(&entropy_ver);
+    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg_ver, mbedtls_entropy_func, &entropy_ver,
+                                     (const unsigned char *) pers_ver,
+                                     strlen(pers_ver))) != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
+        goto exit_ver;
+    }
+
+    mbedtls_printf(" ok\n");
+
+    /*
+     * 0. Initialize certificates
+     */
+    mbedtls_printf("  . Loading the CA root certificate ...");
+    fflush(stdout);
+
+    ret = mbedtls_x509_crt_parse(&cert_ver, (const unsigned char *) mbedtls_test_cas_pem,
+                                 mbedtls_test_cas_pem_len);
+    if (ret < 0) {
+        mbedtls_printf(" failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
+                       (unsigned int) -ret);
+        goto exit_ver;
+    }
+
+    mbedtls_printf(" ok (%d skipped)\n", ret);
+
+    /*
+     * 1. Start the connection
+     */
+    mbedtls_printf("  . Connecting to tcp/%s/%s...", VERIFIER_NAME, VERIFIER_PORT);
+    fflush(stdout);
+
+    if ((ret = mbedtls_net_connect(&verifier_fd, VERIFIER_NAME,
+                                   VERIFIER_PORT, MBEDTLS_NET_PROTO_TCP)) != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_net_connect returned %d\n\n", ret);
+        goto exit_ver;
+    }
+
+    mbedtls_printf(" ok\n");
+
+    /*
+     * 2. Setup stuff
+     */
+    mbedtls_printf("  . Setting up the SSL/TLS structure...");
+    fflush(stdout);
+
+    if ((ret = mbedtls_ssl_config_defaults(&conf_ver,
+                                           MBEDTLS_SSL_IS_CLIENT,
+                                           MBEDTLS_SSL_TRANSPORT_STREAM,
+                                           MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_ssl_config_defaults returned %d\n\n", ret);
+        goto exit_ver;
+    }
+
+    mbedtls_printf(" ok\n");
+
+    /* OPTIONAL is not optimal for security,
+     * but makes interop easier in this simplified example */
+    mbedtls_ssl_conf_authmode(&conf_ver, MBEDTLS_SSL_VERIFY_REQUIRED);
+    mbedtls_ssl_conf_ca_chain(&conf_ver, &cert_ver, NULL);
+    mbedtls_ssl_conf_rng(&conf_ver, mbedtls_ctr_drbg_random, &ctr_drbg_ver);
+    mbedtls_ssl_conf_dbg(&conf_ver, my_debug, stdout);
+
+    if ((ret = mbedtls_ssl_setup(&ssl_ver, &conf_ver)) != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_ssl_setup returned %d\n\n", ret);
+        goto exit_ver;
+    }
+
+    if ((ret = mbedtls_ssl_set_hostname(&ssl_ver, VERIFIER_NAME)) != 0) {
+        mbedtls_printf(" failed\n  ! mbedtls_ssl_set_hostname returned %d\n\n", ret);
+        goto exit_ver;
+    }
+
+    mbedtls_ssl_set_bio(&ssl_ver, &verifier_fd, mbedtls_net_send, mbedtls_net_recv, NULL);
+
+    /*
+     * 4. Handshake
+     */
+    mbedtls_printf("  . Performing the SSL/TLS handshake...");
+    fflush(stdout);
+
+    while ((ret = mbedtls_ssl_handshake(&ssl_ver)) != 0) {
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+            mbedtls_printf(" failed\n  ! mbedtls_ssl_handshake returned -0x%x\n\n",
+                           (unsigned int) -ret);
+            goto exit_ver;
+        }
+    }
+
+    mbedtls_printf(" ok\n");
+
+    /*
+     * 5. Verify the server certificate
+     */
+    mbedtls_printf("  . Verifying peer X.509 certificate...");
+
+    /* In real life, we probably want to bail out when ret != 0 */
+    if ((flags = mbedtls_ssl_get_verify_result(&ssl_ver)) != 0) {
+#if !defined(MBEDTLS_X509_REMOVE_INFO)
+        char vrfy_buf[512];
+#endif
+
+        mbedtls_printf(" failed\n");
+
+#if !defined(MBEDTLS_X509_REMOVE_INFO)
+        mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
+
+        mbedtls_printf("%s\n", vrfy_buf);
+#endif
+    } else {
+        mbedtls_printf(" ok\n");
+    }
+
     // Write the nonce into the response
     if((ret = mbedtls_base64_encode(enc_nonce, NONCE_MAX_LEN, &enc_nonce_len, nonce, NONCE_LEN))!=0) {
         goto exit;
@@ -322,6 +455,29 @@ reset:
     // Parse and verify CSR
     if((ret = verify_csr(recv_csr, csr_len, nonce))!=0){
         ret = -1;
+        goto exit;
+    }
+
+    mbedtls_ssl_close_notify(&ssl_ver);
+
+    exit_code = MBEDTLS_EXIT_SUCCESS;
+
+exit_ver:
+
+    mbedtls_net_free(&verifier_fd);
+
+    mbedtls_x509_crt_free(&cert_ver);
+    mbedtls_ssl_free(&ssl_ver);
+    mbedtls_ssl_config_free(&conf_ver);
+    mbedtls_ctr_drbg_free(&ctr_drbg_ver);
+    mbedtls_entropy_free(&entropy_ver);
+
+    if (exit_code != MBEDTLS_EXIT_SUCCESS) {
+#ifdef MBEDTLS_ERROR_C
+        char error_buf[100];
+        mbedtls_strerror(ret, error_buf, 100);
+        mbedtls_printf("Last error was: %d - %s\n\n", ret, error_buf);
+#endif
         goto exit;
     }
 
