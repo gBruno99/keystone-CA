@@ -68,6 +68,8 @@
 
 int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
 
+int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
+
 int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len);
 
 int verify_csr(unsigned char *recv_csr, size_t csr_len, unsigned char *nonce);
@@ -77,6 +79,11 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
 
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
+    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len));
+
+int send_buf_ver(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
+
+int recv_buf_ver(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
     int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len));
 
 static void my_debug(void *ctx, int level,
@@ -116,12 +123,9 @@ int main(void)
     mbedtls_ssl_config conf_ver;
     mbedtls_x509_crt cert_ver;
 
-    unsigned char nonce[] = {
-        0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
-        0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
-    };
-    unsigned char enc_nonce[NONCE_MAX_LEN];
-    size_t enc_nonce_len = 0;
+    unsigned char nonce[NONCE_MAX_LEN];
+    // unsigned char enc_nonce[NONCE_MAX_LEN];
+    // size_t enc_nonce_len = 0;
     unsigned char recv_csr[CSR_MAX_LEN] = {0};
     size_t csr_len = 0;
     unsigned char crt[CERTS_MAX_LEN] = {0};
@@ -418,6 +422,23 @@ reset:
         mbedtls_printf(" ok\n");
     }
 
+    // Send request to get the nonce
+    // len = sprintf((char *) buf, GET_NONCE_REQUEST);
+
+    if((ret = send_buf_ver(&ssl_ver, buf, &len))!=NET_SUCCESS){
+        goto exit_ver;
+    }
+
+    // Read the nonce from the response
+
+    if((ret = recv_buf_ver(&ssl_ver, buf, &len, nonce, NULL, get_nonce))!=NET_SUCCESS){
+        if(ret == HANDLER_ERROR) ret = -1;
+        goto exit_ver;
+    }
+
+    print_hex_string("nonce", nonce, NONCE_LEN);
+    
+    /*
     // Write the nonce into the response
     if((ret = mbedtls_base64_encode(enc_nonce, NONCE_MAX_LEN, &enc_nonce_len, nonce, NONCE_LEN))!=0) {
         goto exit;
@@ -427,6 +448,7 @@ reset:
     len += enc_nonce_len;
     memcpy(buf+len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END));
     len += sizeof(HTTP_NONCE_RESPONSE_END);
+    */
 
     // Send the response
     if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
@@ -458,6 +480,7 @@ reset:
         goto exit;
     }
 
+    mbedtls_printf("Closing verifier connection\n");
     mbedtls_ssl_close_notify(&ssl_ver);
 
     exit_code = MBEDTLS_EXIT_SUCCESS;
@@ -560,6 +583,38 @@ int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_
         return -1;
     }
     return 0;
+}
+
+int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
+    int ret = 0;
+    unsigned char enc_nonce[NONCE_MAX_LEN] = {0};
+    size_t enc_nonce_len = 0;
+    size_t dec_nonce_len = 0;
+    size_t tmp_len = 0;
+    int digits = 0;
+
+    if (sscanf((const char *)buf, HTTP_NONCE_RESPONSE_START, &enc_nonce_len) != 1) {
+        mbedtls_printf("[S] error in reading nonce_len\n\n");
+        return -1;
+    }
+
+    tmp_len = enc_nonce_len;
+    while(tmp_len > 0) { 
+        digits++;
+        tmp_len/=10;
+    } 
+    digits -= 3;
+
+    // Read CSR from the request
+    memcpy(enc_nonce, buf + sizeof(HTTP_NONCE_RESPONSE_START)-1+digits, enc_nonce_len);
+    
+    if (memcmp(buf + sizeof(HTTP_NONCE_RESPONSE_START) + digits + enc_nonce_len -1 , HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END)) != 0) {
+        mbedtls_printf("[S] cannot read nonce 2\n\n");
+        return -1;
+    }
+
+    ret = mbedtls_base64_decode(nonce, NONCE_MAX_LEN, &dec_nonce_len, enc_nonce, enc_nonce_len);
+    return ret || (dec_nonce_len != NONCE_LEN);
 }
 
 int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len) {
@@ -952,3 +1007,61 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
     } while (1);
     return ret;
 }
+
+int send_buf_ver(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len){
+    int ret;
+    mbedtls_printf("[C]  > Write to server:");
+    while ((ret = mbedtls_ssl_write(ssl, buf, *len)) <= 0) {
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+            mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_write returned %d\n\n", ret);
+            return ret;
+        }
+    }
+
+    *len = ret;
+    mbedtls_printf("[C] %lu bytes written\n\n%s", *len, (char *) buf);
+    return NET_SUCCESS;
+}
+
+// buf must be BUF_SIZE byte long
+int recv_buf_ver(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
+    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len)){
+    int ret;
+    mbedtls_printf("[C]  < Read from server:");
+    do {
+        *len = BUF_SIZE - 1;
+        memset(buf, 0, BUF_SIZE);
+        ret = mbedtls_ssl_read(ssl, buf, *len);
+
+        if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+            continue;
+        }
+
+        if (ret == MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY) {
+            break;
+        }
+
+        if (ret < 0) {
+            mbedtls_printf("failed\n[C]  ! mbedtls_ssl_read returned %d\n\n", ret);
+            break;
+        }
+
+        if (ret == 0) {
+            mbedtls_printf("\n\n[C] EOF\n\n");
+            break;
+        }
+
+        *len = ret;
+        mbedtls_printf(" %lu bytes read\n\n%s", *len, (char *) buf);
+
+        // Get the data from the response
+        if(handler(buf, data, data_len) != 0){
+            return HANDLER_ERROR;
+        } 
+        ret = NET_SUCCESS;
+        break;
+
+    } while (1);
+    return ret;
+}
+

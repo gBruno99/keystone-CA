@@ -92,9 +92,9 @@ static void my_debug(void *ctx, int level,
 int main(void)
 {
     int ret; 
-    // size_t len;
+    size_t len;
     mbedtls_net_context listen_fd, client_fd;
-    // unsigned char buf[BUF_SIZE];
+    unsigned char buf[BUF_SIZE];
     const char *pers = "ssl_server";
     mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
@@ -107,13 +107,14 @@ int main(void)
     mbedtls_ssl_cache_context cache;
 #endif
 
-    /*
+    
     unsigned char nonce[] = {
         0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
         0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
     };
     unsigned char enc_nonce[NONCE_MAX_LEN];
     size_t enc_nonce_len = 0;
+    /*
     unsigned char recv_csr[CSR_MAX_LEN] = {0};
     size_t csr_len = 0;
     unsigned char crt[CERTS_MAX_LEN] = {0};
@@ -283,7 +284,6 @@ reset:
 
     mbedtls_printf(" ok\n");
 
-/*
     // Step 1: Receive request and send nonce
     // Read request
     if((ret = recv_buf(&ssl, buf, &len, NULL, NULL, check_nonce_request))!=NET_SUCCESS){
@@ -313,7 +313,7 @@ reset:
         }
         goto reset;
     }
-
+/*
     // Step 2: Receive CSR and verify it
     // Wait for CSR
     if((ret = recv_buf(&ssl, buf, &len, recv_csr, &csr_len, get_csr))!=NET_SUCCESS){
