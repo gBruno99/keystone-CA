@@ -41,6 +41,7 @@
 #include "mbedtls/keystone_ext.h"
 #include "certs.h"
 #include "eapp/printf.h"
+// #include "eapp/ref_certs.h"
 // #include "custom_functions.h"
 
 // #include <stdio.h>
@@ -238,7 +239,7 @@ int main(void)
 
     /* OPTIONAL is not optimal for security,
      * but makes interop easier in this simplified example */
-    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_OPTIONAL);
+    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
     mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
     // mbedtls_ssl_conf_dbg(&conf, my_debug, stdout);
@@ -248,7 +249,7 @@ int main(void)
         goto exit;
     }
 
-    if ((ret = mbedtls_ssl_set_hostname(&ssl, SERVER_NAME)) != 0) {
+    if ((ret = mbedtls_ssl_set_hostname(&ssl, NULL)) != 0) {
         mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_set_hostname returned %d\n\n", ret);
         goto exit;
     }
@@ -415,6 +416,16 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
     size_t enc_nonce_len = 0;
     size_t dec_nonce_len = 0;
 
+    if(memcmp(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400))==0) {
+        mbedtls_printf("Response: Bad Request\n");
+        return -1;
+    }
+
+    if(memcmp(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500))==0) {
+        mbedtls_printf("Response: Internal Server Error\n");
+        return -1;
+    }
+
     if(memcmp(buf, HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1)!=0) {
         mbedtls_printf("[C] cannot read nonce 1\n\n");
         return -1;
@@ -448,6 +459,16 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
     int i;
     unsigned char enc_crt[CERTS_MAX_LEN] = {0};
     size_t enc_crt_len = 0;
+
+    if(memcmp(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400))==0) {
+        mbedtls_printf("Response: Bad Request\n");
+        return -1;
+    }
+
+    if(memcmp(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500))==0) {
+        mbedtls_printf("Response: Internal Server Error\n");
+        return -1;
+    }
 
     if(memcmp(buf, HTTP_CERTIFICATE_RESPONSE_START, sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1)!=0) {
         mbedtls_printf("[C] cannot read certificate 1\n\n");

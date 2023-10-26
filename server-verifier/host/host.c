@@ -104,7 +104,7 @@ static void my_debug(void *ctx, int level,
 
 int main(void)
 {
-    int ret; 
+    int ret, err; 
     size_t len;
     mbedtls_net_context listen_fd, client_fd;
     unsigned char buf[BUF_SIZE];
@@ -251,6 +251,7 @@ int main(void)
     mbedtls_printf(" ok\n");
 
 reset:
+    err = 0;
 #ifdef MBEDTLS_ERROR_C
     if (ret != 0) {
         char error_buf[100];
@@ -298,18 +299,23 @@ reset:
     // Read request
     if((ret = recv_buf(&ssl, buf, &len, NULL, NULL, check_nonce_request))!=NET_SUCCESS){
         if(ret == HANDLER_ERROR) ret = -1;
-        goto reset;
+        err = 1;
+        memcpy(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400));
+        len = sizeof(HTTP_RESPONSE_400);
+    } else {
+        // Write the nonce into the response
+        if((ret = mbedtls_base64_encode(enc_nonce, NONCE_MAX_LEN, &enc_nonce_len, ref_nonce, NONCE_LEN))!=0) {
+            err = 2;
+            memcpy(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500));
+            len = sizeof(HTTP_RESPONSE_500);
+        } else {
+            len = sprintf((char*) buf, HTTP_NONCE_RESPONSE_START, enc_nonce_len);
+            memcpy(buf+len, enc_nonce, enc_nonce_len);
+            len += enc_nonce_len;
+            memcpy(buf+len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END));
+            len += sizeof(HTTP_NONCE_RESPONSE_END);
+        }
     }
-
-    // Write the nonce into the response
-    if((ret = mbedtls_base64_encode(enc_nonce, NONCE_MAX_LEN, &enc_nonce_len, ref_nonce, NONCE_LEN))!=0) {
-        goto exit;
-    }
-    len = sprintf((char*) buf, HTTP_NONCE_RESPONSE_START, enc_nonce_len);
-    memcpy(buf+len, enc_nonce, enc_nonce_len);
-    len += enc_nonce_len;
-    memcpy(buf+len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END));
-    len += sizeof(HTTP_NONCE_RESPONSE_END);
 
     // Send the response
     if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
@@ -324,11 +330,24 @@ reset:
         goto reset;
     }
 
+    switch(err) {
+        case 1:
+            ret = -1;
+            goto reset;
+        case 2:
+            ret = -1;
+            goto exit;
+        default:
+            break;
+    }
+
     // Step 2: Receive CSR and verify it
     // Wait for CSR
     if((ret = recv_buf(&ssl, buf, &len, resp, &resp_len, verify_attest_evidence))!=NET_SUCCESS){
         if(ret == HANDLER_ERROR) ret = -1;
-        goto exit;
+        err = 1;
+        memcpy(resp, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400));
+        resp_len = sizeof(HTTP_RESPONSE_400);
     }
 
     if((ret = send_buf(&ssl, resp, &resp_len))!=NET_SUCCESS){
@@ -342,6 +361,18 @@ reset:
         }
         goto reset;
     }
+
+        switch(err) {
+        case 1:
+            ret = -1;
+            goto reset;
+        case 2:
+            ret = -1;
+            goto exit;
+        default:
+            break;
+    }
+
 /*
     mbedtls_printf("\n");
     print_hex_string("[S] CSR", recv_csr, csr_len);
@@ -996,10 +1027,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         goto gen_resp;
     }
 gen_resp:
-    if(ret != 0){
-        memcpy(resp, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400));
-        *resp_len = sizeof(HTTP_RESPONSE_400);
-    } else {
+    if(ret == 0) {
         memcpy(resp, HTTP_RESPONSE_200, sizeof(HTTP_RESPONSE_200));
         *resp_len = sizeof(HTTP_RESPONSE_200);
     }
