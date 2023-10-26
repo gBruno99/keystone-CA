@@ -41,6 +41,9 @@
 #define HTTP_RESPONSE_400 \
     "HTTP/1.0 400 BAD REQUEST\r\nContent-Type: application/json\r\n\r\n" \
     "{}\r\n" 
+#define HTTP_RESPONSE_500 \
+    "HTTP/1.0 500 INTERNAL SERVER ERROR\r\nContent-Type: application/json\r\n\r\n" \
+    "{}\r\n" 
 #define HTTP_RESPONSE_200 \
     "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\n" \
     "{}\r\n" 

@@ -35,6 +35,14 @@
 #define HTTP_CERTIFICATE_RESPONSE_END \
     "\"}\r\n"
 
+#define HTTP_RESPONSE_400 \
+    "HTTP/1.0 400 BAD REQUEST\r\nContent-Type: application/json\r\n\r\n" \
+    "{}\r\n" 
+
+#define HTTP_RESPONSE_500 \
+    "HTTP/1.0 500 INTERNAL SERVER ERROR\r\nContent-Type: application/json\r\n\r\n" \
+    "{}\r\n" 
+
 void custom_net_init(mbedtls_net_context *ctx);
 int custom_net_connect(mbedtls_net_context *ctx, const char *host, const char *port, int proto);
 int custom_net_send(void *ctx, const unsigned char *buf, size_t len);
