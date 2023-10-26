@@ -48,6 +48,7 @@
 
 // #include "mbedtls_functions.h"
 // #include "ed25519/ed25519.h"
+#include "custom_certs.h"
 #include "mbedtls/sha3.h"
 #include "host/net.h"
 #include "host/ref_certs.h"
@@ -125,6 +126,7 @@ int main(void)
     mbedtls_ssl_context ssl;
     mbedtls_ssl_config conf;
     mbedtls_x509_crt srvcert;
+    mbedtls_x509_crt cacert;
     mbedtls_pk_context pkey;
 #if defined(MBEDTLS_SSL_CACHE_C)
     mbedtls_ssl_cache_context cache;
@@ -139,6 +141,8 @@ int main(void)
     mbedtls_ssl_context ssl_ver;
     mbedtls_ssl_config conf_ver;
     mbedtls_x509_crt cert_ver;
+    mbedtls_x509_crt cacert_ver;
+    mbedtls_pk_context pkey_ver;
 
     unsigned char nonce[NONCE_MAX_LEN];
     // unsigned char enc_nonce[NONCE_MAX_LEN];
@@ -159,6 +163,7 @@ int main(void)
     mbedtls_ssl_cache_init(&cache);
 #endif
     mbedtls_x509_crt_init(&srvcert);
+    mbedtls_x509_crt_init(&cacert);
     mbedtls_pk_init(&pkey);
     mbedtls_entropy_init(&entropy);
     mbedtls_ctr_drbg_init(&ctr_drbg);
@@ -193,22 +198,22 @@ int main(void)
      * Instead, you may want to use mbedtls_x509_crt_parse_file() to read the
      * server and CA certificates, as well as mbedtls_pk_parse_keyfile().
      */
-    ret = mbedtls_x509_crt_parse(&srvcert, (const unsigned char *) mbedtls_test_srv_crt,
-                                 mbedtls_test_srv_crt_len);
+    ret = mbedtls_x509_crt_parse(&srvcert, (const unsigned char *) ca_cert_pem,
+                                 ca_cert_pem_len);
     if (ret != 0) {
         mbedtls_printf(" failed\n[S]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
         goto exit;
     }
 
-    ret = mbedtls_x509_crt_parse(&srvcert, (const unsigned char *) mbedtls_test_cas_pem,
-                                 mbedtls_test_cas_pem_len);
+    ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) ref_cert_man,
+                                 ref_cert_man_len);
     if (ret != 0) {
         mbedtls_printf(" failed\n[S]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
         goto exit;
     }
 
-    ret =  mbedtls_pk_parse_key(&pkey, (const unsigned char *) mbedtls_test_srv_key,
-                                mbedtls_test_srv_key_len, NULL, 0,
+    ret =  mbedtls_pk_parse_key(&pkey, (const unsigned char *) ca_key_pem,
+                                ca_key_pem_len, NULL, 0,
                                 mbedtls_ctr_drbg_random, &ctr_drbg);
     if (ret != 0) {
         mbedtls_printf(" failed\n[S]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
@@ -254,7 +259,7 @@ int main(void)
 #endif
 
     // mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
-    mbedtls_ssl_conf_ca_chain(&conf, srvcert.next, NULL);
+    mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
     if ((ret = mbedtls_ssl_conf_own_cert(&conf, &srvcert, &pkey)) != 0) {
         mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
         goto exit;
@@ -335,6 +340,8 @@ reset:
     mbedtls_ssl_init(&ssl_ver);
     mbedtls_ssl_config_init(&conf_ver);
     mbedtls_x509_crt_init(&cert_ver);
+    mbedtls_x509_crt_init(&cacert_ver);
+    mbedtls_pk_init(&pkey_ver);
     mbedtls_ctr_drbg_init(&ctr_drbg_ver);
 
     mbedtls_printf("\n  . Seeding the random number generator...");
@@ -356,11 +363,26 @@ reset:
     mbedtls_printf("  . Loading the CA root certificate ...");
     fflush(stdout);
 
-    ret = mbedtls_x509_crt_parse(&cert_ver, (const unsigned char *) mbedtls_test_cas_pem,
-                                 mbedtls_test_cas_pem_len);
+    ret = mbedtls_x509_crt_parse(&cert_ver, (const unsigned char *) ver_cert_pem,
+                                 ver_cert_pem_len);
     if (ret < 0) {
         mbedtls_printf(" failed\n  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
                        (unsigned int) -ret);
+        goto exit_ver;
+    }
+
+    ret = mbedtls_x509_crt_parse(&cacert_ver, (const unsigned char *) ca_cert_pem,
+                                 ca_cert_pem_len);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n[S]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
+        goto exit_ver;
+    }
+
+    ret =  mbedtls_pk_parse_key(&pkey_ver, (const unsigned char *) ca_key_pem,
+                                ca_key_pem_len, NULL, 0,
+                                mbedtls_ctr_drbg_random, &ctr_drbg_ver);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n[S]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
         goto exit_ver;
     }
 
@@ -402,6 +424,11 @@ reset:
     mbedtls_ssl_conf_ca_chain(&conf_ver, &cert_ver, NULL);
     mbedtls_ssl_conf_rng(&conf_ver, mbedtls_ctr_drbg_random, &ctr_drbg_ver);
     mbedtls_ssl_conf_dbg(&conf_ver, my_debug, stdout);
+
+    if ((ret = mbedtls_ssl_conf_own_cert(&conf_ver, &cacert_ver, &pkey_ver)) != 0) {
+        mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
+        goto exit_ver;
+    }
 
     if ((ret = mbedtls_ssl_setup(&ssl_ver, &conf_ver)) != 0) {
         mbedtls_printf(" failed\n  ! mbedtls_ssl_setup returned %d\n\n", ret);
@@ -592,7 +619,9 @@ exit_ver:
     mbedtls_net_free(&verifier_fd);
 
     mbedtls_x509_crt_free(&cert_ver);
+    mbedtls_x509_crt_free(&cacert_ver);
     mbedtls_ssl_free(&ssl_ver);
+     mbedtls_pk_free(&pkey_ver);
     mbedtls_ssl_config_free(&conf_ver);
     mbedtls_ctr_drbg_free(&ctr_drbg_ver);
     mbedtls_entropy_free(&entropy_ver);
@@ -698,6 +727,7 @@ if(err == 1 || err == 2) {
     mbedtls_net_free(&listen_fd);
 
     mbedtls_x509_crt_free(&srvcert);
+    mbedtls_x509_crt_free(&cacert);
     mbedtls_pk_free(&pkey);
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
@@ -900,6 +930,7 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     mbedtls_x509write_cert cert_encl;
     mbedtls_pk_context subj_key;
     mbedtls_pk_context issu_key;
+    // mbedtls_ctr_drbg_context ctr_drbg;
     unsigned char serial[] = {0xAB, 0xAB, 0xAB};
     unsigned char reference_tci[KEYSTONE_HASH_MAX_SIZE] = {0};
     unsigned char cert_der[CERTS_MAX_LEN];
@@ -917,6 +948,8 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     if(ret != 0) {
         return 9;
     }
+
+    // mbedtls_ctr_drbg_init(&ctr_drbg);
 
     // Set certificate fields
     mbedtls_x509write_crt_init(&cert_encl);

@@ -1,7 +1,7 @@
 #ifndef _HOST_NET_H_
 #define _HOST_NET_H_
 
-#define VERIFIER_NAME "localhost"
+#define VERIFIER_NAME "Ver"
 #define VERIFIER_PORT "8068"
 
 #define GET_NONCE_REQUEST "GET /nonce HTTP/1.0\r\n\r\n"

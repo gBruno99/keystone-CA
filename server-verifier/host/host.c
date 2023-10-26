@@ -48,6 +48,7 @@
 
 // #include "mbedtls_functions.h"
 // #include "ed25519/ed25519.h"
+#include "custom_certs.h"
 #include "mbedtls/sha3.h"
 #include "host/net.h"
 #include "host/ref_certs.h"
@@ -114,7 +115,7 @@ int main(void)
     mbedtls_ssl_context ssl;
     mbedtls_ssl_config conf;
     mbedtls_x509_crt srvcert;
-    // mbedtls_x509_crt cacert;
+    mbedtls_x509_crt cacert;
     mbedtls_pk_context pkey;
 #if defined(MBEDTLS_SSL_CACHE_C)
     mbedtls_ssl_cache_context cache;
@@ -141,7 +142,7 @@ int main(void)
     mbedtls_ssl_cache_init(&cache);
 #endif
     mbedtls_x509_crt_init(&srvcert);
-    // mbedtls_x509_crt_init(&cacert);
+    mbedtls_x509_crt_init(&cacert);
     mbedtls_pk_init(&pkey);
     mbedtls_entropy_init(&entropy);
     mbedtls_ctr_drbg_init(&ctr_drbg);
@@ -176,22 +177,22 @@ int main(void)
      * Instead, you may want to use mbedtls_x509_crt_parse_file() to read the
      * server and CA certificates, as well as mbedtls_pk_parse_keyfile().
      */
-    ret = mbedtls_x509_crt_parse(&srvcert, (const unsigned char *) mbedtls_test_srv_crt,
-                                 mbedtls_test_srv_crt_len);
+    ret = mbedtls_x509_crt_parse(&srvcert, (const unsigned char *) ver_cert_pem,
+                                 ver_cert_pem_len);
     if (ret != 0) {
         mbedtls_printf(" failed\n[S]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
         goto exit;
     }
 
-    ret = mbedtls_x509_crt_parse(&srvcert, (const unsigned char *) mbedtls_test_cas_pem,
-                                 mbedtls_test_cas_pem_len);
+    ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) ca_cert_pem,
+                                 ca_cert_pem_len);
     if (ret != 0) {
         mbedtls_printf(" failed\n[S]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
         goto exit;
     }
 
-    ret =  mbedtls_pk_parse_key(&pkey, (const unsigned char *) mbedtls_test_srv_key,
-                                mbedtls_test_srv_key_len, NULL, 0,
+    ret =  mbedtls_pk_parse_key(&pkey, (const unsigned char *) ver_key_pem,
+                                ver_key_pem_len, NULL, 0,
                                 mbedtls_ctr_drbg_random, &ctr_drbg);
     if (ret != 0) {
         mbedtls_printf(" failed\n[S]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
@@ -236,8 +237,8 @@ int main(void)
                                    mbedtls_ssl_cache_set);
 #endif
 
-    // mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
-    mbedtls_ssl_conf_ca_chain(&conf, srvcert.next, NULL);
+    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
+    mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
     if ((ret = mbedtls_ssl_conf_own_cert(&conf, &srvcert, &pkey)) != 0) {
         mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
         goto exit;
@@ -446,7 +447,7 @@ exit:
     mbedtls_net_free(&listen_fd);
 
     mbedtls_x509_crt_free(&srvcert);
-    // mbedtls_x509_crt_free(&cacert);
+    mbedtls_x509_crt_free(&cacert);
     mbedtls_pk_free(&pkey);
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);

@@ -41,6 +41,7 @@
 #include "mbedtls/keystone_ext.h"
 #include "certs.h"
 #include "eapp/printf.h"
+#include "custom_certs.h"
 // #include "eapp/ref_certs.h"
 // #include "custom_functions.h"
 
@@ -202,8 +203,8 @@ int main(void)
      */
     mbedtls_printf("[C]  . Loading the CA root certificate ...");
 
-    ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) mbedtls_test_cas_pem,
-                                 mbedtls_test_cas_pem_len);
+    ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) ca_cert_pem,
+                                 ca_cert_pem_len);
     if (ret < 0) {
         mbedtls_printf(" failed\n[C]  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
                        (unsigned int) -ret);
