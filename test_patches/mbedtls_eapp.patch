@@ -45,7 +45,7 @@ index 000000000..b5b1560dc
 +#endif
 diff --git a/include/mbedtls/keystone_ext.h b/include/mbedtls/keystone_ext.h
 new file mode 100644
-index 000000000..24148deb7
+index 000000000..d1944951e
 --- /dev/null
 +++ b/include/mbedtls/keystone_ext.h
 @@ -0,0 +1,72 @@
@@ -108,7 +108,7 @@ index 000000000..24148deb7
 +
 +// Functions used by the Verifier
 +int checkTCIValue(const mbedtls_x509_name *id, const mbedtls_x509_buf *tci);
-+int getAttestationPublicKey(mbedtls_x509_csr *csr, unsigned char *pk);
++int getAttestationPublicKey(mbedtls_x509_crt *crt, unsigned char *pk);
 +int getReferenceTCI(mbedtls_x509_csr *csr, unsigned char *tci);
 +
 +// Functions to set new CSR extensions
@@ -7126,10 +7126,10 @@ index 000000000..8f0a939dd
 +unsigned int sm_reference_value_len = 64;
 diff --git a/library/verifier_utils_mock/verifier_utils_mock.c b/library/verifier_utils_mock/verifier_utils_mock.c
 new file mode 100644
-index 000000000..a179e053c
+index 000000000..f8c287b60
 --- /dev/null
 +++ b/library/verifier_utils_mock/verifier_utils_mock.c
-@@ -0,0 +1,67 @@
+@@ -0,0 +1,73 @@
 +#include "mbedtls/keystone_ext.h"
 +#include "mbedtls/print.h"
 +#include "sm_reference_value.h"
@@ -7175,15 +7175,21 @@ index 000000000..a179e053c
 +        #endif
 +        return checkWithRefMeasure(tci_value, tci_len, sm_reference_value, sm_reference_value_len);
 +    }
++    if(id_len == 7 && strncmp(id_name, "Enclave", 7) == 0){
++        #if MBEDTLS_DEBUG_PRINTS
++        mbedtls_printf("Cert is: Enclave\n");
++        #endif
++        return checkWithRefMeasure(tci_value, tci_len, enclave_reference_value, enclave_reference_value_len);
++    }
 +    return -1;
 +}
 +
-+int getAttestationPublicKey(mbedtls_x509_csr *csr, unsigned char *pk) {
-+    mbedtls_x509_crt *cur = &(csr->cert_chain);
++int getAttestationPublicKey(mbedtls_x509_crt *crt, unsigned char *pk) {
++    mbedtls_x509_crt *cur = crt;
 +    while(cur != NULL) {
 +        char *id_name = (char *) (cur->subject).val.p;
 +        size_t id_len = (cur->subject).val.len;
-+        if(id_len == 16 && strncmp(id_name, "Security Monitor", 16) == 0) {
++        if(id_len == 7 && strncmp(id_name, "Enclave", 7) == 0) {
 +            memcpy(pk, mbedtls_pk_ed25519(cur->pk)->pub_key, PUBLIC_KEY_SIZE);
 +            return 0;
 +        }
