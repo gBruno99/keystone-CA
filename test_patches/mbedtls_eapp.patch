@@ -977,7 +977,7 @@ index acc4208cc..c65cfb9b3 100644
  
 diff --git a/library/ed25519.c b/library/ed25519.c
 new file mode 100644
-index 000000000..28fc6208a
+index 000000000..f3c401b7a
 --- /dev/null
 +++ b/library/ed25519.c
 @@ -0,0 +1,361 @@
@@ -1216,7 +1216,7 @@ index 000000000..28fc6208a
 +
 +int ed25519_can_do(mbedtls_pk_type_t type)
 +{
-+    return type == MBEDTLS_PK_ED25519;
++    return type == MBEDTLS_PK_ED25519 || type == MBEDTLS_PK_ECDSA;
 +}
 +
 +int ed25519_verify_wrap(void *ctx, mbedtls_md_type_t md_alg,

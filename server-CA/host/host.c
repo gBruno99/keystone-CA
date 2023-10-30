@@ -258,8 +258,9 @@ int main(void)
                                    mbedtls_ssl_cache_set);
 #endif
 
-    // mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
+    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
     mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
+    mbedtls_ssl_conf_cert_profile(&conf,&mbedtls_x509_crt_profile_keystone);
     if ((ret = mbedtls_ssl_conf_own_cert(&conf, &srvcert, &pkey)) != 0) {
         mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
         goto exit;
