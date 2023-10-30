@@ -909,15 +909,6 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
 
     mbedtls_x509_crt_init(&dice_certs);
 
-    if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_MAN, tmp_crt, &tmp_crt_len, 1) != 0 ||
-        mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) {
-        mbedtls_x509_crt_free(&dice_certs);
-        ret = 5;
-        goto gen_resp;
-    }
-    print_hex_string("cert_man", tmp_crt, tmp_crt_len);
-    tmp_crt_len = CERTS_MAX_LEN;
-
     if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_DEVROOT, tmp_crt, &tmp_crt_len, 1) != 0 ||
         mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) {
         mbedtls_x509_crt_free(&dice_certs);
@@ -934,6 +925,15 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         goto gen_resp;
     }
     print_hex_string("cert_sm", tmp_crt, tmp_crt_len);
+    tmp_crt_len = CERTS_MAX_LEN;
+
+    if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_LAK, tmp_crt, &tmp_crt_len, 1) != 0 ||
+        mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) {
+        mbedtls_x509_crt_free(&dice_certs);
+        ret = 5;
+        goto gen_resp;
+    }
+    print_hex_string("cert_lak", tmp_crt, tmp_crt_len);
 
     if(memcmp(buf+len, POST_ATTESTATION_REQUEST_END, sizeof(POST_ATTESTATION_REQUEST_END)) != 0){
         mbedtls_x509_crt_free(&dice_certs);

@@ -394,7 +394,7 @@ reset:
     mbedtls_printf("  . Connecting to tcp/%s/%s...", VERIFIER_NAME, VERIFIER_PORT);
     fflush(stdout);
 
-    if ((ret = mbedtls_net_connect(&verifier_fd, VERIFIER_NAME,
+    if ((ret = mbedtls_net_connect(&verifier_fd, "localhost",
                                    VERIFIER_PORT, MBEDTLS_NET_PROTO_TCP)) != 0) {
         mbedtls_printf(" failed\n  ! mbedtls_net_connect returned %d\n\n", ret);
         goto exit_ver;
@@ -930,7 +930,9 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     mbedtls_x509write_cert cert_encl;
     mbedtls_pk_context subj_key;
     mbedtls_pk_context issu_key;
-    // mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_entropy_context entropy;
+    const char *pers = "issuing_cert";
     unsigned char serial[] = {0xAB, 0xAB, 0xAB};
     unsigned char reference_tci[KEYSTONE_HASH_MAX_SIZE] = {0};
     unsigned char cert_der[CERTS_MAX_LEN];
@@ -949,8 +951,18 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
         return 9;
     }
 
-    // mbedtls_ctr_drbg_init(&ctr_drbg);
-
+    mbedtls_entropy_init(&entropy);
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+    ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+                                     (const unsigned char *) pers,
+                                     strlen(pers));
+    mbedtls_printf("Seeding RNG - ret: %d\n", ret);
+    if(ret != 0) {
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctr_drbg);
+        mbedtls_x509write_crt_free(&cert_encl);
+        return 2;
+    }
     // Set certificate fields
     mbedtls_x509write_crt_init(&cert_encl);
 
@@ -958,6 +970,8 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     ret = mbedtls_x509write_crt_set_issuer_name(&cert_encl, "O=Certificate Authority");
     mbedtls_printf("Setting issuer - ret: %d\n", ret);
     if(ret != 0) {
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctr_drbg);
         mbedtls_x509write_crt_free(&cert_encl);
         return 2;
     }
@@ -965,34 +979,33 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     ret = mbedtls_x509write_crt_set_subject_name(&cert_encl, "CN=Client1,O=Certificate Authority");
     mbedtls_printf("Setting subject - ret: %d\n", ret);
     if(ret != 0) {
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctr_drbg);
         mbedtls_x509write_crt_free(&cert_encl);
         return 3;
     }
 
     mbedtls_pk_init(&subj_key);
     mbedtls_pk_init(&issu_key);
-    
-    ret = mbedtls_pk_parse_ed25519_key(&issu_key, sanctum_ca_private_key, PRIVATE_KEY_SIZE, ED25519_PARSE_PRIVATE_KEY);
+
+    ret = mbedtls_pk_parse_key(&issu_key, (const unsigned char *) ca_key_pem,
+                                ca_key_pem_len, NULL, 0,
+                                mbedtls_ctr_drbg_random, &ctr_drbg);
     mbedtls_printf("Parsing issuer pk - ret: %d\n", ret);
     if(ret != 0) {
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctr_drbg);
         mbedtls_x509write_crt_free(&cert_encl);
         mbedtls_pk_free(&subj_key);
         mbedtls_pk_free(&issu_key);
         return 4;
     }
 
-    ret = mbedtls_pk_parse_ed25519_key(&issu_key, sanctum_ca_public_key, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
-    mbedtls_printf("Parsing issuer sk - ret: %d\n", ret);
-    if(ret != 0) {
-        mbedtls_x509write_crt_free(&cert_encl);
-        mbedtls_pk_free(&subj_key);
-        mbedtls_pk_free(&issu_key);
-        return 5;
-    }
-
     ret = mbedtls_pk_parse_ed25519_key(&subj_key, mbedtls_pk_ed25519(csr->pk)->pub_key, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
     mbedtls_printf("Parsing subject pk - ret: %d\n", ret);
     if(ret != 0) {
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctr_drbg);
         mbedtls_x509write_crt_free(&cert_encl);
         mbedtls_pk_free(&subj_key);
         mbedtls_pk_free(&issu_key);
@@ -1008,18 +1021,22 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     ret = mbedtls_x509write_crt_set_serial_raw(&cert_encl, serial, 3);
     mbedtls_printf("Setting serial - ret: %d\n", ret);
     if(ret != 0) {
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctr_drbg);
         mbedtls_x509write_crt_free(&cert_encl);
         mbedtls_pk_free(&subj_key);
         mbedtls_pk_free(&issu_key);
         return 7;
     }
     
-    mbedtls_x509write_crt_set_md_alg(&cert_encl, MBEDTLS_MD_KEYSTONE_SHA3);
+    mbedtls_x509write_crt_set_md_alg(&cert_encl, MBEDTLS_MD_SHA512);
     mbedtls_printf("Setting md algorithm\n");
     
     ret = mbedtls_x509write_crt_set_validity(&cert_encl, "20230101000000", "20240101000000");
     mbedtls_printf("Setting validity - ret: %d\n", ret);
     if(ret != 0) {
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctr_drbg);
         mbedtls_x509write_crt_free(&cert_encl);
         mbedtls_pk_free(&subj_key);
         mbedtls_pk_free(&issu_key);
@@ -1029,6 +1046,8 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     ret = mbedtls_x509write_crt_set_extension(&cert_encl, MBEDTLS_OID_TCI, 3, 0, reference_tci, KEYSTONE_HASH_MAX_SIZE);
     mbedtls_printf("Setting tci - ret: %d\n", ret);
     if(ret != 0) {
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctr_drbg);
         mbedtls_x509write_crt_free(&cert_encl);
         mbedtls_pk_free(&subj_key);
         mbedtls_pk_free(&issu_key);
@@ -1038,9 +1057,11 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     mbedtls_printf("\n");
 
     // Writing certificate
-    ret = mbedtls_x509write_crt_der(&cert_encl, cert_der, len_cert_der_tot, NULL, NULL);
+    ret = mbedtls_x509write_crt_der(&cert_encl, cert_der, len_cert_der_tot, mbedtls_ctr_drbg_random, &ctr_drbg);
     mbedtls_printf("Writing Enclave Certificate - ret: %d\n", ret);
     if(ret <= 0) {
+        mbedtls_entropy_free(&entropy);
+        mbedtls_ctr_drbg_free(&ctr_drbg);
         mbedtls_x509write_crt_free(&cert_encl);
         mbedtls_pk_free(&subj_key);
         mbedtls_pk_free(&issu_key);
@@ -1059,6 +1080,8 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     mbedtls_printf("\n");
     fflush(stdout);
 
+    mbedtls_entropy_free(&entropy);
+    mbedtls_ctr_drbg_free(&ctr_drbg);
     mbedtls_pk_free(&issu_key);
     mbedtls_pk_free(&subj_key);
     mbedtls_x509write_crt_free(&cert_encl);
@@ -1211,14 +1234,14 @@ int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len)
     unsigned char csr_pk[PK_MAX_LEN];
     unsigned char csr_nonce[NONCE_MAX_LEN];  
     unsigned char csr_attest_sig[ATTEST_MAX_LEN]; 
-    unsigned char csr_cert_man[CERTS_MAX_LEN]; 
+    unsigned char csr_cert_lak[CERTS_MAX_LEN]; 
     unsigned char csr_cert_root[CERTS_MAX_LEN];
     unsigned char csr_cert_sm[CERTS_MAX_LEN];
     size_t csr_cn_len;
     size_t csr_pk_len;
     size_t csr_nonce_len;
     size_t csr_attest_sig_len;
-    size_t csr_cert_man_len;
+    size_t csr_cert_lak_len;
     size_t csr_cert_root_len;
     size_t csr_cert_sm_len;
 
@@ -1238,10 +1261,6 @@ int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len)
         return 4;
     }
 
-    if(csr_get_cert(csr, csr_cert_man, &csr_cert_man_len, "Manufacturer") != 0) {
-        return 5;
-    }
-
     if(csr_get_cert(csr, csr_cert_root, &csr_cert_root_len, "Root of Trust") != 0) {
         return 5;
     }
@@ -1250,7 +1269,11 @@ int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len)
         return 5;
     }
 
-    *len = sprintf((char*) buf, POST_ATTESTATION_REQUEST, csr_cn, csr_pk, csr_nonce, csr_attest_sig, csr_cert_man, csr_cert_root, csr_cert_sm);
+    if(csr_get_cert(csr, csr_cert_lak, &csr_cert_lak_len, "Enclave") != 0) {
+        return 5;
+    }
+
+    *len = sprintf((char*) buf, POST_ATTESTATION_REQUEST, csr_cn, csr_pk, csr_nonce, csr_attest_sig, csr_cert_root, csr_cert_sm, csr_cert_lak);
     return *len == -1;
 }
 

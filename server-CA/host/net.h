@@ -33,9 +33,9 @@
     "\n\t\"pk\": \"%s\"," \
     "\n\t\"nonce\": \"%s\"," \
     "\n\t\"attest_evd_sig\": \"%s\"," \
-    "\n\t\"dice_cert_man\": \"%s\"," \
     "\n\t\"dice_cert_devroot\": \"%s\"," \
-    "\n\t\"dice_cert_sm\": \"%s\"" \
+    "\n\t\"dice_cert_sm\": \"%s\"," \
+    "\n\t\"dice_cert_lak\": \"%s\"" \
     "\n}\r\n"
 
 #define HTTP_RESPONSE_400 \
