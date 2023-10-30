@@ -49,7 +49,7 @@
 // #include <time.h>
 #include <string.h>
 
-#define CERTS_MAX_LEN           512
+#define CERTS_MAX_LEN           1024
 #define CSR_MAX_LEN             3072
 #define ATTEST_DATA_MAX_LEN     1024
 #define NONCE_MAX_LEN           128
@@ -112,6 +112,9 @@ int main(void)
     unsigned char pk[PUBLIC_KEY_SIZE] = {0};
     unsigned char nonce[NONCE_MAX_LEN];
     unsigned char csr[CSR_MAX_LEN];
+    unsigned char ldevid_crt[CERTS_MAX_LEN] = {0};
+    int ldevid_crt_len = 0;
+    mbedtls_x509_crt ldevid_cert_parsed;
     size_t csr_len;
     size_t ldevid_ca_cert_len = 0;
     unsigned char ldevid_ca_cert[2*CERTS_MAX_LEN] = {0};
@@ -163,9 +166,14 @@ int main(void)
 
     // Step 1: Create LDevID keypair
     mbedtls_printf("[C] Generating LDevID...\n\n");
-    create_keypair(pk, 15);
+    create_keypair(pk, 15, ldevid_crt, &ldevid_crt_len);
 
     print_hex_string("LDevID PK", pk, PUBLIC_KEY_SIZE);
+    print_hex_string("LDevID crt", ldevid_crt, ldevid_crt_len);
+    mbedtls_x509_crt_init(&ldevid_cert_parsed);
+    ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, ldevid_crt, ldevid_crt_len);
+    mbedtls_printf("Parsing LDevID_crt - ret: %d\n", ret);
+    mbedtls_x509_crt_free(&ldevid_cert_parsed);
     mbedtls_printf("\n");
 
     // Step 2: Open TLS connection to CA
@@ -250,7 +258,7 @@ int main(void)
         goto exit;
     }
 
-    if ((ret = mbedtls_ssl_set_hostname(&ssl, NULL)) != 0) {
+    if ((ret = mbedtls_ssl_set_hostname(&ssl, "CA")) != 0) {
         mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_set_hostname returned %d\n\n", ret);
         goto exit;
     }
