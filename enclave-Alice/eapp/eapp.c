@@ -150,7 +150,7 @@ int main(void)
     custom_printf("\n");
     
     // Print TCI SM and TCI Enclave
-    mbedtls_printf("[C] Getting TCI values...\n");
+    mbedtls_printf("Getting TCI values...\n");
     attest_enclave((void*) report, "test", 5);
     parsed_report = (struct report*) report;
     print_hex_string("TCI enclave", parsed_report->enclave.hash, KEYSTONE_HASH_MAX_SIZE);
@@ -158,7 +158,7 @@ int main(void)
     mbedtls_printf("\n");
 
     // Try to read certificate in memory
-    mbedtls_printf("[C] Retrieving cert from memory...\n");
+    mbedtls_printf("Retrieving crt from memory...\n");
     ret = read_crt((unsigned char *) ldevid_ca_cert, &ldevid_ca_cert_len);
     if(ret == -1) {
         mbedtls_printf("Error in retrieving crt\n");
@@ -168,14 +168,14 @@ int main(void)
     mbedtls_printf("\n");
 
     // Step 1: Create LDevID keypair
-    mbedtls_printf("[C] Generating LDevID...\n\n");
+    mbedtls_printf("1.1 Generating LDevID...\n");
     create_keypair(pk, 15, ldevid_crt, &ldevid_crt_len);
 
     print_hex_string("LDevID PK", pk, PUBLIC_KEY_SIZE);
     print_hex_string("LDevID crt", ldevid_crt, ldevid_crt_len);
     mbedtls_x509_crt_init(&ldevid_cert_parsed);
     ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, ldevid_crt, ldevid_crt_len);
-    mbedtls_printf("Parsing LDevID_crt - ret: %d\n", ret);
+    mbedtls_printf("Parsing LDevID crt - ret: %d\n", ret);
     // mbedtls_x509_crt_free(&ldevid_cert_parsed);
     mbedtls_printf("\n");
 
@@ -196,16 +196,16 @@ int main(void)
 
     get_cert_chain(certs[0], certs[1], certs[2], &sizes[0], &sizes[1], &sizes[2]);
 
-    mbedtls_printf("Getting DICE certificates...\n");
-    print_hex_string("certs[0]", certs[0], sizes[0]);
-    print_hex_string("certs[1]", certs[1], sizes[1]);
-    print_hex_string("certs[2]", certs[2], sizes[2]);
-    mbedtls_printf("\n");
+    mbedtls_printf("2.1 Getting DICE certificates...\n");
+    print_hex_string("LAK crt", certs[0], sizes[0]);
+    print_hex_string("SM ECA crt", certs[1], sizes[1]);
+    print_hex_string("DevRoot crt", certs[2], sizes[2]);
 
     ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, certs[1], sizes[1]);
-    mbedtls_printf("Parsing sm crt - ret: %d\n", ret);
+    mbedtls_printf("Parsing SM ECA crt - ret: %d\n", ret);
     ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, certs[2], sizes[2]);
-    mbedtls_printf("Parsing devroot crt - ret: %d\n", ret);
+    mbedtls_printf("Parsing DevRoot crt - ret: %d\n", ret);
+    mbedtls_printf("\n");
 
     // Step 2: Open TLS connection to CA
 
@@ -224,14 +224,14 @@ int main(void)
     mbedtls_pk_init(&ldevid_parsed);
 
     /*
-    mbedtls_printf("\n[C]  . Seeding the random number generator...");
+    mbedtls_printf("\n[E]  . Seeding the random number generator...");
 
     mbedtls_entropy_init(&entropy);
 
     if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
                                      (const unsigned char *) pers,
                                      strlen((char*)pers))) != 0) {
-        mbedtls_printf(" failed\n[C]  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
+        mbedtls_printf(" failed\n[E]  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
         goto exit;
     }
 
@@ -241,19 +241,19 @@ int main(void)
     /*
      * 0. Initialize certificates
      */
-    mbedtls_printf("[C]  . Loading the CA root certificate ...");
+    mbedtls_printf("[E]  . Loading the CA root certificate ...");
 
     ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) ca_cert_pem,
                                  ca_cert_pem_len);
     if (ret < 0) {
-        mbedtls_printf(" failed\n[C]  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
+        mbedtls_printf(" failed\n[E]  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
                        (unsigned int) -ret);
         goto exit;
     }
 
     ret =  mbedtls_pk_parse_ed25519_key(&ldevid_parsed, (const unsigned char *) pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
     if (ret != 0) {
-        mbedtls_printf(" failed\n[S]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[E]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
         goto exit;
     }
 
@@ -262,11 +262,11 @@ int main(void)
     /*
      * 1. Start the connection
      */
-    mbedtls_printf("[C]  . Connecting to tcp/%s/%s...", SERVER_NAME, SERVER_PORT);
+    mbedtls_printf("[E]  . Connecting to tcp/%s/%s...", SERVER_NAME, SERVER_PORT);
 
     if ((ret = custom_net_connect(&server_fd, SERVER_NAME,
                                    SERVER_PORT, MBEDTLS_NET_PROTO_TCP)) != 0) {
-        mbedtls_printf(" failed\n[C]  ! mbedtls_net_connect returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[E]  ! mbedtls_net_connect returned %d\n\n", ret);
         goto exit;
     }
 
@@ -275,12 +275,12 @@ int main(void)
     /*
      * 2. Setup stuff
      */
-    mbedtls_printf("[C]  . Setting up the SSL/TLS structure...");
+    mbedtls_printf("[E]  . Setting up the SSL/TLS structure...");
     if ((ret = mbedtls_ssl_config_defaults(&conf,
                                            MBEDTLS_SSL_IS_CLIENT,
                                            MBEDTLS_SSL_TRANSPORT_STREAM,
                                            MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
-        mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_config_defaults returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_config_defaults returned %d\n\n", ret);
         goto exit;
     }
 
@@ -292,17 +292,17 @@ int main(void)
     // mbedtls_ssl_conf_dbg(&conf, my_debug, stdout);
 
     if ((ret = mbedtls_ssl_conf_own_cert(&conf, &ldevid_cert_parsed, &ldevid_parsed)) != 0) {
-        mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
         goto exit;
     }
 
     if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0) {
-        mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_setup returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_setup returned %d\n\n", ret);
         goto exit;
     }
 
     if ((ret = mbedtls_ssl_set_hostname(&ssl, "CA")) != 0) {
-        mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_set_hostname returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_set_hostname returned %d\n\n", ret);
         goto exit;
     }
 
@@ -313,11 +313,11 @@ int main(void)
     /*
      * 3. Handshake
      */
-    mbedtls_printf("[C]  . Performing the SSL/TLS handshake...");
+    mbedtls_printf("[E]  . Performing the SSL/TLS handshake...");
 
     while ((ret = mbedtls_ssl_handshake(&ssl)) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_handshake returned -0x%x\n\n",
+            mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_handshake returned -0x%x\n\n",
                            (unsigned int) -ret);
             goto exit;
         }
@@ -328,7 +328,7 @@ int main(void)
     /*
      * 4. Verify the server certificate
      */
-    mbedtls_printf("[C]  . Verifying peer X.509 certificate...");
+    mbedtls_printf("[E]  . Verifying peer X.509 certificate...");
 
     /* In real life, we probably want to bail out when ret != 0 */
     if ((flags = mbedtls_ssl_get_verify_result(&ssl)) != 0) {
@@ -348,7 +348,7 @@ int main(void)
     }
 
     // Step 3: Retrieve the nonce
-    mbedtls_printf("[C] Getting nonce...\n");
+    mbedtls_printf("\n2.5 Getting nonce...\n");
 
     // Send request to get the nonce
     len = sprintf((char *) buf, GET_NONCE_REQUEST);
@@ -364,12 +364,13 @@ int main(void)
         goto exit;
     }
 
+    mbedtls_printf("\n");
     // Nonce contained in the response
     print_hex_string("nonce", nonce, NONCE_LEN);
     mbedtls_printf("\n");
 
     // Step 4: Generate CSR
-    mbedtls_printf("[C] Generating CSR...\n");
+    mbedtls_printf("Generating CSR...\n");
 
     if(create_csr(pk, nonce, certs, sizes, csr, &csr_len)!=0){
         goto exit;
@@ -380,7 +381,7 @@ int main(void)
     mbedtls_printf("\n");
 
     // Step 5: Send CSR to CA
-    mbedtls_printf("[C] Sending CSR...\n");
+    mbedtls_printf("2.18 Sending CSR...\n");
 
     // Send CSR
     if((ret = mbedtls_base64_encode(enc_csr, CSR_MAX_LEN, &enc_csr_len, csr, csr_len))!=0) {
@@ -398,7 +399,7 @@ int main(void)
 
     // Step 6: Get the certificate issued by CA
     mbedtls_printf(" ...\n");
-    mbedtls_printf("[C] Getting LDevID_crt...\n");
+    mbedtls_printf("\n2.24 Getting new LDevID crt...\n");
 
     // Get crt from the response
     if((ret = recv_buf(&ssl, buf, &len, ldevid_ca_cert, &ldevid_ca_cert_len, get_crt))!=NET_SUCCESS){
@@ -406,24 +407,24 @@ int main(void)
         goto exit;
     }
     
-    mbedtls_printf(" ...\n");
-    print_hex_string("LDevID_crt", ldevid_ca_cert, ldevid_ca_cert_len);
+    mbedtls_printf(" ...\n\n");
+    print_hex_string("new LDevID crt", ldevid_ca_cert, ldevid_ca_cert_len);
     mbedtls_printf("\n");
 
     // Parse the received certificate
     mbedtls_x509_crt_init(&cert_gen);
     ret = mbedtls_x509_crt_parse_der(&cert_gen, ldevid_ca_cert, ldevid_ca_cert_len);
-    mbedtls_printf("Parsing LDevID_crt - ret: %d\n", ret);
+    mbedtls_printf("Parsing new LDevID crt - ret: %d\n", ret);
     mbedtls_printf("\n");
 
     #if PRINT_STRUCTS
-    print_mbedtls_x509_cert("LDevID_crt", cert_gen);
+    print_mbedtls_x509_cert("new LDevID crt", cert_gen);
     #endif
 
     mbedtls_x509_crt_free(&cert_gen);
 
     // Store the certificate
-    mbedtls_printf("[C] Storing the certificate in memory...\n");
+    mbedtls_printf("Storing the certificate in memory...\n");
     if((ret = store_crt(ldevid_ca_cert, ldevid_ca_cert_len)) == -1) {
         mbedtls_printf("Error in storing LDevID_crt\n");
         goto exit;
@@ -443,7 +444,7 @@ exit:
     if (exit_code != MBEDTLS_EXIT_SUCCESS) {
         char error_buf[100];
         mbedtls_strerror(ret, error_buf, 100);
-        mbedtls_printf("[C] Last error was: %d - %s\n\n", ret, error_buf);
+        mbedtls_printf("[E] Last error was: %d - %s\n\n", ret, error_buf);
     }
 #endif
 
@@ -484,7 +485,7 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
     }
 
     if(memcmp(buf, HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1)!=0) {
-        mbedtls_printf("[C] cannot read nonce 1\n\n");
+        mbedtls_printf("Cannot read nonce 1\n\n");
         return -1;
     }
     i = sizeof(HTTP_NONCE_RESPONSE_START)-1;
@@ -496,7 +497,7 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
     }
 
     if(memcmp(buf+i, HTTP_NONCE_RESPONSE_MIDDLE, sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-1)!=0) {
-        mbedtls_printf("[C] cannot read nonce 2\n\n");
+        mbedtls_printf("Cannot read nonce 2\n\n");
         return -1;
     }
     i += sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-1;
@@ -504,7 +505,7 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
     memcpy(enc_nonce, buf+i, enc_nonce_len);
 
     if(memcmp(buf+i+enc_nonce_len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END))!=0){
-        mbedtls_printf("[C] cannot read nonce 3\n\n");
+        mbedtls_printf("Cannot read nonce 3\n\n");
         return -1;
     }
 
@@ -528,7 +529,7 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
     }
 
     if(memcmp(buf, HTTP_CERTIFICATE_RESPONSE_START, sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1)!=0) {
-        mbedtls_printf("[C] cannot read certificate 1\n\n");
+        mbedtls_printf("Cannot read certificate 1\n\n");
         return -1;
     }
     i = sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1;
@@ -540,7 +541,7 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
     }
 
     if(memcmp(buf+i, HTTP_CERTIFICATE_RESPONSE_MIDDLE, sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-1)!=0) {
-        mbedtls_printf("[C] cannot read certificate 2\n\n");
+        mbedtls_printf("Cannot read certificate 2\n\n");
         return -1;
     }
     i += sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-1;
@@ -548,7 +549,7 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
     memcpy(enc_crt, buf+i, enc_crt_len);
 
     if(memcmp(buf+i+enc_crt_len, HTTP_CERTIFICATE_RESPONSE_END, sizeof(HTTP_CERTIFICATE_RESPONSE_END))!=0){
-        mbedtls_printf("[C] cannot read certificate 3\n\n");
+        mbedtls_printf("Cannot read certificate 3\n\n");
         return -1;
     }
 
@@ -557,16 +558,16 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
 
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len){
     int ret;
-    mbedtls_printf("[C]  > Write to server:");
+    mbedtls_printf("[E]  > Write to server:");
     while ((ret = mbedtls_ssl_write(ssl, buf, *len)) <= 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n[C]  ! mbedtls_ssl_write returned %d\n\n", ret);
+            mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_write returned %d\n\n", ret);
             return ret;
         }
     }
 
     *len = ret;
-    mbedtls_printf("[C] %d bytes written\n\n%s", *len, (char *) buf);
+    mbedtls_printf(" %d bytes written\n\n%s", *len, (char *) buf);
     return NET_SUCCESS;
 }
 
@@ -574,7 +575,7 @@ int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len){
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
     int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len)){
     int ret;
-    mbedtls_printf("[C]  < Read from server:");
+    mbedtls_printf("[E]  < Read from server:");
     do {
         *len = BUF_SIZE - 1;
         memset(buf, 0, BUF_SIZE);
@@ -589,12 +590,12 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
         }
 
         if (ret < 0) {
-            mbedtls_printf("failed\n[C]  ! mbedtls_ssl_read returned %d\n\n", ret);
+            mbedtls_printf("failed\n[E]  ! mbedtls_ssl_read returned %d\n\n", ret);
             break;
         }
 
         if (ret == 0) {
-            mbedtls_printf("\n\n[C] EOF\n\n");
+            mbedtls_printf("\n\n[E] EOF\n\n");
             break;
         }
 
@@ -650,10 +651,10 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
 
     int ret = 1;
 
-    mbedtls_printf("Generating attestation proof...\n");
+    mbedtls_printf("2.11 Generating attestation evidence signature...\n");
     crypto_interface(1, nonce, NONCE_LEN, attest_proof, &attest_proof_len, pk);
-    print_hex_string("attest_proof", attest_proof, attest_proof_len);
-    mbedtls_printf("\n");
+    print_hex_string("attest_evd_sign", attest_proof, attest_proof_len);
+    // mbedtls_printf("\n");
 
     mbedtls_x509write_csr_init(&req);
     mbedtls_pk_init(&key);
@@ -668,19 +669,19 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     mbedtls_printf("Setting subject - ret: %d\n", ret);
     
     ret = mbedtls_pk_parse_ed25519_key(&key, pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
-    mbedtls_printf("Setting pk - ret: %d\n", ret);
+    mbedtls_printf("Setting PK - ret: %d\n", ret);
 
     mbedtls_x509write_csr_set_key(&req, &key);
-    mbedtls_printf("Setting pk context\n");
+    mbedtls_printf("Setting PK context\n");
 
     ret = mbedtls_x509write_csr_set_nonce(&req, nonce);
     mbedtls_printf("Setting nonce - ret: %d\n", ret);
 
     ret = mbedtls_x509write_csr_set_attestation_proof(&req, attest_proof);
-    mbedtls_printf("Setting attestation proof - ret: %d\n", ret);
+    mbedtls_printf("Setting attestation evidence signature - ret: %d\n", ret);
 
     ret = mbedtls_x509write_csr_set_dice_certs(&req, (unsigned char **)certs, sizes);
-    mbedtls_printf("Setting chain of certs - ret: %d\n", ret);
+    mbedtls_printf("Setting chain of DICE certs - ret: %d\n", ret);
 
     mbedtls_printf("\n");
 

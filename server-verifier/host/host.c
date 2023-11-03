@@ -154,13 +154,13 @@ int main(void)
     /*
      * 1. Seed the RNG
      */
-    mbedtls_printf("[S]  . Seeding the random number generator...");
+    mbedtls_printf("[Ver]  . Seeding the random number generator...");
     fflush(stdout);
 
     if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
                                      (const unsigned char *) pers,
                                      strlen(pers))) != 0) {
-        mbedtls_printf(" failed\n[S]  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
+        mbedtls_printf(" failed\n[Ver]  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
         goto exit;
     }
 
@@ -169,7 +169,7 @@ int main(void)
     /*
      * 2. Load the certificates and private RSA key
      */
-    mbedtls_printf("\n[S]  . Loading the server cert. and key...");
+    mbedtls_printf("[Ver]  . Loading the server cert. and key...");
     fflush(stdout);
 
     /*
@@ -180,14 +180,14 @@ int main(void)
     ret = mbedtls_x509_crt_parse(&srvcert, (const unsigned char *) ver_cert_pem,
                                  ver_cert_pem_len);
     if (ret != 0) {
-        mbedtls_printf(" failed\n[S]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[Ver]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
         goto exit;
     }
 
     ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) ca_cert_pem,
                                  ca_cert_pem_len);
     if (ret != 0) {
-        mbedtls_printf(" failed\n[S]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[Ver]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
         goto exit;
     }
 
@@ -195,7 +195,7 @@ int main(void)
                                 ver_key_pem_len, NULL, 0,
                                 mbedtls_ctr_drbg_random, &ctr_drbg);
     if (ret != 0) {
-        mbedtls_printf(" failed\n[S]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[Ver]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
         goto exit;
     }
 
@@ -204,11 +204,11 @@ int main(void)
     /*
      * 3. Setup the listening TCP socket
      */
-    mbedtls_printf("[S]  . Bind on https://localhost:8068/ ...");
+    mbedtls_printf("[Ver]  . Bind on https://localhost:8068/ ...");
     fflush(stdout);
 
     if ((ret = mbedtls_net_bind(&listen_fd, NULL, "8068", MBEDTLS_NET_PROTO_TCP)) != 0) {
-        mbedtls_printf(" failed\n[S]  ! mbedtls_net_bind returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[Ver]  ! mbedtls_net_bind returned %d\n\n", ret);
         goto exit;
     }
 
@@ -217,14 +217,14 @@ int main(void)
     /*
      * 4. Setup stuff
      */
-    mbedtls_printf("[S]  . Setting up the SSL data....");
+    mbedtls_printf("[Ver]  . Setting up the SSL data....");
     fflush(stdout);
 
     if ((ret = mbedtls_ssl_config_defaults(&conf,
                                            MBEDTLS_SSL_IS_SERVER,
                                            MBEDTLS_SSL_TRANSPORT_STREAM,
                                            MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
-        mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_config_defaults returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[Ver]  ! mbedtls_ssl_config_defaults returned %d\n\n", ret);
         goto exit;
     }
 
@@ -240,12 +240,12 @@ int main(void)
     mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
     mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
     if ((ret = mbedtls_ssl_conf_own_cert(&conf, &srvcert, &pkey)) != 0) {
-        mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[Ver]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
         goto exit;
     }
 
     if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0) {
-        mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_setup returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[Ver]  ! mbedtls_ssl_setup returned %d\n\n", ret);
         goto exit;
     }
 
@@ -257,7 +257,7 @@ reset:
     if (ret != 0) {
         char error_buf[100];
         mbedtls_strerror(ret, error_buf, 100);
-        mbedtls_printf("[S] Last error was: %d - %s\n\n", ret, error_buf);
+        mbedtls_printf("[Ver] Last error was: %d - %s\n\n", ret, error_buf);
     }
 #endif
 
@@ -268,12 +268,12 @@ reset:
     /*
      * 3. Wait until a client connects
      */
-    mbedtls_printf("[S]  . Waiting for a remote connection ...");
+    mbedtls_printf("[Ver]  . Waiting for a remote connection ...");
     fflush(stdout);
 
     if ((ret = mbedtls_net_accept(&listen_fd, &client_fd,
                                   NULL, 0, NULL)) != 0) {
-        mbedtls_printf(" failed\n[S]  ! mbedtls_net_accept returned %d\n\n", ret);
+        mbedtls_printf(" failed\n[Ver]  ! mbedtls_net_accept returned %d\n\n", ret);
         goto exit;
     }
 
@@ -284,12 +284,12 @@ reset:
     /*
      * 5. Handshake
      */
-    mbedtls_printf("[S]  . Performing the SSL/TLS handshake...");
+    mbedtls_printf("[Ver]  . Performing the SSL/TLS handshake...");
     fflush(stdout);
 
     while ((ret = mbedtls_ssl_handshake(&ssl)) != 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_handshake returned %d\n\n", ret);
+            mbedtls_printf(" failed\n[Ver]  ! mbedtls_ssl_handshake returned %d\n\n", ret);
             goto reset;
         }
     }
@@ -342,8 +342,8 @@ reset:
             break;
     }
 
-    // Step 2: Receive CSR and verify it
-    // Wait for CSR
+    // Step 2: Receive attestation evidence and verify it
+    // Wait for attestation evidence
     if((ret = recv_buf(&ssl, buf, &len, resp, &resp_len, verify_attest_evidence))!=NET_SUCCESS){
         if(ret == HANDLER_ERROR) ret = -1;
         err = 1;
@@ -376,7 +376,7 @@ reset:
 
 /*
     mbedtls_printf("\n");
-    print_hex_string("[S] CSR", recv_csr, csr_len);
+    print_hex_string("[Ver] CSR", recv_csr, csr_len);
     mbedtls_printf("\n");
     
     // Parse and verify CSR
@@ -386,7 +386,7 @@ reset:
     }
 
     // Step 3: Issue LDevID Certificate for Enclave and send it
-    mbedtls_printf("[S] Generating Certificate...\n\n");
+    mbedtls_printf("[Ver] Generating Certificate...\n\n");
     if((ret = issue_crt(recv_csr, csr_len, crt, &crt_len)) != 0) {
         ret = -1;
         goto exit;
@@ -418,12 +418,12 @@ reset:
     }
 */
 
-    mbedtls_printf("[S]  . Closing the connection...");
+    mbedtls_printf("[Ver]  . Closing the connection...");
 
     while ((ret = mbedtls_ssl_close_notify(&ssl)) < 0) {
         if (ret != MBEDTLS_ERR_SSL_WANT_READ &&
             ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_close_notify returned %d\n\n", ret);
+            mbedtls_printf(" failed\n[Ver]  ! mbedtls_ssl_close_notify returned %d\n\n", ret);
             goto reset;
         }
     }
@@ -439,7 +439,7 @@ exit:
     if (ret != 0) {
         char error_buf[100];
         mbedtls_strerror(ret, error_buf, 100);
-        mbedtls_printf("[S] Last error was: %d - %s\n\n", ret, error_buf);
+        mbedtls_printf("[Ver] Last error was: %d - %s\n\n", ret, error_buf);
     }
 #endif
 
@@ -462,7 +462,7 @@ exit:
 
 int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len) {
     if(memcmp(buf, GET_NONCE_REQUEST, sizeof(GET_NONCE_REQUEST))!=0) {
-        mbedtls_printf("[S] error in reading nonce request\n\n");
+        mbedtls_printf("Error in reading nonce request\n\n");
         return -1;
     }
     return 0;
@@ -475,7 +475,7 @@ int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len) {
     int digits = 0;
     // Read csr_len from the request
     if (sscanf((const char *)buf, POST_CSR_REQUEST_START, &enc_csr_len) != 1) {
-        mbedtls_printf("[S] error in reading csr_len\n\n");
+        mbedtls_printf("Error in reading CSR_len\n\n");
         return -1;
     }
 
@@ -490,7 +490,7 @@ int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len) {
     memcpy(enc_csr, buf + sizeof(POST_CSR_REQUEST_START)-1+digits, enc_csr_len);
     
     if (memcmp(buf + sizeof(POST_CSR_REQUEST_START) + digits + enc_csr_len -1 , POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END)) != 0) {
-        mbedtls_printf("[S] cannot read csr 2\n\n");
+        mbedtls_printf("Cannot read CSR 2\n\n");
         return -1;
     }
     return mbedtls_base64_decode(csr, CSR_MAX_LEN, csr_len, enc_csr, enc_csr_len);
@@ -530,7 +530,7 @@ int verify_csr(unsigned char *recv_csr, size_t csr_len) {
     print_hex_string("Hash CSR", csr_hash, KEYSTONE_HASH_MAX_SIZE);
     #endif
     ret = mbedtls_pk_verify_ext(csr.MBEDTLS_PRIVATE(sig_pk), csr.MBEDTLS_PRIVATE(sig_opts), &(csr.pk), csr.MBEDTLS_PRIVATE(sig_md), csr_hash, KEYSTONE_HASH_MAX_SIZE, csr.MBEDTLS_PRIVATE(sig).p, csr.MBEDTLS_PRIVATE(sig).len);
-    mbedtls_printf("Verify CSR signature - ret: %d\n", ret);
+    mbedtls_printf("Verifying CSR signature - ret: %d\n", ret);
     if(ret != 0) {
         mbedtls_x509_csr_free(&csr);
         return 3;
@@ -618,7 +618,7 @@ int verify_csr(unsigned char *recv_csr, size_t csr_len) {
     }
 
     ret = mbedtls_pk_verify_ext(MBEDTLS_PK_ED25519, NULL, &key, MBEDTLS_MD_KEYSTONE_SHA3, fin_hash, KEYSTONE_HASH_MAX_SIZE, csr.attestation_proof.p, csr.attestation_proof.len);
-    mbedtls_printf("Verifying attestation proof - ret: %d\n", ret);
+    mbedtls_printf("Verifying attestation evidence signature - ret: %d\n", ret);
     mbedtls_pk_free(&key);
     mbedtls_x509_csr_free(&csr);
     if(ret != 0) {
@@ -689,7 +689,7 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
     mbedtls_pk_init(&issu_key);
     
     ret = mbedtls_pk_parse_ed25519_key(&issu_key, sanctum_ca_private_key, PRIVATE_KEY_SIZE, ED25519_PARSE_PRIVATE_KEY);
-    mbedtls_printf("Parsing issuer pk - ret: %d\n", ret);
+    mbedtls_printf("Parsing issuer PK - ret: %d\n", ret);
     if(ret != 0) {
         mbedtls_x509_csr_free(&csr);
         mbedtls_x509write_crt_free(&cert_encl);
@@ -699,7 +699,7 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
     }
 
     ret = mbedtls_pk_parse_ed25519_key(&issu_key, sanctum_ca_public_key, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
-    mbedtls_printf("Parsing issuer sk - ret: %d\n", ret);
+    mbedtls_printf("Parsing issuer SK - ret: %d\n", ret);
     if(ret != 0) {
         mbedtls_x509_csr_free(&csr);
         mbedtls_x509write_crt_free(&cert_encl);
@@ -709,7 +709,7 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
     }
 
     ret = mbedtls_pk_parse_ed25519_key(&subj_key, mbedtls_pk_ed25519(csr.pk)->pub_key, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
-    mbedtls_printf("Parsing subject pk - ret: %d\n", ret);
+    mbedtls_printf("Parsing subject PK - ret: %d\n", ret);
     if(ret != 0) {
         mbedtls_x509_csr_free(&csr);
         mbedtls_x509write_crt_free(&cert_encl);
@@ -748,7 +748,7 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
     }
 
     ret = mbedtls_x509write_crt_set_extension(&cert_encl, MBEDTLS_OID_TCI, 3, 0, reference_tci, KEYSTONE_HASH_MAX_SIZE);
-    mbedtls_printf("Setting tci - ret: %d\n", ret);
+    mbedtls_printf("Setting TCI - ret: %d\n", ret);
     if(ret != 0) {
         mbedtls_x509_csr_free(&csr);
         mbedtls_x509write_crt_free(&cert_encl);
@@ -791,18 +791,18 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
 
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len) {
     int ret;
-    mbedtls_printf("[S]  > Write to client:");
+    mbedtls_printf("[Ver]  > Write to client:");
     fflush(stdout);
 
     while ((ret = mbedtls_ssl_write(ssl, buf, *len)) <= 0) {
         if (ret == MBEDTLS_ERR_NET_CONN_RESET) {
-            mbedtls_printf(" failed\n[S]  ! peer closed the connection\n\n");
+            mbedtls_printf(" failed\n[Ver]  ! peer closed the connection\n\n");
             *len = ret;
             return GOTO_RESET;
         }
 
         if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
-            mbedtls_printf(" failed\n[S]  ! mbedtls_ssl_write returned %d\n\n", ret);
+            mbedtls_printf(" failed\n[Ver]  ! mbedtls_ssl_write returned %d\n\n", ret);
             *len = ret;
             return GOTO_EXIT;
         }
@@ -816,7 +816,7 @@ int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len) {
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
     int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len)) {
     int ret;
-    mbedtls_printf("[S]  < Read from client:");
+    mbedtls_printf("[Ver]  < Read from client:");
     fflush(stdout);
     do {
         *len = BUF_SIZE - 1;
@@ -882,18 +882,18 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     mbedtls_pk_context key;
     uint32_t flags = 0;
 
-    mbedtls_printf("Starting\n");
+    mbedtls_printf("\n2.21 Reading attestation message...\n");
     if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_START_SUBJECT, cn, &cn_len, 0) != 0) {
         ret = 1;
         goto gen_resp;
     }
-    mbedtls_printf("cn: %s, %lu\n", cn, cn_len);
+    mbedtls_printf("CN: %s, %lu\n", cn, cn_len);
        
     if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_PK, pk, &pk_len, 1) != 0) {
         ret = 2;
         goto gen_resp;
     }
-    print_hex_string("pk", pk, pk_len);
+    print_hex_string("PK", pk, pk_len);
     
     if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_NONCE, nonce, &nonce_len, 1) != 0) {
         ret = 3;
@@ -905,7 +905,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         ret = 4;
         goto gen_resp;
     }
-    print_hex_string("attest_proof", attest_evd, attest_evd_len);
+    print_hex_string("attest_evd_sign", attest_evd, attest_evd_len);
 
     mbedtls_x509_crt_init(&dice_certs);
 
@@ -915,7 +915,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         ret = 6;
         goto gen_resp;
     }
-    print_hex_string("cert_dev_root", tmp_crt, tmp_crt_len);
+    print_hex_string("DevRoot crt", tmp_crt, tmp_crt_len);
     tmp_crt_len = CERTS_MAX_LEN;
 
     if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_SM, tmp_crt, &tmp_crt_len, 1) != 0 ||
@@ -924,7 +924,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         ret = 7;
         goto gen_resp;
     }
-    print_hex_string("cert_sm", tmp_crt, tmp_crt_len);
+    print_hex_string("SM ECA crt", tmp_crt, tmp_crt_len);
     tmp_crt_len = CERTS_MAX_LEN;
 
     if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_LAK, tmp_crt, &tmp_crt_len, 1) != 0 ||
@@ -933,7 +933,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         ret = 5;
         goto gen_resp;
     }
-    print_hex_string("cert_lak", tmp_crt, tmp_crt_len);
+    print_hex_string("LAK crt", tmp_crt, tmp_crt_len);
 
     if(memcmp(buf+len, POST_ATTESTATION_REQUEST_END, sizeof(POST_ATTESTATION_REQUEST_END)) != 0){
         mbedtls_x509_crt_free(&dice_certs);
@@ -942,12 +942,16 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     }
 
     // Start fields validation
+    mbedtls_printf("\nValidating fields...\n");
+    mbedtls_printf("Verifying nonce - ");
     if(memcmp(ref_nonce, nonce, NONCE_LEN) != 0) {
+        mbedtls_printf("error\n");
         mbedtls_x509_crt_free(&dice_certs);
         ret = 9;
         goto gen_resp;
     }
-    mbedtls_printf("nonce ok\n");
+    mbedtls_printf("ok\n");
+
     mbedtls_x509_crt_init(&trusted_certs);
     ret = mbedtls_x509_crt_parse_der(&trusted_certs, ref_cert_man, ref_cert_man_len);
     mbedtls_printf("Parsing Trusted Certificate - ret: %d\n", ret);
@@ -976,7 +980,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     // Verify attestation proof
     // Get SM public key
     ret = getAttestationPublicKey(&dice_certs, verification_pk);
-    mbedtls_printf("Getting SM PK - ret: %d\n", ret);
+    mbedtls_printf("Getting LAK PK - ret: %d\n", ret);
     #if PRINT_STRUCTS
     print_hex_string("SM PK", verification_pk, PUBLIC_KEY_SIZE);
     #endif
@@ -988,7 +992,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
 
     // Get enclave reference TCI
     ret = getReferenceTCI(NULL, reference_tci);
-    mbedtls_printf("Getting Reference Enclave TCI - ret: %d\n", ret);
+    mbedtls_printf("Getting Enclave Reference TCI - ret: %d\n", ret);
     #if PRINT_STRUCTS
     print_hex_string("Reference Enclave TCI", reference_tci, KEYSTONE_HASH_MAX_SIZE);
     #endif
@@ -1011,7 +1015,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     // Verify signature of the attestation proof
     mbedtls_pk_init(&key);
     ret = mbedtls_pk_parse_ed25519_key(&key, verification_pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
-    mbedtls_printf("Parsing SM PK - ret: %d\n", ret);
+    mbedtls_printf("Parsing LAK PK - ret: %d\n", ret);
     if(ret != 0) {
         mbedtls_x509_crt_free(&dice_certs);
         mbedtls_pk_free(&key);
@@ -1020,7 +1024,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     }
 
     ret = mbedtls_pk_verify_ext(MBEDTLS_PK_ED25519, NULL, &key, MBEDTLS_MD_KEYSTONE_SHA3, fin_hash, KEYSTONE_HASH_MAX_SIZE, attest_evd, attest_evd_len);
-    mbedtls_printf("Verifying attestation proof - ret: %d\n", ret);
+    mbedtls_printf("Verifying attestation evidence signature - ret: %d\n\n", ret);
     mbedtls_pk_free(&key);
     mbedtls_x509_crt_free(&dice_certs);
     if(ret != 0) {
@@ -1040,24 +1044,24 @@ int get_encoded_field(unsigned char *buf, size_t *index, char *format, unsigned 
     size_t enc_len = 0;
     size_t outbuf_len = *outlen;
     if(memcmp(buf+(*index), format, strlen(format))!=0) {
-        mbedtls_printf("error 1\n");
+        mbedtls_printf("Error 1\n");
         return 1;
     }
     *index += strlen(format);
     while(buf[(*index)+enc_len] != '"' && buf[(*index)+enc_len] != '\0')
         enc_len ++;
     if(buf[(*index)+enc_len] == '\0') {
-        mbedtls_printf("error 2\n");
+        mbedtls_printf("Error 2\n");
         return 2;
     }
     memcpy(enc_buf, buf+(*index), enc_len);
-    mbedtls_printf("output: %s, %lu\n", enc_buf, enc_len);
-    mbedtls_printf("output_len: %lu\n", strlen((char*) enc_buf));
-    mbedtls_printf("format_len: %lu\n", strlen(format));
+    // mbedtls_printf("output: %s, %lu\n", enc_buf, enc_len);
+    // mbedtls_printf("output_len: %lu\n", strlen((char*) enc_buf));
+    // mbedtls_printf("format_len: %lu\n", strlen(format));
     *index += enc_len;
     if(encoded) {
         if(mbedtls_base64_decode(output, outbuf_len, outlen, enc_buf, enc_len) != 0) {
-            mbedtls_printf("error 3\n");
+            mbedtls_printf("Error 3\n");
             return 3;
         }
     } else {
