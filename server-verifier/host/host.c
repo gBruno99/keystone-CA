@@ -107,7 +107,8 @@ static void my_debug(void *ctx, int level,
 
 int main(void)
 {
-    int ret, err; 
+    int ret, err;
+    uint32_t flags; 
     size_t len;
     mbedtls_net_context listen_fd, client_fd;
     unsigned char buf[BUF_SIZE];
@@ -297,6 +298,28 @@ reset:
     }
 
     mbedtls_printf(" ok\n");
+
+    /*
+     * 4. Verify the client certificate
+     */
+    mbedtls_printf("[Ver]  . Verifying peer X.509 certificate...");
+
+    /* In real life, we probably want to bail out when ret != 0 */
+    if ((flags = mbedtls_ssl_get_verify_result(&ssl)) != 0) {
+#if !defined(MBEDTLS_X509_REMOVE_INFO)
+        char vrfy_buf[512];
+#endif
+
+        mbedtls_printf(" failed\n");
+
+#if !defined(MBEDTLS_X509_REMOVE_INFO)
+        mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
+
+        mbedtls_printf("%s\n", vrfy_buf);
+#endif
+    } else {
+        mbedtls_printf(" ok\n");
+    }
 
     /*
     // Step 1: Receive request and send nonce

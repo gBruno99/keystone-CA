@@ -323,6 +323,28 @@ reset:
 
     mbedtls_printf(" ok\n");
 
+    /*
+     * 4. Verify the client certificate
+     */
+    mbedtls_printf("[CA]  . Verifying peer X.509 certificate...");
+
+    /* In real life, we probably want to bail out when ret != 0 */
+    if ((flags = mbedtls_ssl_get_verify_result(&ssl)) != 0) {
+#if !defined(MBEDTLS_X509_REMOVE_INFO)
+        char vrfy_buf[512];
+#endif
+
+        mbedtls_printf(" failed\n");
+
+#if !defined(MBEDTLS_X509_REMOVE_INFO)
+        mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
+
+        mbedtls_printf("%s\n", vrfy_buf);
+#endif
+    } else {
+        mbedtls_printf(" ok\n");
+    }
+
     // Step 1: Receive request and send nonce
     // Read request
     if((ret = recv_buf(&ssl, buf, &len, NULL, NULL, check_nonce_request))!=NET_SUCCESS){
@@ -455,16 +477,8 @@ reset:
     /*
      * 0. Initialize certificates
      */
-    mbedtls_printf("[CA]  . Loading the CA root certificate ...");
+    mbedtls_printf("[CA]  . Loading the Ver root certificate ...");
     fflush(stdout);
-
-    ret = mbedtls_x509_crt_parse(&cert_ver, (const unsigned char *) ver_cert_pem,
-                                 ver_cert_pem_len);
-    if (ret < 0) {
-        mbedtls_printf(" failed\n[CA]  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
-                       (unsigned int) -ret);
-        goto exit_ver;
-    }
 
     ret = mbedtls_x509_crt_parse(&cacert_ver, (const unsigned char *) ca_cert_pem,
                                  ca_cert_pem_len);
@@ -478,6 +492,14 @@ reset:
                                 mbedtls_ctr_drbg_random, &ctr_drbg_ver);
     if (ret != 0) {
         mbedtls_printf(" failed\n[CA]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
+        goto exit_ver;
+    }
+
+    ret = mbedtls_x509_crt_parse(&cert_ver, (const unsigned char *) ver_cert_pem,
+                                 ver_cert_pem_len);
+    if (ret < 0) {
+        mbedtls_printf(" failed\n[CA]  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
+                       (unsigned int) -ret);
         goto exit_ver;
     }
 

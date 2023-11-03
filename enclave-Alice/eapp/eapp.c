@@ -243,17 +243,17 @@ int main(void)
      */
     mbedtls_printf("[E]  . Loading the CA root certificate ...");
 
+    ret =  mbedtls_pk_parse_ed25519_key(&ldevid_parsed, (const unsigned char *) pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n[E]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
+        goto exit;
+    }
+
     ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) ca_cert_pem,
                                  ca_cert_pem_len);
     if (ret < 0) {
         mbedtls_printf(" failed\n[E]  !  mbedtls_x509_crt_parse returned -0x%x\n\n",
                        (unsigned int) -ret);
-        goto exit;
-    }
-
-    ret =  mbedtls_pk_parse_ed25519_key(&ldevid_parsed, (const unsigned char *) pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
-    if (ret != 0) {
-        mbedtls_printf(" failed\n[E]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
         goto exit;
     }
 
