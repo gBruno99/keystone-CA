@@ -35,7 +35,7 @@
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/error.h"
 #include "mbedtls/debug.h"
-#include "certs.h"
+// #include "certs.h"
 #include "mbedtls/x509_csr.h"
 #include "mbedtls/keystone_ext.h"
 #include "mbedtls/print.h"
@@ -51,7 +51,7 @@
 #include "custom_certs.h"
 #include "mbedtls/sha3.h"
 #include "host/net.h"
-#include "host/ref_certs.h"
+// #include "host/ref_certs.h"
 
 #define BUF_SIZE                2048
 #define CSR_MAX_LEN             3072
@@ -88,7 +88,7 @@ int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_
 
 int check_ver_response(unsigned char *buf, unsigned char *tci, size_t *tci_len);
 
-int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
+// int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
 
 int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len);
 
@@ -146,9 +146,12 @@ int main(void)
     mbedtls_x509_crt cacert_ver;
     mbedtls_pk_context pkey_ver;
 
-    unsigned char nonce[NONCE_MAX_LEN];
-    // unsigned char enc_nonce[NONCE_MAX_LEN];
-    // size_t enc_nonce_len = 0;
+    unsigned char nonce[] = {
+        0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
+        0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
+    };
+    unsigned char enc_nonce[NONCE_MAX_LEN];
+    size_t enc_nonce_len = 0;
     unsigned char recv_csr[CSR_MAX_LEN] = {0};
     size_t csr_len = 0;
     unsigned char crt[CERTS_MAX_LEN] = {0};
@@ -339,6 +342,94 @@ reset:
         goto reset;
     }
 
+    /*
+    // Send request to get the nonce
+    // len = sprintf((char *) buf, GET_NONCE_REQUEST);
+
+    if((ret = send_buf_ver(&ssl_ver, buf, &len))!=NET_SUCCESS){
+        err = 2;
+        goto exit_ver;
+    }
+
+    // Read the nonce from the response
+
+    if((ret = recv_buf_ver(&ssl_ver, buf, &len, nonce, NULL, get_nonce))!=NET_SUCCESS){
+        if(ret == HANDLER_ERROR) ret = -1;
+        err = 2;
+        goto exit_ver;
+    }
+    mbedtls_printf("\n");
+    */
+
+    print_hex_string("nonce", nonce, NONCE_LEN);
+    mbedtls_printf("\n");
+    
+    // Write the nonce into the response
+    if((ret = mbedtls_base64_encode(enc_nonce, NONCE_MAX_LEN, &enc_nonce_len, nonce, NONCE_LEN))!=0) {
+        goto exit;
+    }
+    len = sprintf((char*) buf, HTTP_NONCE_RESPONSE_START, enc_nonce_len);
+    memcpy(buf+len, enc_nonce, enc_nonce_len);
+    len += enc_nonce_len;
+    memcpy(buf+len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END));
+    len += sizeof(HTTP_NONCE_RESPONSE_END);
+
+    // Send the response
+    if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
+        if(ret == GOTO_EXIT){
+            ret = len;
+            goto exit;
+        }
+        if(ret == GOTO_RESET){
+            ret = len;
+            goto reset;
+        }
+        goto reset;
+    }
+
+    // Step 2: Receive CSR and verify it
+    // Wait for CSR
+    if((ret = recv_buf(&ssl, buf, &len, recv_csr, &csr_len, get_csr))!=NET_SUCCESS){
+        if(ret == HANDLER_ERROR) {
+            ret = -1;
+            err = 1;
+        } else {
+            err = 2;
+        }
+        goto exit;
+    }
+
+    mbedtls_printf("\n");
+    print_hex_string("CSR", recv_csr, csr_len);
+    mbedtls_printf("\n");
+    
+    mbedtls_printf("Parsing CSR...\n");
+    mbedtls_x509_csr_init(&csr);
+    ret = mbedtls_x509_csr_parse_der(&csr, recv_csr, csr_len);
+    mbedtls_printf("Parsing CSR - ret: %d\n\n", ret);
+    if(ret != 0) {
+        mbedtls_x509_csr_free(&csr);
+        ret = -1;
+        err = 1;
+        goto exit;
+    }
+
+    // Parse and verify CSR
+    if((ret = verify_csr(&csr, nonce))!=0){
+        mbedtls_x509_csr_free(&csr);
+        ret = -1;
+        err = 1;
+        goto exit;
+    }
+
+    if((ret = write_attest_ver_req(&csr, buf, &len))!=0){
+        mbedtls_x509_csr_free(&csr);
+        mbedtls_printf("Write verify attestation - ret: %d\n", ret);
+        ret = -1;
+        err = 2;
+        goto exit;
+    }
+
     mbedtls_printf("Connecting to Verifier...\n");
     mbedtls_net_init(&verifier_fd);
     mbedtls_ssl_init(&ssl_ver);
@@ -484,96 +575,7 @@ reset:
         mbedtls_printf(" ok\n");
     }
 
-    // Send request to get the nonce
-    // len = sprintf((char *) buf, GET_NONCE_REQUEST);
-
     if((ret = send_buf_ver(&ssl_ver, buf, &len))!=NET_SUCCESS){
-        err = 2;
-        goto exit_ver;
-    }
-
-    // Read the nonce from the response
-
-    if((ret = recv_buf_ver(&ssl_ver, buf, &len, nonce, NULL, get_nonce))!=NET_SUCCESS){
-        if(ret == HANDLER_ERROR) ret = -1;
-        err = 2;
-        goto exit_ver;
-    }
-
-    mbedtls_printf("\n");
-    print_hex_string("nonce", nonce, NONCE_LEN);
-    mbedtls_printf("\n");
-    
-    /*
-    // Write the nonce into the response
-    if((ret = mbedtls_base64_encode(enc_nonce, NONCE_MAX_LEN, &enc_nonce_len, nonce, NONCE_LEN))!=0) {
-        goto exit;
-    }
-    len = sprintf((char*) buf, HTTP_NONCE_RESPONSE_START, enc_nonce_len);
-    memcpy(buf+len, enc_nonce, enc_nonce_len);
-    len += enc_nonce_len;
-    memcpy(buf+len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END));
-    len += sizeof(HTTP_NONCE_RESPONSE_END);
-    */
-
-    // Send the response
-    if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
-        if(ret == GOTO_EXIT){
-            ret = len;
-            goto exit_ver;
-        }
-        if(ret == GOTO_RESET){
-            ret = len;
-            goto exit_ver;
-        }
-        goto reset;
-    }
-
-    // Step 2: Receive CSR and verify it
-    // Wait for CSR
-    if((ret = recv_buf(&ssl, buf, &len, recv_csr, &csr_len, get_csr))!=NET_SUCCESS){
-        if(ret == HANDLER_ERROR) {
-            ret = -1;
-            err = 1;
-        } else {
-            err = 2;
-        }
-        goto exit_ver;
-    }
-
-    mbedtls_printf("\n");
-    print_hex_string("CSR", recv_csr, csr_len);
-    mbedtls_printf("\n");
-    
-    mbedtls_printf("Parsing CSR...\n");
-    mbedtls_x509_csr_init(&csr);
-    ret = mbedtls_x509_csr_parse_der(&csr, recv_csr, csr_len);
-    mbedtls_printf("Parsing CSR - ret: %d\n\n", ret);
-    if(ret != 0) {
-        mbedtls_x509_csr_free(&csr);
-        ret = -1;
-        err = 1;
-        goto exit_ver;
-    }
-
-    // Parse and verify CSR
-    if((ret = verify_csr(&csr, nonce))!=0){
-        mbedtls_x509_csr_free(&csr);
-        ret = -1;
-        err = 1;
-        goto exit_ver;
-    }
-
-    if((ret = write_attest_ver_req(&csr, buf, &len))!=0){
-        mbedtls_x509_csr_free(&csr);
-        mbedtls_printf("Write verify attestation - ret: %d\n", ret);
-        ret = -1;
-        err = 2;
-        goto exit_ver;
-    }
-
-   if((ret = send_buf_ver(&ssl_ver, buf, &len))!=NET_SUCCESS){
-        mbedtls_x509_csr_free(&csr);
         err = 2;
         goto exit_ver;
     }
@@ -587,7 +589,6 @@ reset:
         } else {
             err = 2;
         }
-        mbedtls_x509_csr_free(&csr);
         goto exit_ver;
     }
 
@@ -625,11 +626,10 @@ exit_ver:
     }
 
     mbedtls_net_free(&verifier_fd);
-
     mbedtls_x509_crt_free(&cert_ver);
     mbedtls_x509_crt_free(&cacert_ver);
     mbedtls_ssl_free(&ssl_ver);
-     mbedtls_pk_free(&pkey_ver);
+    mbedtls_pk_free(&pkey_ver);
     mbedtls_ssl_config_free(&conf_ver);
     mbedtls_ctr_drbg_free(&ctr_drbg_ver);
     mbedtls_entropy_free(&entropy_ver);
@@ -642,6 +642,7 @@ exit_ver:
         mbedtls_printf("[CA] Last error was: %d - %s\n\n", ret, error_buf);
 #endif
 */
+        mbedtls_x509_csr_free(&csr);
         goto exit;
     }
 
@@ -733,7 +734,6 @@ if(err == 1 || err == 2) {
 
     mbedtls_net_free(&client_fd);
     mbedtls_net_free(&listen_fd);
-
     mbedtls_x509_crt_free(&srvcert);
     mbedtls_x509_crt_free(&cacert);
     mbedtls_pk_free(&pkey);
@@ -756,6 +756,7 @@ int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_
     return 0;
 }
 
+/*
 int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
     int ret = 0;
     unsigned char enc_nonce[NONCE_MAX_LEN] = {0};
@@ -787,6 +788,7 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
     ret = mbedtls_base64_decode(nonce, NONCE_MAX_LEN, &dec_nonce_len, enc_nonce, enc_nonce_len);
     return ret || (dec_nonce_len != NONCE_LEN);
 }
+*/
 
 int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len) {
     unsigned char enc_csr[CSR_MAX_LEN];
@@ -842,7 +844,6 @@ int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce) {
     if(ret != 0) {
         return 3;
     }
-
 
     // Verify nonces equality
     ret = csr->nonce.len != NONCE_LEN;
@@ -942,15 +943,16 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     mbedtls_entropy_context entropy;
     const char *pers = "issuing_cert";
     unsigned char serial[] = {0xAB, 0xAB, 0xAB};
-    serial[2] = num_crt;
-    num_crt++;
-    print_hex_string("serial", serial, 3);
     unsigned char reference_tci[KEYSTONE_HASH_MAX_SIZE] = {0};
     unsigned char cert_der[CERTS_MAX_LEN];
     int effe_len_cert_der;
     size_t len_cert_der_tot = CERTS_MAX_LEN;
     unsigned char *cert_real;
     int dif;
+
+    serial[2] = num_crt;
+    num_crt++;
+    print_hex_string("serial", serial, 3);
 
     // Get enclave reference TCI
     ret = getReferenceTCI(csr, reference_tci);
@@ -971,7 +973,6 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     if(ret != 0) {
         mbedtls_entropy_free(&entropy);
         mbedtls_ctr_drbg_free(&ctr_drbg);
-        mbedtls_x509write_crt_free(&cert_encl);
         return 2;
     }
     // Set certificate fields
