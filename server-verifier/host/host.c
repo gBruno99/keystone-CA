@@ -35,7 +35,7 @@
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/error.h"
 #include "mbedtls/debug.h"
-#include "certs.h"
+// #include "certs.h"
 #include "mbedtls/x509_csr.h"
 #include "mbedtls/keystone_ext.h"
 #include "mbedtls/print.h"
@@ -51,7 +51,7 @@
 #include "custom_certs.h"
 #include "mbedtls/sha3.h"
 #include "host/net.h"
-#include "host/ref_certs.h"
+// #include "host/ref_certs.h"
 
 #define BUF_SIZE                2048
 #define CSR_MAX_LEN             3072
@@ -67,26 +67,28 @@
 #define GOTO_EXIT       -3
 #define GOTO_RESET      -4
 
+/*
 unsigned char ref_nonce[] = {
         0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
         0x0f, 0xaa, 0xd4, 0xff, 0x01, 0x17, 0x85, 0x83, 0xba, 0xa5, 0x88, 0x96, 0x6f, 0x7c, 0x1f, 0xf3
     };
+*/
 
 #define PRINT_STRUCTS 0
 
 #define DEBUG_LEVEL 0
 
-int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
+// int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
 
 int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp_len);
 
 int get_encoded_field(unsigned char *buf, size_t *index, char *format, unsigned char *output, size_t *outlen, int encoded);
 
-int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len);
+// int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len);
 
-int verify_csr(unsigned char *recv_csr, size_t csr_len);
+// int verify_csr(unsigned char *recv_csr, size_t csr_len);
 
-int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_t *crt_len);
+// int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_t *crt_len);
 
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
 
@@ -121,8 +123,8 @@ int main(void)
     mbedtls_ssl_cache_context cache;
 #endif
 
-    unsigned char enc_nonce[NONCE_MAX_LEN];
-    size_t enc_nonce_len = 0;
+    // unsigned char enc_nonce[NONCE_MAX_LEN];
+    // size_t enc_nonce_len = 0;
     unsigned char resp[RESPONSE_MAX_LEN];
     size_t resp_len;
     /*
@@ -296,6 +298,7 @@ reset:
 
     mbedtls_printf(" ok\n");
 
+    /*
     // Step 1: Receive request and send nonce
     // Read request
     if((ret = recv_buf(&ssl, buf, &len, NULL, NULL, check_nonce_request))!=NET_SUCCESS){
@@ -341,9 +344,10 @@ reset:
         default:
             break;
     }
+    */
 
-    // Step 2: Receive attestation evidence and verify it
-    // Wait for attestation evidence
+    // Step 1: Receive attestation message and verify it
+    // Wait for attestation message
     if((ret = recv_buf(&ssl, buf, &len, resp, &resp_len, verify_attest_evidence))!=NET_SUCCESS){
         if(ret == HANDLER_ERROR) ret = -1;
         err = 1;
@@ -363,7 +367,7 @@ reset:
         goto reset;
     }
 
-        switch(err) {
+    switch(err) {
         case 1:
             ret = -1;
             goto reset;
@@ -445,7 +449,6 @@ exit:
 
     mbedtls_net_free(&client_fd);
     mbedtls_net_free(&listen_fd);
-
     mbedtls_x509_crt_free(&srvcert);
     mbedtls_x509_crt_free(&cacert);
     mbedtls_pk_free(&pkey);
@@ -460,6 +463,7 @@ exit:
     mbedtls_exit(ret);
 }
 
+/*
 int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len) {
     if(memcmp(buf, GET_NONCE_REQUEST, sizeof(GET_NONCE_REQUEST))!=0) {
         mbedtls_printf("Error in reading nonce request\n\n");
@@ -788,6 +792,7 @@ int issue_crt(unsigned char *recv_csr, size_t csr_len, unsigned char *crt, size_
     mbedtls_x509_csr_free(&csr);
     return 0;
 }
+*/
 
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len) {
     int ret;
@@ -943,6 +948,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
 
     // Start fields validation
     mbedtls_printf("\nValidating fields...\n");
+    /*
     mbedtls_printf("Verifying nonce - ");
     if(memcmp(ref_nonce, nonce, NONCE_LEN) != 0) {
         mbedtls_printf("error\n");
@@ -951,6 +957,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         goto gen_resp;
     }
     mbedtls_printf("ok\n");
+    */
 
     mbedtls_x509_crt_init(&trusted_certs);
     ret = mbedtls_x509_crt_parse_der(&trusted_certs, ref_cert_man, ref_cert_man_len);
@@ -977,8 +984,8 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         goto gen_resp;
     }
 
-    // Verify attestation proof
-    // Get SM public key
+    // Verify attestation evidence signature
+    // Get LAK public key
     ret = getAttestationPublicKey(&dice_certs, verification_pk);
     mbedtls_printf("Getting LAK PK - ret: %d\n", ret);
     #if PRINT_STRUCTS
@@ -1002,9 +1009,9 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         goto gen_resp;
     }
 
-    // Compute reference attestation proof
+    // Compute reference attestation evidence
     sha3_init(&ctx_hash, KEYSTONE_HASH_MAX_SIZE);
-    sha3_update(&ctx_hash, ref_nonce, NONCE_LEN);
+    sha3_update(&ctx_hash, nonce, NONCE_LEN);
     sha3_update(&ctx_hash, reference_tci, KEYSTONE_HASH_MAX_SIZE);
     sha3_update(&ctx_hash, pk, PUBLIC_KEY_SIZE);
     sha3_final(fin_hash, &ctx_hash);
@@ -1012,7 +1019,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     print_hex_string("fin_hash", fin_hash, KEYSTONE_HASH_MAX_SIZE);
     #endif
 
-    // Verify signature of the attestation proof
+    // Verify signature of the attestation evidence
     mbedtls_pk_init(&key);
     ret = mbedtls_pk_parse_ed25519_key(&key, verification_pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
     mbedtls_printf("Parsing LAK PK - ret: %d\n", ret);
