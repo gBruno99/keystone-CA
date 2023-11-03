@@ -39,7 +39,7 @@
 #include "mbedtls/base64.h"
 #include "mbedtls/print.h"
 #include "mbedtls/keystone_ext.h"
-#include "certs.h"
+// #include "certs.h"
 #include "eapp/printf.h"
 #include "custom_certs.h"
 // #include "eapp/ref_certs.h"
@@ -124,9 +124,7 @@ int main(void)
     unsigned char *certs[3];
     int sizes[3];
     mbedtls_pk_context ldevid_parsed;
-
     // const char *pers = "ssl_client1";
-
     // mbedtls_entropy_context entropy;
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_ssl_context ssl;
@@ -173,15 +171,13 @@ int main(void)
 
     print_hex_string("LDevID PK", pk, PUBLIC_KEY_SIZE);
     print_hex_string("LDevID crt", ldevid_crt, ldevid_crt_len);
-    mbedtls_x509_crt_init(&ldevid_cert_parsed);
-    ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, ldevid_crt, ldevid_crt_len);
-    mbedtls_printf("Parsing LDevID crt - ret: %d\n", ret);
     // mbedtls_x509_crt_free(&ldevid_cert_parsed);
     mbedtls_printf("\n");
 
     certs[0] = mbedtls_calloc(1, CERTS_MAX_LEN);
-    if(certs[0]==NULL)
+    if(certs[0]==NULL){
         mbedtls_exit(-1);
+    }
     certs[1] = mbedtls_calloc(1, CERTS_MAX_LEN);
     if(certs[1]==NULL){
         mbedtls_free(certs[0]);
@@ -201,6 +197,10 @@ int main(void)
     print_hex_string("SM ECA crt", certs[1], sizes[1]);
     print_hex_string("DevRoot crt", certs[2], sizes[2]);
 
+    mbedtls_printf("\n");
+    mbedtls_x509_crt_init(&ldevid_cert_parsed);
+    ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, ldevid_crt, ldevid_crt_len);
+    mbedtls_printf("Parsing LDevID crt - ret: %d\n", ret);
     ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, certs[1], sizes[1]);
     mbedtls_printf("Parsing SM ECA crt - ret: %d\n", ret);
     ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, certs[2], sizes[2]);
@@ -449,7 +449,6 @@ exit:
 #endif
 
     custom_net_free(&server_fd);
-
     mbedtls_x509_crt_free(&cacert);
     mbedtls_ssl_free(&ssl);
     mbedtls_ssl_config_free(&conf);
