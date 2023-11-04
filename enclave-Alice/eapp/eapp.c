@@ -158,8 +158,11 @@ int main(void)
     // Try to read certificate in memory
     mbedtls_printf("Retrieving crt from memory...\n");
     ret = read_crt((unsigned char *) ldevid_ca_cert, &ldevid_ca_cert_len);
-    if(ret == -1) {
-        mbedtls_printf("Error in retrieving crt\n");
+    if(ret != 0) {
+        if(ret != -4)
+            mbedtls_printf("Error in retrieving crt\n");
+        else
+            mbedtls_printf("Integrity check failed\n");
     } else {
         print_hex_string("Stored crt", ldevid_ca_cert, ldevid_ca_cert_len);
     }
@@ -435,7 +438,7 @@ int main(void)
 
     // Store the certificate
     mbedtls_printf("Storing the certificate in memory...\n");
-    if((ret = store_crt(ldevid_ca_cert, ldevid_ca_cert_len)) == -1) {
+    if((ret = store_crt(ldevid_ca_cert, ldevid_ca_cert_len)) != 0) {
         mbedtls_printf("Error in storing LDevID_crt\n");
         goto exit;
     }
