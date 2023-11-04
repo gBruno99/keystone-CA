@@ -910,62 +910,53 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     mbedtls_pk_context key;
     uint32_t flags = 0;
 
+    mbedtls_x509_crt_init(&dice_certs);
+    mbedtls_x509_crt_init(&trusted_certs);
+    mbedtls_pk_init(&key);
+
     mbedtls_printf("\n2.21 Reading attestation message...\n");
-    if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_START_SUBJECT, cn, &cn_len, 0) != 0) {
-        ret = 1;
+    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_START_SUBJECT, cn, &cn_len, 0)) != 0) {
         goto gen_resp;
     }
     mbedtls_printf("CN: %s, %lu\n", cn, cn_len);
        
-    if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_PK, pk, &pk_len, 1) != 0) {
-        ret = 2;
+    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_PK, pk, &pk_len, 1)) != 0) {
         goto gen_resp;
     }
     print_hex_string("PK", pk, pk_len);
     
-    if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_NONCE, nonce, &nonce_len, 1) != 0) {
-        ret = 3;
+    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_NONCE, nonce, &nonce_len, 1)) != 0) {
         goto gen_resp;
     }
     print_hex_string("nonce", nonce, nonce_len);
 
-    if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_ATTEST_SIG, attest_evd, &attest_evd_len, 1) != 0) {
-        ret = 4;
+    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_ATTEST_SIG, attest_evd, &attest_evd_len, 1)) != 0) {
         goto gen_resp;
     }
     print_hex_string("attest_evd_sign", attest_evd, attest_evd_len);
 
-    mbedtls_x509_crt_init(&dice_certs);
-
-    if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_DEVROOT, tmp_crt, &tmp_crt_len, 1) != 0 ||
-        mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) {
-        mbedtls_x509_crt_free(&dice_certs);
-        ret = 6;
+    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_DEVROOT, tmp_crt, &tmp_crt_len, 1)) != 0 ||
+        (ret = mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) != 0) {
         goto gen_resp;
     }
     print_hex_string("DevRoot crt", tmp_crt, tmp_crt_len);
     tmp_crt_len = CERTS_MAX_LEN;
 
-    if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_SM, tmp_crt, &tmp_crt_len, 1) != 0 ||
-        mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) {
-        mbedtls_x509_crt_free(&dice_certs);
-        ret = 7;
+    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_SM, tmp_crt, &tmp_crt_len, 1)) != 0 ||
+        (ret = mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) != 0) {
         goto gen_resp;
     }
     print_hex_string("SM ECA crt", tmp_crt, tmp_crt_len);
     tmp_crt_len = CERTS_MAX_LEN;
 
-    if(get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_LAK, tmp_crt, &tmp_crt_len, 1) != 0 ||
-        mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) {
-        mbedtls_x509_crt_free(&dice_certs);
-        ret = 5;
+    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_LAK, tmp_crt, &tmp_crt_len, 1)) != 0 ||
+        (ret = mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) != 0) {
         goto gen_resp;
     }
     print_hex_string("LAK crt", tmp_crt, tmp_crt_len);
 
     if(memcmp(buf+len, POST_ATTESTATION_REQUEST_END, sizeof(POST_ATTESTATION_REQUEST_END)) != 0){
-        mbedtls_x509_crt_free(&dice_certs);
-        ret = 8;
+        ret = -1;
         goto gen_resp;
     }
 
@@ -982,16 +973,12 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     mbedtls_printf("ok\n");
     */
 
-    mbedtls_x509_crt_init(&trusted_certs);
     ret = mbedtls_x509_crt_parse_der(&trusted_certs, ref_cert_man, ref_cert_man_len);
     mbedtls_printf("Parsing Trusted Certificate - ret: %d\n", ret);
     #if PRINT_STRUCTS
     print_mbedtls_x509_cert("Trusted Certificate", trusted_certs);
     #endif
     if(ret != 0) {
-        mbedtls_x509_crt_free(&dice_certs);
-        mbedtls_x509_crt_free(&trusted_certs);
-        ret = 10;
         goto gen_resp;
     }
 
@@ -1000,10 +987,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     //  Verify chain of certificates
     ret = mbedtls_x509_crt_verify_with_profile(&dice_certs, &trusted_certs, NULL, &mbedtls_x509_crt_profile_keystone, NULL, &flags, NULL, NULL);
     mbedtls_printf("Verifing Chain of Certificates - ret: %u, flags = %u\n", ret, flags);
-    mbedtls_x509_crt_free(&trusted_certs);
     if(ret != 0) {
-        mbedtls_x509_crt_free(&dice_certs);
-        ret = 11;
         goto gen_resp;
     }
 
@@ -1015,8 +999,6 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     print_hex_string("SM PK", verification_pk, PUBLIC_KEY_SIZE);
     #endif
     if(ret != 0) {
-        mbedtls_x509_crt_free(&dice_certs);
-        ret = 12;
         goto gen_resp;
     }
 
@@ -1027,8 +1009,6 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     print_hex_string("Reference Enclave TCI", reference_tci, KEYSTONE_HASH_MAX_SIZE);
     #endif
     if(ret != 0) {
-        mbedtls_x509_crt_free(&dice_certs);
-        ret = 13;
         goto gen_resp;
     }
 
@@ -1043,25 +1023,22 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     #endif
 
     // Verify signature of the attestation evidence
-    mbedtls_pk_init(&key);
     ret = mbedtls_pk_parse_ed25519_key(&key, verification_pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
     mbedtls_printf("Parsing LAK PK - ret: %d\n", ret);
     if(ret != 0) {
-        mbedtls_x509_crt_free(&dice_certs);
-        mbedtls_pk_free(&key);
-        ret = 14;
         goto gen_resp;
     }
 
     ret = mbedtls_pk_verify_ext(MBEDTLS_PK_ED25519, NULL, &key, MBEDTLS_MD_KEYSTONE_SHA3, fin_hash, KEYSTONE_HASH_MAX_SIZE, attest_evd, attest_evd_len);
     mbedtls_printf("Verifying attestation evidence signature - ret: %d\n\n", ret);
-    mbedtls_pk_free(&key);
-    mbedtls_x509_crt_free(&dice_certs);
     if(ret != 0) {
-        ret = 15;
         goto gen_resp;
     }
+
 gen_resp:
+    mbedtls_x509_crt_free(&trusted_certs);
+    mbedtls_x509_crt_free(&dice_certs);
+    mbedtls_pk_free(&key);
     if(ret == 0) {
         memcpy(resp, HTTP_RESPONSE_200, sizeof(HTTP_RESPONSE_200));
         *resp_len = sizeof(HTTP_RESPONSE_200);

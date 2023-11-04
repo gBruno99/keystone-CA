@@ -201,10 +201,16 @@ int main(void)
     mbedtls_x509_crt_init(&ldevid_cert_parsed);
     ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, ldevid_crt, ldevid_crt_len);
     mbedtls_printf("Parsing LDevID crt - ret: %d\n", ret);
+    if(ret != 0)
+        mbedtls_exit(-1);
     ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, certs[1], sizes[1]);
     mbedtls_printf("Parsing SM ECA crt - ret: %d\n", ret);
+    if(ret != 0)
+        mbedtls_exit(-1);
     ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, certs[2], sizes[2]);
     mbedtls_printf("Parsing DevRoot crt - ret: %d\n", ret);
+    if(ret != 0)
+        mbedtls_exit(-1);
     mbedtls_printf("\n");
 
     // Step 2: Open TLS connection to CA
@@ -372,7 +378,7 @@ int main(void)
     // Step 4: Generate CSR
     mbedtls_printf("Generating CSR...\n");
 
-    if(create_csr(pk, nonce, certs, sizes, csr, &csr_len)!=0){
+    if((ret = create_csr(pk, nonce, certs, sizes, csr, &csr_len))!=0){
         goto exit;
     }
     
@@ -415,6 +421,8 @@ int main(void)
     mbedtls_x509_crt_init(&cert_gen);
     ret = mbedtls_x509_crt_parse_der(&cert_gen, ldevid_ca_cert, ldevid_ca_cert_len);
     mbedtls_printf("Parsing new LDevID crt - ret: %d\n", ret);
+    if(ret != 0)
+        goto exit;
     mbedtls_printf("\n");
 
     #if PRINT_STRUCTS
@@ -648,7 +656,7 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     mbedtls_printf("\n");
     */
 
-    int ret = 1;
+    int ret = 0;
 
     mbedtls_printf("2.11 Generating attestation evidence signature...\n");
     crypto_interface(1, nonce, NONCE_LEN, attest_proof, &attest_proof_len, pk);
@@ -663,24 +671,36 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
 
     ret = mbedtls_x509write_csr_set_key_usage(&req, key_usage);
     mbedtls_printf("Setting key usage - ret: %d\n", ret);
+    if(ret != 0)
+        goto end_create_csr;
 
     ret = mbedtls_x509write_csr_set_subject_name(&req, subject_name);
     mbedtls_printf("Setting subject - ret: %d\n", ret);
+    if(ret != 0)
+        goto end_create_csr;
     
     ret = mbedtls_pk_parse_ed25519_key(&key, pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
     mbedtls_printf("Setting PK - ret: %d\n", ret);
+    if(ret != 0)
+        goto end_create_csr;
 
     mbedtls_x509write_csr_set_key(&req, &key);
     mbedtls_printf("Setting PK context\n");
 
     ret = mbedtls_x509write_csr_set_nonce(&req, nonce);
     mbedtls_printf("Setting nonce - ret: %d\n", ret);
+    if(ret != 0)
+        goto end_create_csr;
 
     ret = mbedtls_x509write_csr_set_attestation_proof(&req, attest_proof);
     mbedtls_printf("Setting attestation evidence signature - ret: %d\n", ret);
+    if(ret != 0)
+        goto end_create_csr;
 
     ret = mbedtls_x509write_csr_set_dice_certs(&req, (unsigned char **)certs, sizes);
     mbedtls_printf("Setting chain of DICE certs - ret: %d\n", ret);
+    if(ret != 0)
+        goto end_create_csr;
 
     mbedtls_printf("\n");
 
@@ -688,15 +708,20 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     print_mbedtls_x509write_csr("CSR write struct", &req);
     #endif
 
-    *csr_len = mbedtls_x509write_csr_der(&req, out_csr, CSR_MAX_LEN, NULL, NULL);
+    ret = mbedtls_x509write_csr_der(&req, out_csr, CSR_MAX_LEN, NULL, NULL);
     mbedtls_printf("Writing CSR - ret: %d\n", *csr_len);
+    if(ret <= 0)
+        goto end_create_csr;
 
+    *csr_len = ret;
     unsigned char *gen_csr = out_csr;
     int dif_csr = CSR_MAX_LEN-(*csr_len);
     gen_csr += dif_csr;
 
     memcpy(csr, gen_csr, *csr_len);
+    ret = 0;
 
+end_create_csr:
     mbedtls_pk_free(&key);
     mbedtls_x509write_csr_free(&req);
 
@@ -705,6 +730,6 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     mbedtls_free(certs[1]);
     mbedtls_free(certs[2]);
     */
-    return 0;
+    return ret;
 }
 
