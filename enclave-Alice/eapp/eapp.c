@@ -375,6 +375,8 @@ int main(void)
     print_hex_string("nonce", nonce, NONCE_LEN);
     mbedtls_printf("\n");
 
+    // nonce[10] = '\x00';
+
     // Step 4: Generate CSR
     mbedtls_printf("Generating CSR...\n");
 
@@ -526,17 +528,17 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
     size_t enc_crt_len = 0;
 
     if(memcmp(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400))==0) {
-        mbedtls_printf("Response: Bad Request\n");
+        mbedtls_printf("\nResponse: Bad Request\n\n");
         return -1;
     }
 
     if(memcmp(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500))==0) {
-        mbedtls_printf("Response: Internal Server Error\n");
+        mbedtls_printf("\nResponse: Internal Server Error\n\n");
         return -1;
     }
 
     if(memcmp(buf, HTTP_CERTIFICATE_RESPONSE_START, sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1)!=0) {
-        mbedtls_printf("Cannot read certificate 1\n\n");
+        mbedtls_printf("\nCannot read certificate 1\n\n");
         return -1;
     }
     i = sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1;
@@ -548,7 +550,7 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
     }
 
     if(memcmp(buf+i, HTTP_CERTIFICATE_RESPONSE_MIDDLE, sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-1)!=0) {
-        mbedtls_printf("Cannot read certificate 2\n\n");
+        mbedtls_printf("\nCannot read certificate 2\n\n");
         return -1;
     }
     i += sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-1;
@@ -556,7 +558,7 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
     memcpy(enc_crt, buf+i, enc_crt_len);
 
     if(memcmp(buf+i+enc_crt_len, HTTP_CERTIFICATE_RESPONSE_END, sizeof(HTTP_CERTIFICATE_RESPONSE_END))!=0){
-        mbedtls_printf("Cannot read certificate 3\n\n");
+        mbedtls_printf("\nCannot read certificate 3\n\n");
         return -1;
     }
 
@@ -662,6 +664,8 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     crypto_interface(1, nonce, NONCE_LEN, attest_proof, &attest_proof_len, pk);
     print_hex_string("attest_evd_sign", attest_proof, attest_proof_len);
     // mbedtls_printf("\n");
+
+    // attest_proof[10] = '\x00';
 
     mbedtls_x509write_csr_init(&req);
     mbedtls_pk_init(&key);
