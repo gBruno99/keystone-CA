@@ -55,8 +55,8 @@
 #define NONCE_MAX_LEN           128
 #define BUF_SIZE                2048
 
-#define NET_SUCCESS     -1
-#define HANDLER_ERROR   -2
+#define NET_SUCCESS     1
+#define HANDLER_ERROR   2
 
 #define PRINT_STRUCTS 0
 
@@ -369,7 +369,7 @@ int main(void)
     // Read the nonce from the response
 
     if((ret = recv_buf(&ssl, buf, &len, nonce, NULL, get_nonce))!=NET_SUCCESS){
-        if(ret == HANDLER_ERROR) ret = -1;
+        if(ret == HANDLER_ERROR) ret = len;
         goto exit;
     }
 
@@ -414,7 +414,7 @@ int main(void)
 
     // Get crt from the response
     if((ret = recv_buf(&ssl, buf, &len, ldevid_ca_cert, &ldevid_ca_cert_len, get_crt))!=NET_SUCCESS){
-        if(ret == HANDLER_ERROR) ret = -1;
+        if(ret == HANDLER_ERROR) ret = len;
         goto exit;
     }
     
@@ -426,6 +426,7 @@ int main(void)
     mbedtls_x509_crt_init(&cert_gen);
     ret = mbedtls_x509_crt_parse_der(&cert_gen, ldevid_ca_cert, ldevid_ca_cert_len);
     mbedtls_printf("Parsing new LDevID crt - ret: %d\n", ret);
+    mbedtls_x509_crt_free(&cert_gen);
     if(ret != 0)
         goto exit;
     mbedtls_printf("\n");
@@ -433,8 +434,6 @@ int main(void)
     #if PRINT_STRUCTS
     print_mbedtls_x509_cert("new LDevID crt", cert_gen);
     #endif
-
-    mbedtls_x509_crt_free(&cert_gen);
 
     // Store the certificate
     mbedtls_printf("Storing the certificate in memory...\n");
@@ -615,7 +614,8 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
         mbedtls_printf(" %d bytes read\n\n%s", *len, (char *) buf);
 
         // Get the data from the response
-        if(handler(buf, data, data_len) != 0){
+        if((ret = handler(buf, data, data_len)) != 0){
+            *len = ret;
             return HANDLER_ERROR;
         } 
         ret = NET_SUCCESS;

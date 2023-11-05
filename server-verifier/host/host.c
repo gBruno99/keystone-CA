@@ -62,10 +62,10 @@
 #define PK_MAX_LEN              128
 #define ATTEST_MAX_LEN          128
 
-#define NET_SUCCESS     -1
-#define HANDLER_ERROR   -2
-#define GOTO_EXIT       -3
-#define GOTO_RESET      -4
+#define NET_SUCCESS     1
+#define HANDLER_ERROR   2
+#define GOTO_EXIT       3
+#define GOTO_RESET      4
 
 /*
 unsigned char ref_nonce[] = {
@@ -372,10 +372,14 @@ reset:
     // Step 1: Receive attestation message and verify it
     // Wait for attestation message
     if((ret = recv_buf(&ssl, buf, &len, resp, &resp_len, verify_attest_evidence))!=NET_SUCCESS){
-        if(ret == HANDLER_ERROR) ret = -1;
-        err = 1;
-        memcpy(resp, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400));
-        resp_len = sizeof(HTTP_RESPONSE_400);
+        if(ret == HANDLER_ERROR) {
+            ret = len;
+            err = 1;
+            memcpy(resp, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400));
+            resp_len = sizeof(HTTP_RESPONSE_400);
+        } else {
+            goto reset;
+        }
     }
 
     if((ret = send_buf(&ssl, resp, &resp_len))!=NET_SUCCESS){
@@ -392,10 +396,8 @@ reset:
 
     switch(err) {
         case 1:
-            ret = -1;
             goto reset;
         case 2:
-            ret = -1;
             goto exit;
         default:
             break;
@@ -877,7 +879,8 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
         mbedtls_printf(" %lu bytes read\n\n%s", *len, (char *) buf);
 
         if (ret > 0) {
-            if(handler(buf, data, data_len)!=0) {
+            if((ret = handler(buf, data, data_len))!=0) {
+                *len = ret;
                 return HANDLER_ERROR;
             }
             ret = NET_SUCCESS;
@@ -1050,16 +1053,17 @@ int get_encoded_field(unsigned char *buf, size_t *index, char *format, unsigned 
     unsigned char enc_buf[BUF_SIZE];
     size_t enc_len = 0;
     size_t outbuf_len = *outlen;
+    int ret = 0;
     if(memcmp(buf+(*index), format, strlen(format))!=0) {
         mbedtls_printf("Error 1\n");
-        return 1;
+        return -1;
     }
     *index += strlen(format);
     while(buf[(*index)+enc_len] != '"' && buf[(*index)+enc_len] != '\0')
         enc_len ++;
     if(buf[(*index)+enc_len] == '\0') {
         mbedtls_printf("Error 2\n");
-        return 2;
+        return -1;
     }
     memcpy(enc_buf, buf+(*index), enc_len);
     // mbedtls_printf("output: %s, %lu\n", enc_buf, enc_len);
@@ -1067,9 +1071,9 @@ int get_encoded_field(unsigned char *buf, size_t *index, char *format, unsigned 
     // mbedtls_printf("format_len: %lu\n", strlen(format));
     *index += enc_len;
     if(encoded) {
-        if(mbedtls_base64_decode(output, outbuf_len, outlen, enc_buf, enc_len) != 0) {
+        if((ret = mbedtls_base64_decode(output, outbuf_len, outlen, enc_buf, enc_len)) != 0) {
             mbedtls_printf("Error 3\n");
-            return 3;
+            return ret;
         }
     } else {
         memcpy(output, enc_buf, enc_len);
