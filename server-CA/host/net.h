@@ -4,48 +4,49 @@
 #define VERIFIER_NAME "Ver"
 #define VERIFIER_PORT "8068"
 
-#define GET_NONCE_REQUEST "GET /nonce HTTP/1.0\r\n\r\n"
+#define GET_NONCE_REQUEST \
+    "GET /nonce HTTP/1.0\r\nContent-Length: 0\r\n\r\n"
 
 #define HTTP_NONCE_RESPONSE_START \
-    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\n" \
-    "{\"nonce_len\": %lu, \"nonce\": \"" 
+    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: %lu\r\n\r\n" 
 
 #define HTTP_NONCE_RESPONSE_END \
-    "\"}\r\n"
+    "{\r\n    \"nonce\": \"%s\"\r\n}\r\n" 
 
 #define POST_CSR_REQUEST_START \
-    "POST /csr HTTP/1.0\r\nContent-Type: application/json\r\n\r\n" \
-    "{\"csr_len\": %lu, \"csr\": \"" 
+    "POST /csr HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: %lu\r\n\r\n" 
+
+#define POST_CSR_REQUEST_MIDDLE \
+    "{\r\n    \"csr\": \"" 
 
 #define POST_CSR_REQUEST_END \
-    "\"}\r\n"
+    "\"\r\n}\r\n"
 
 #define HTTP_CERTIFICATE_RESPONSE_START \
-    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\n" \
-    "{\"crt_len\": %lu, \"crt\": \"" 
+    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: %lu\r\n\r\n" \
 
 #define HTTP_CERTIFICATE_RESPONSE_END \
-    "\"}\r\n"
+    "{\r\n    \"crt\": \"%s\"\r\n}\r\n" 
 
-#define POST_ATTESTATION_REQUEST \
-    "POST /attest HTTP/1.0\r\nContent-Type: application/json\r\n\r\n" \
-    "{\n\t\"subject_cn\": \"%s\"," \
-    "\n\t\"pk\": \"%s\"," \
-    "\n\t\"nonce\": \"%s\"," \
-    "\n\t\"attest_evd_sig\": \"%s\"," \
-    "\n\t\"dice_cert_devroot\": \"%s\"," \
-    "\n\t\"dice_cert_sm\": \"%s\"," \
-    "\n\t\"dice_cert_lak\": \"%s\"" \
-    "\n}\r\n"
+#define POST_ATTESTATION_REQUEST_START \
+    "POST /attest HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: %lu\r\n\r\n"
+
+#define POST_ATTESTATION_REQUEST_END \
+    "{\r\n    \"subject_cn\": \"%s\",\r\n" \
+    "    \"pk\": \"%s\",\r\n" \
+    "    \"nonce\": \"%s\",\r\n" \
+    "    \"attest_evd_sig\": \"%s\",\r\n" \
+    "    \"dice_cert_devroot\": \"%s\",\r\n" \
+    "    \"dice_cert_sm\": \"%s\",\r\n" \
+    "    \"dice_cert_lak\": \"%s\"\r\n}\r\n"
 
 #define HTTP_RESPONSE_400 \
-    "HTTP/1.0 400 BAD REQUEST\r\nContent-Type: application/json\r\n\r\n" \
-    "{}\r\n" 
+    "HTTP/1.0 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
+
 #define HTTP_RESPONSE_500 \
-    "HTTP/1.0 500 INTERNAL SERVER ERROR\r\nContent-Type: application/json\r\n\r\n" \
-    "{}\r\n" 
+    "HTTP/1.0 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n"
+
 #define HTTP_RESPONSE_200 \
-    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\n" \
-    "{}\r\n" 
+    "HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n"
     
 #endif

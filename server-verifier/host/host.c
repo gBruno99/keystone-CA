@@ -912,13 +912,32 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     sha3_ctx_t ctx_hash;
     mbedtls_pk_context key;
     uint32_t flags = 0;
+    size_t body_len = 0;
+    size_t tmp_len = 0;
+    int digits = 0;
 
     mbedtls_x509_crt_init(&dice_certs);
     mbedtls_x509_crt_init(&trusted_certs);
     mbedtls_pk_init(&key);
 
     mbedtls_printf("\n2.21 Reading attestation message...\n");
-    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_START_SUBJECT, cn, &cn_len, 0)) != 0) {
+
+    if (sscanf((const char *)buf, POST_ATTESTATION_REQUEST_START, &body_len) != 1) {
+        ret = -1;
+        goto gen_resp;
+    }
+
+    mbedtls_printf("body_len: %lu\n", body_len);
+
+    tmp_len = body_len;
+    while(tmp_len > 0) { 
+        digits++;
+        tmp_len/=10;
+    } 
+    digits -= 3;
+    len = sizeof(POST_ATTESTATION_REQUEST_START)-1+digits;
+
+    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_SUBJECT, cn, &cn_len, 0)) != 0) {
         goto gen_resp;
     }
     mbedtls_printf("CN: %s, %lu\n", cn, cn_len);

@@ -164,6 +164,7 @@ int main(void)
     unsigned char enc_crt[CERTS_MAX_LEN];
     size_t enc_crt_len = 0;
     mbedtls_x509_csr csr;
+    size_t body_len;
 
     mbedtls_net_init(&listen_fd);
     mbedtls_net_init(&client_fd);
@@ -407,11 +408,10 @@ reset:
         err = 2;
         goto send_answer;
     }
-    len = sprintf((char*) buf, HTTP_NONCE_RESPONSE_START, enc_nonce_len);
-    memcpy(buf+len, enc_nonce, enc_nonce_len);
-    len += enc_nonce_len;
-    memcpy(buf+len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END));
-    len += sizeof(HTTP_NONCE_RESPONSE_END);
+    body_len = sizeof(HTTP_NONCE_RESPONSE_END)+enc_nonce_len-3; 
+    // mbedtls_printf("enc_nonce_len: %lu\n", enc_nonce_len);
+    len = sprintf((char*) buf, HTTP_NONCE_RESPONSE_START, body_len);
+    len += sprintf((char*) buf+len, HTTP_NONCE_RESPONSE_END, enc_nonce);
 
     // Send the response
     if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
@@ -672,12 +672,10 @@ exit_ver:
         err = 2;
         goto send_answer;
     }
-    len = sprintf((char *) buf, HTTP_CERTIFICATE_RESPONSE_START, enc_crt_len);
-    // Write ceritificate into response
-    memcpy(buf+len, enc_crt, enc_crt_len);
-    len += enc_crt_len;
-    memcpy(buf+len, HTTP_CERTIFICATE_RESPONSE_END, sizeof(HTTP_CERTIFICATE_RESPONSE_END));
-    len += sizeof(HTTP_CERTIFICATE_RESPONSE_END);
+    body_len = sizeof(HTTP_CERTIFICATE_RESPONSE_END)+enc_crt_len-3;
+    // mbedtls_printf("enc_crt_len: %lu\n", enc_crt_len);
+    len = sprintf((char *) buf, HTTP_CERTIFICATE_RESPONSE_START, body_len);
+    len += sprintf((char *) buf+len, HTTP_CERTIFICATE_RESPONSE_END, enc_crt);
 
     // Send the response
     if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
@@ -813,23 +811,36 @@ int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len) {
     size_t enc_csr_len;
     size_t tmp_len = 0;
     int digits = 0;
+    size_t body_len;
+    size_t len = 0;
     // Read csr_len from the request
-    if (sscanf((const char *)buf, POST_CSR_REQUEST_START, &enc_csr_len) != 1) {
+    if (sscanf((const char *)buf, POST_CSR_REQUEST_START, &body_len) != 1) {
         mbedtls_printf("Error in reading csr_len\n\n");
         return -1;
     }
 
-    tmp_len = enc_csr_len;
+    enc_csr_len = body_len - sizeof(POST_CSR_REQUEST_MIDDLE) - sizeof(POST_CSR_REQUEST_END) +2;
+    // mbedtls_printf("body_len: %lu, enc_csr_len: %lu\n", body_len, enc_csr_len);
+
+    tmp_len = body_len;
     while(tmp_len > 0) { 
         digits++;
         tmp_len/=10;
     } 
     digits -= 3;
+    len = sizeof(POST_CSR_REQUEST_START)-1+digits;
+
+    if (memcmp(buf+len , POST_CSR_REQUEST_MIDDLE, sizeof(POST_CSR_REQUEST_MIDDLE)-1) != 0) {
+        mbedtls_printf("Cannot read csr 1\n\n");
+        return -1;
+    }
+    len += sizeof(POST_CSR_REQUEST_MIDDLE)-1;
 
     // Read CSR from the request
-    memcpy(enc_csr, buf + sizeof(POST_CSR_REQUEST_START)-1+digits, enc_csr_len);
+    memcpy(enc_csr, buf+len, enc_csr_len);
+    len += enc_csr_len;
     
-    if (memcmp(buf + sizeof(POST_CSR_REQUEST_START) + digits + enc_csr_len -1 , POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END)) != 0) {
+    if (memcmp(buf+len , POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END)) != 0) {
         mbedtls_printf("Cannot read csr 2\n\n");
         return -1;
     }
@@ -1240,6 +1251,7 @@ int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len)
     size_t csr_cert_lak_len;
     size_t csr_cert_root_len;
     size_t csr_cert_sm_len;
+    size_t body_len;
     int ret;
 
     if((ret = csr_get_common_name(csr, csr_cn, &csr_cn_len)) != 0) {
@@ -1270,7 +1282,9 @@ int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len)
         return ret;
     }
 
-    *len = sprintf((char*) buf, POST_ATTESTATION_REQUEST, csr_cn, csr_pk, csr_nonce, csr_attest_sig, csr_cert_root, csr_cert_sm, csr_cert_lak);
+    body_len = sizeof(POST_ATTESTATION_REQUEST_END) + csr_cn_len + csr_pk_len + csr_nonce_len + csr_attest_sig_len + csr_cert_root_len + csr_cert_sm_len + csr_cert_lak_len - 15;
+    *len = sprintf((char*) buf, POST_ATTESTATION_REQUEST_START, body_len);
+    *len += sprintf((char*) buf+(*len), POST_ATTESTATION_REQUEST_END, csr_cn, csr_pk, csr_nonce, csr_attest_sig, csr_cert_root, csr_cert_sm, csr_cert_lak);
     return *len == -1;
 }
 

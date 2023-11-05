@@ -123,6 +123,7 @@ int main(void)
     size_t enc_csr_len;
     unsigned char *certs[3];
     int sizes[3];
+    size_t body_len;
     mbedtls_pk_context ldevid_parsed;
     // const char *pers = "ssl_client1";
     // mbedtls_entropy_context entropy;
@@ -398,11 +399,10 @@ int main(void)
     if((ret = mbedtls_base64_encode(enc_csr, CSR_MAX_LEN, &enc_csr_len, csr, csr_len))!=0) {
         goto exit;
     }
-    len = sprintf((char *) buf, POST_CSR_REQUEST_START, enc_csr_len);
-    memcpy(buf+len, enc_csr, enc_csr_len);
-    len += enc_csr_len;
-    memcpy(buf+len, POST_CSR_REQUEST_END, sizeof(POST_CSR_REQUEST_END));
-    len += sizeof(POST_CSR_REQUEST_END);
+    body_len = sizeof(POST_CSR_REQUEST_END)+enc_csr_len-3;
+    // mbedtls_printf("enc_csr_len: %lu\n", enc_csr_len);
+    len = sprintf((char *) buf, POST_CSR_REQUEST_START, body_len);
+    len += sprintf((char *) buf+len, POST_CSR_REQUEST_END, enc_csr);
 
     if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
         goto exit;
@@ -484,6 +484,7 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
     unsigned char enc_nonce[NONCE_MAX_LEN] = {0};
     size_t enc_nonce_len = 0;
     size_t dec_nonce_len = 0;
+    size_t body_len = 0;
 
     if(memcmp(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400))==0) {
         mbedtls_printf("Response: Bad Request\n");
@@ -502,10 +503,13 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
     i = sizeof(HTTP_NONCE_RESPONSE_START)-1;
 
     while(buf[i] >= '0' && buf[i] <= '9'){
-        enc_nonce_len *= 10;
-        enc_nonce_len += buf[i] - '0';
+        body_len *= 10;
+        body_len += buf[i] - '0';
         i++;
     }
+
+    enc_nonce_len = body_len-sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-sizeof(HTTP_NONCE_RESPONSE_END)+6;
+    // mbedtls_printf("body_len: %lu, enc_nonce_len: %lu\n", body_len, enc_nonce_len);
 
     if(memcmp(buf+i, HTTP_NONCE_RESPONSE_MIDDLE, sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-1)!=0) {
         mbedtls_printf("Cannot read nonce 2\n\n");
@@ -528,6 +532,7 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
     int i;
     unsigned char enc_crt[CERTS_MAX_LEN] = {0};
     size_t enc_crt_len = 0;
+    size_t body_len = 0;
 
     if(memcmp(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400))==0) {
         mbedtls_printf("\nResponse: Bad Request\n\n");
@@ -546,10 +551,13 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
     i = sizeof(HTTP_CERTIFICATE_RESPONSE_START)-1;
 
     while(buf[i] >= '0' && buf[i] <= '9'){
-        enc_crt_len *= 10;
-        enc_crt_len += buf[i] - '0';
+        body_len *= 10;
+        body_len += buf[i] - '0';
         i++;
     }
+
+    enc_crt_len = body_len-sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-sizeof(HTTP_CERTIFICATE_RESPONSE_END)+6;
+    // mbedtls_printf("body_len: %lu, enc_crt_len: %lu\n", body_len, enc_crt_len);
 
     if(memcmp(buf+i, HTTP_CERTIFICATE_RESPONSE_MIDDLE, sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-1)!=0) {
         mbedtls_printf("\nCannot read certificate 2\n\n");

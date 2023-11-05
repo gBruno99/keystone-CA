@@ -1,6 +1,7 @@
 #ifndef _HOST_NET_H_
 #define _HOST_NET_H_
 
+/*
 #define GET_NONCE_REQUEST "GET /nonce HTTP/1.0\r\n\r\n"
 
 #define HTTP_NONCE_RESPONSE_START \
@@ -23,33 +24,45 @@
 
 #define HTTP_CERTIFICATE_RESPONSE_END \
     "\"}\r\n"
+*/
 
-#define POST_ATTESTATION_REQUEST_START_SUBJECT \
-    "POST /attest HTTP/1.0\r\nContent-Type: application/json\r\n\r\n" \
-    "{\n\t\"subject_cn\": \""
+#define POST_ATTESTATION_REQUEST_START \
+    "POST /attest HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: %lu\r\n\r\n"
+
+#define POST_ATTESTATION_REQUEST_SUBJECT \
+    "{\r\n    \"subject_cn\": \""
+    
 #define POST_ATTESTATION_REQUEST_PK \
-    "\",\n\t\"pk\": \""
+    "\",\r\n    \"pk\": \""
+
 #define POST_ATTESTATION_REQUEST_NONCE \
-    "\",\n\t\"nonce\": \""
+    "\",\r\n    \"nonce\": \""
+
 #define POST_ATTESTATION_REQUEST_ATTEST_SIG \
-    "\",\n\t\"attest_evd_sig\": \""
+    "\",\r\n    \"attest_evd_sig\": \""
+
 #define POST_ATTESTATION_REQUEST_CRT_DEVROOT \
-    "\",\n\t\"dice_cert_devroot\": \""
+    "\",\r\n    \"dice_cert_devroot\": \""
+
 #define POST_ATTESTATION_REQUEST_CRT_SM \
-    "\",\n\t\"dice_cert_sm\": \""
+    "\",\r\n    \"dice_cert_sm\": \""
+
 #define POST_ATTESTATION_REQUEST_CRT_LAK\
-    "\",\n\t\"dice_cert_lak\": \""
+    "\",\r\n    \"dice_cert_lak\": \""
+
 #define POST_ATTESTATION_REQUEST_END \
-    "\"\n}\r\n"
+    "\"\r\n}\r\n"
 
 #define HTTP_RESPONSE_400 \
-    "HTTP/1.0 400 BAD REQUEST\r\nContent-Type: application/json\r\n\r\n" \
-    "{}\r\n" 
+    "HTTP/1.0 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
+
+/*
 #define HTTP_RESPONSE_500 \
     "HTTP/1.0 500 INTERNAL SERVER ERROR\r\nContent-Type: application/json\r\n\r\n" \
     "{}\r\n" 
+*/
+
 #define HTTP_RESPONSE_200 \
-    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\n" \
-    "{}\r\n" 
+    "HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n"
     
 #endif
