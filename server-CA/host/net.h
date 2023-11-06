@@ -43,6 +43,9 @@
 #define HTTP_RESPONSE_400 \
     "HTTP/1.0 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
 
+#define HTTP_RESPONSE_403 \
+    "HTTP/1.0 403 Forbidden\r\nContent-Length: 0\r\n\r\n"
+
 #define HTTP_RESPONSE_500 \
     "HTTP/1.0 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n"
 

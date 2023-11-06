@@ -66,6 +66,11 @@
 #define GOTO_EXIT       3
 #define GOTO_RESET      4
 
+#define STATUS_OK           0
+#define STATUS_BAD_REQUEST  1
+#define STATUS_SERVER_ERROR 2
+#define STATUS_FORBIDDEN    3
+
 #define PRINT_STRUCTS 0
 
 #define DEBUG_LEVEL 0
@@ -92,7 +97,7 @@ int check_ver_response(unsigned char *buf, size_t buf_len, unsigned char *tci, s
 
 int get_csr(unsigned char *buf, size_t buf_len, unsigned char *csr, size_t *csr_len);
 
-int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce);
+int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce, int *msg);
 
 int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len);
 
@@ -118,7 +123,7 @@ static void my_debug(void *ctx, int level,
 
 int main(void)
 {
-    int ret, err; 
+    int ret, msg; 
     size_t len;
     mbedtls_net_context listen_fd, client_fd;
     unsigned char buf[BUF_SIZE];
@@ -295,7 +300,7 @@ int main(void)
     mbedtls_ctr_drbg_set_prediction_resistance(&nonce_ctr_drbg, MBEDTLS_CTR_DRBG_PR_ON);
 
 reset:
-    err = 0;
+    msg = STATUS_OK;
 #ifdef MBEDTLS_ERROR_C
     if (ret != 0) {
         char error_buf[100];
@@ -366,7 +371,7 @@ reset:
     if((ret = recv_buf(&ssl, buf, &len, NULL, NULL, check_nonce_request))!=NET_SUCCESS){
         if(ret == HANDLER_ERROR) {
             ret = len;
-            err = 1;
+            msg = STATUS_BAD_REQUEST;
             goto send_answer;
         }
         goto reset;
@@ -396,7 +401,7 @@ reset:
    ret = mbedtls_ctr_drbg_random(&nonce_ctr_drbg, nonce, sizeof(nonce));
     if (ret != 0) {
         mbedtls_printf("failed!\n");
-        err = 2;
+        msg = STATUS_SERVER_ERROR;
         goto send_answer;
     }
 
@@ -405,7 +410,7 @@ reset:
     
     // Write the nonce into the response
     if((ret = mbedtls_base64_encode(enc_nonce, NONCE_MAX_LEN, &enc_nonce_len, nonce, NONCE_LEN))!=0) {
-        err = 2;
+        msg = STATUS_SERVER_ERROR;
         goto send_answer;
     }
     body_len = sizeof(HTTP_NONCE_RESPONSE_END)+enc_nonce_len-3; 
@@ -431,7 +436,7 @@ reset:
     if((ret = recv_buf(&ssl, buf, &len, recv_csr, &csr_len, get_csr))!=NET_SUCCESS){
         if(ret == HANDLER_ERROR) {
             ret = len;
-            err = 1;
+            msg = STATUS_BAD_REQUEST;
             goto send_answer;
         }
         goto reset;
@@ -447,23 +452,24 @@ reset:
     mbedtls_printf("Parsing CSR - ret: %d\n\n", ret);
     if(ret != 0) {
         mbedtls_x509_csr_free(&csr);
-        err = 1;
+        msg = STATUS_BAD_REQUEST;
         goto send_answer;
     }
 
     // Parse and verify CSR
-    if((ret = verify_csr(&csr, nonce))!=0){
+    if((ret = verify_csr(&csr, nonce, &msg))!=0){
         mbedtls_x509_csr_free(&csr);
-        err = 1;
         goto send_answer;
     }
 
     if((ret = write_attest_ver_req(&csr, buf, &len))!=0){
         mbedtls_x509_csr_free(&csr);
         mbedtls_printf("Write verify attestation - ret: %d\n", ret);
-        err = 2;
+        msg = STATUS_SERVER_ERROR;
         goto send_answer;
     }
+
+    // buf[15] = '\x00';
 
     mbedtls_printf("Connecting to Verifier...\n");
     mbedtls_net_init(&verifier_fd);
@@ -611,7 +617,6 @@ reset:
     }
 
     if((ret = send_buf_ver(&ssl_ver, buf, &len))!=NET_SUCCESS){
-        err = 2;
         goto exit_ver;
     }
 
@@ -619,10 +624,8 @@ reset:
 
     if((ret = recv_buf_ver(&ssl_ver, buf, &len, NULL, NULL, check_ver_response))!=NET_SUCCESS){
         if(ret == HANDLER_ERROR) {
-            ret = len;
-            err = 1;
-        } else {
-            err = 2;
+            ret = -1;
+            msg = len;
         }
         goto exit_ver;
     }
@@ -652,8 +655,8 @@ exit_ver:
 #endif
 */      
         mbedtls_x509_csr_free(&csr);
-        if(err != 1)
-            err = 2;
+        if(msg != STATUS_FORBIDDEN)
+            msg = STATUS_SERVER_ERROR;
         goto send_answer;
     }
 
@@ -661,7 +664,7 @@ exit_ver:
     mbedtls_printf("\n2.23 Generating Certificate...\n");
     if((ret = issue_crt(&csr, crt, &crt_len)) != 0) {
         mbedtls_x509_csr_free(&csr);
-        err = 2;
+        msg = STATUS_SERVER_ERROR;
         goto send_answer;
     }
     mbedtls_x509_csr_free(&csr);
@@ -669,7 +672,7 @@ exit_ver:
     // Generate response
     // Write certificate len
     if((ret = mbedtls_base64_encode(enc_crt, CERTS_MAX_LEN, &enc_crt_len, crt, crt_len))!=0) {
-        err = 2;
+        msg = STATUS_SERVER_ERROR;
         goto send_answer;
     }
     body_len = sizeof(HTTP_CERTIFICATE_RESPONSE_END)+enc_crt_len-3;
@@ -707,32 +710,34 @@ exit_ver:
 
 send_answer:
 
-    if(err == 1 || err == 2) {
-        switch(err) {
-            case 1:
+    if(msg != STATUS_OK) {
+        switch(msg) {
+            case STATUS_BAD_REQUEST:
                 memcpy(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400));
                 len = sizeof(HTTP_RESPONSE_400);
                 break;
-            case 2:
-                memcpy(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500));
-                len = sizeof(HTTP_RESPONSE_500);
+            case STATUS_FORBIDDEN:
+                memcpy(buf, HTTP_RESPONSE_403, sizeof(HTTP_RESPONSE_403));
+                len = sizeof(HTTP_RESPONSE_403);
                 break;
             default:
-                goto exit;
+                memcpy(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500));
+                len = sizeof(HTTP_RESPONSE_500);
                 break;
         }
         int ret2 = 0;
         if((ret2 = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
-            if(ret2 == GOTO_RESET && err == 1){
+            if(ret2 == GOTO_EXIT){
+                ret = len;
+            } else if(ret2 == GOTO_RESET){
                 ret = len;
                 goto reset;
+            } else {
+                ret = ret2;
             }
         }
-        if(err == 1 && ret2 != GOTO_EXIT) {
+        if(ret2 != GOTO_EXIT) {
             goto reset;
-        }
-        if(ret2 == GOTO_EXIT){
-            ret = len;
         }
     }
             
@@ -852,7 +857,7 @@ int get_csr(unsigned char *buf, size_t buf_len, unsigned char *csr, size_t *csr_
     return mbedtls_base64_decode(csr, CSR_MAX_LEN, csr_len, enc_csr, enc_csr_len);
 }
 
-int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce) {
+int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce, int *msg) {
     int ret;
     unsigned char csr_hash[KEYSTONE_HASH_MAX_SIZE] = {0};
     uint32_t flags = 0;
@@ -862,6 +867,8 @@ int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce) {
     // unsigned char fin_hash[KEYSTONE_HASH_MAX_SIZE] = {0};
     // sha3_ctx_t ctx_hash;
     // mbedtls_pk_context key;
+
+    *msg = STATUS_FORBIDDEN;
 
     // Verify CSR signature
     mbedtls_printf("2.19 Verifying CSR...\n");
@@ -899,6 +906,7 @@ int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce) {
     print_mbedtls_x509_cert("Trusted Certificate", trusted_certs);
     #endif
     if(ret != 0) {
+        *msg = STATUS_SERVER_ERROR;
         mbedtls_x509_crt_free(&trusted_certs);
         return ret;
     }
@@ -964,6 +972,7 @@ int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce) {
 
     mbedtls_printf("\n");
     fflush(stdout);
+    *msg = STATUS_OK;
     return 0;
 }
 
@@ -1229,14 +1238,18 @@ int recv_buf_ver(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsi
 
 int check_ver_response(unsigned char *buf, size_t buf_len, unsigned char *tci, size_t *tci_len) {
     int msg = -1;
-    if(memcmp(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400))==0) {
+    if(memcmp(buf, HTTP_RESPONSE_403, sizeof(HTTP_RESPONSE_403))==0) {
         mbedtls_printf("\nError in validating attestation\n\n");
-        msg = -2;
-    } else {
-        if(memcmp(buf, HTTP_RESPONSE_200, sizeof(HTTP_RESPONSE_200))==0) {
-            mbedtls_printf("\nValidation ok\n\n");
-            msg = 0;
-        }
+        msg = STATUS_FORBIDDEN;
+    } else if(memcmp(buf, HTTP_RESPONSE_200, sizeof(HTTP_RESPONSE_200))==0) {
+        mbedtls_printf("\nValidation ok\n\n");
+        msg = STATUS_OK;
+    } else if(memcmp(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400))==0) {
+        mbedtls_printf("\nError in request\n\n");
+        msg = STATUS_BAD_REQUEST;
+    } else if(memcmp(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500))==0) {
+        mbedtls_printf("\nVerifier internal error\n\n");
+        msg = STATUS_SERVER_ERROR;
     }
     return msg;
 }

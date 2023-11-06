@@ -496,6 +496,11 @@ int get_nonce(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *
         return -1;
     }
 
+    if(memcmp(buf, HTTP_RESPONSE_403, sizeof(HTTP_RESPONSE_403))==0) {
+        mbedtls_printf("Response: Forbidden\n");
+        return -1;
+    }
+
     if(memcmp(buf, HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1)!=0) {
         mbedtls_printf("Cannot read nonce 1\n\n");
         return -1;
@@ -551,6 +556,11 @@ int get_crt(unsigned char *buf, size_t buf_len, unsigned char *crt, size_t *crt_
 
     if(memcmp(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500))==0) {
         mbedtls_printf("\nResponse: Internal Server Error\n\n");
+        return -1;
+    }
+
+    if(memcmp(buf, HTTP_RESPONSE_403, sizeof(HTTP_RESPONSE_403))==0) {
+        mbedtls_printf("Response: Forbidden\n");
         return -1;
     }
 

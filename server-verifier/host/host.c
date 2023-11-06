@@ -67,6 +67,11 @@
 #define GOTO_EXIT       3
 #define GOTO_RESET      4
 
+#define STATUS_OK           0
+#define STATUS_BAD_REQUEST  1
+#define STATUS_SERVER_ERROR 2
+#define STATUS_FORBIDDEN    3
+
 /*
 unsigned char ref_nonce[] = {
         0x95, 0xb2, 0xcd, 0xbd, 0x9c, 0x3f, 0xe9, 0x28, 0x16, 0x2f, 0x4d, 0x86, 0xc6, 0x5e, 0x2c, 0x23,
@@ -107,7 +112,7 @@ static void my_debug(void *ctx, int level,
 
 int main(void)
 {
-    int ret, err;
+    int ret/*, err*/;
     uint32_t flags; 
     size_t len;
     mbedtls_net_context listen_fd, client_fd;
@@ -255,7 +260,7 @@ int main(void)
     mbedtls_printf(" ok\n");
 
 reset:
-    err = 0;
+    // err = 0;
 #ifdef MBEDTLS_ERROR_C
     if (ret != 0) {
         char error_buf[100];
@@ -374,9 +379,6 @@ reset:
     if((ret = recv_buf(&ssl, buf, &len, resp, &resp_len, verify_attest_evidence))!=NET_SUCCESS){
         if(ret == HANDLER_ERROR) {
             ret = len;
-            err = 1;
-            memcpy(resp, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400));
-            resp_len = sizeof(HTTP_RESPONSE_400);
         } else {
             goto reset;
         }
@@ -392,15 +394,6 @@ reset:
             goto reset;
         }
         goto reset;
-    }
-
-    switch(err) {
-        case 1:
-            goto reset;
-        case 2:
-            goto exit;
-        default:
-            break;
     }
 
 /*
@@ -915,6 +908,7 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
     size_t body_len = 0;
     size_t tmp_len = 0;
     int digits = 0;
+    int msg = STATUS_OK;
 
     mbedtls_x509_crt_init(&dice_certs);
     mbedtls_x509_crt_init(&trusted_certs);
@@ -924,6 +918,7 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
 
     if (sscanf((const char *)buf, POST_ATTESTATION_REQUEST_START, &body_len) != 1) {
         ret = -1;
+        msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
 
@@ -940,31 +935,38 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
     if(body_len == 0 || body_len > buf_len-len) {
         mbedtls_printf("Received less bytes than expected 1\n\n");
         // mbedtls_printf("body_len: %lu, buf_len: %lu, digits: %d\n", body_len, buf_len, digits);
-        return -1;
+        ret = -1;
+        msg = STATUS_BAD_REQUEST;
+        goto gen_resp;
     }
 
     if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_SUBJECT, cn, &cn_len, 0)) != 0) {
+        msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
     mbedtls_printf("CN: %s, %lu\n", cn, cn_len);
        
     if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_PK, pk, &pk_len, 1)) != 0) {
+        msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
     print_hex_string("PK", pk, pk_len);
     
     if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_NONCE, nonce, &nonce_len, 1)) != 0) {
+        msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
     print_hex_string("nonce", nonce, nonce_len);
 
     if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_ATTEST_SIG, attest_evd, &attest_evd_len, 1)) != 0) {
+        msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
     print_hex_string("attest_evd_sign", attest_evd, attest_evd_len);
 
     if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_CRT_DEVROOT, tmp_crt, &tmp_crt_len, 1)) != 0 ||
         (ret = mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) != 0) {
+        msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
     print_hex_string("DevRoot crt", tmp_crt, tmp_crt_len);
@@ -972,6 +974,7 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
 
     if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_CRT_SM, tmp_crt, &tmp_crt_len, 1)) != 0 ||
         (ret = mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) != 0) {
+        msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
     print_hex_string("SM ECA crt", tmp_crt, tmp_crt_len);
@@ -979,12 +982,14 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
 
     if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_CRT_LAK, tmp_crt, &tmp_crt_len, 1)) != 0 ||
         (ret = mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) != 0) {
+        msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
     print_hex_string("LAK crt", tmp_crt, tmp_crt_len);
 
     if(memcmp(buf+len, POST_ATTESTATION_REQUEST_END, sizeof(POST_ATTESTATION_REQUEST_END)) != 0){
         ret = -1;
+        msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
 
@@ -992,7 +997,9 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
     if(body_len != (len-(sizeof(POST_ATTESTATION_REQUEST_START)-1+digits)-1)) {
         mbedtls_printf("Received less bytes than expected 2\n\n");
         // mbedtls_printf("body_len: %lu, len: %lu, digits: %d\n", body_len, len, digits);
-        return -1;
+        ret = -1;
+        msg = STATUS_BAD_REQUEST;
+        goto gen_resp;
     }
 
     // Start fields validation
@@ -1014,6 +1021,7 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
     print_mbedtls_x509_cert("Trusted Certificate", trusted_certs);
     #endif
     if(ret != 0) {
+        msg = STATUS_SERVER_ERROR;
         goto gen_resp;
     }
 
@@ -1023,6 +1031,7 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
     ret = mbedtls_x509_crt_verify_with_profile(&dice_certs, &trusted_certs, NULL, &mbedtls_x509_crt_profile_keystone, NULL, &flags, NULL, NULL);
     mbedtls_printf("Verifing Chain of Certificates - ret: %u, flags = %u\n", ret, flags);
     if(ret != 0) {
+        msg = STATUS_FORBIDDEN;
         goto gen_resp;
     }
 
@@ -1034,6 +1043,7 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
     print_hex_string("SM PK", verification_pk, PUBLIC_KEY_SIZE);
     #endif
     if(ret != 0) {
+        msg = STATUS_SERVER_ERROR;
         goto gen_resp;
     }
 
@@ -1044,6 +1054,7 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
     print_hex_string("Reference Enclave TCI", reference_tci, KEYSTONE_HASH_MAX_SIZE);
     #endif
     if(ret != 0) {
+        msg = STATUS_SERVER_ERROR;
         goto gen_resp;
     }
 
@@ -1061,12 +1072,14 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
     ret = mbedtls_pk_parse_ed25519_key(&key, verification_pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
     mbedtls_printf("Parsing LAK PK - ret: %d\n", ret);
     if(ret != 0) {
+        msg = STATUS_SERVER_ERROR;
         goto gen_resp;
     }
 
     ret = mbedtls_pk_verify_ext(MBEDTLS_PK_ED25519, NULL, &key, MBEDTLS_MD_KEYSTONE_SHA3, fin_hash, KEYSTONE_HASH_MAX_SIZE, attest_evd, attest_evd_len);
     mbedtls_printf("Verifying attestation evidence signature - ret: %d\n\n", ret);
     if(ret != 0) {
+        msg = STATUS_FORBIDDEN;
         goto gen_resp;
     }
 
@@ -1074,9 +1087,23 @@ gen_resp:
     mbedtls_x509_crt_free(&trusted_certs);
     mbedtls_x509_crt_free(&dice_certs);
     mbedtls_pk_free(&key);
-    if(ret == 0) {
-        memcpy(resp, HTTP_RESPONSE_200, sizeof(HTTP_RESPONSE_200));
-        *resp_len = sizeof(HTTP_RESPONSE_200);
+    switch(msg) {
+        case STATUS_OK:
+            memcpy(resp, HTTP_RESPONSE_200, sizeof(HTTP_RESPONSE_200));
+            *resp_len = sizeof(HTTP_RESPONSE_200);
+            break;
+        case STATUS_BAD_REQUEST:
+            memcpy(resp, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400));
+            *resp_len = sizeof(HTTP_RESPONSE_400);
+            break;
+        case STATUS_FORBIDDEN:
+            memcpy(resp, HTTP_RESPONSE_403, sizeof(HTTP_RESPONSE_403));
+            *resp_len = sizeof(HTTP_RESPONSE_403);
+            break;
+        default:
+            memcpy(resp, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500));
+            *resp_len = sizeof(HTTP_RESPONSE_500);
+            break;
     }
     return ret;
 }

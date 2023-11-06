@@ -56,11 +56,11 @@
 #define HTTP_RESPONSE_400 \
     "HTTP/1.0 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
 
-/*
+#define HTTP_RESPONSE_403 \
+    "HTTP/1.0 403 Forbidden\r\nContent-Length: 0\r\n\r\n"
+
 #define HTTP_RESPONSE_500 \
-    "HTTP/1.0 500 INTERNAL SERVER ERROR\r\nContent-Type: application/json\r\n\r\n" \
-    "{}\r\n" 
-*/
+    "HTTP/1.0 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n"
 
 #define HTTP_RESPONSE_200 \
     "HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n"
