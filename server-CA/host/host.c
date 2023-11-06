@@ -84,13 +84,13 @@ int csr_get_cert(mbedtls_x509_csr *csr, unsigned char *raw_cert, size_t *raw_cer
 
 int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len);
 
-int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
+int check_nonce_request(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *nonce_len);
 
-int check_ver_response(unsigned char *buf, unsigned char *tci, size_t *tci_len);
+int check_ver_response(unsigned char *buf, size_t buf_len, unsigned char *tci, size_t *tci_len);
 
 // int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
 
-int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len);
+int get_csr(unsigned char *buf, size_t buf_len, unsigned char *csr, size_t *csr_len);
 
 int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce);
 
@@ -99,12 +99,12 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len);
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
 
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len));
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len));
 
 int send_buf_ver(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
 
 int recv_buf_ver(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len));
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len));
 
 static void my_debug(void *ctx, int level,
                      const char *file, int line,
@@ -764,7 +764,7 @@ exit:
     mbedtls_exit(ret);
 }
 
-int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len) {
+int check_nonce_request(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *nonce_len) {
     if(memcmp(buf, GET_NONCE_REQUEST, sizeof(GET_NONCE_REQUEST))!=0) {
         mbedtls_printf("Error in reading nonce request\n\n");
         return -1;
@@ -806,7 +806,7 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
 }
 */
 
-int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len) {
+int get_csr(unsigned char *buf, size_t buf_len, unsigned char *csr, size_t *csr_len) {
     unsigned char enc_csr[CSR_MAX_LEN];
     size_t enc_csr_len;
     size_t tmp_len = 0;
@@ -829,6 +829,11 @@ int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len) {
     } 
     digits -= 3;
     len = sizeof(POST_CSR_REQUEST_START)-1+digits;
+
+    if(body_len == 0 || body_len > buf_len-len || enc_csr_len <= 0) {
+        mbedtls_printf("Received less bytes than expected\n\n");
+        return -1;
+    }
 
     if (memcmp(buf+len , POST_CSR_REQUEST_MIDDLE, sizeof(POST_CSR_REQUEST_MIDDLE)-1) != 0) {
         mbedtls_printf("Cannot read csr 1\n\n");
@@ -1118,7 +1123,7 @@ int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len) {
 }
 
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len)) {
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len)) {
     int ret;
     mbedtls_printf("[CA]  < Read from client:");
     fflush(stdout);
@@ -1153,7 +1158,7 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
         mbedtls_printf(" %lu bytes read\n\n%s", *len, (char *) buf);
 
         if (ret > 0) {
-            if((ret = handler(buf, data, data_len))!=0) {
+            if((ret = handler(buf, *len, data, data_len))!=0) {
                 *len = ret;
                 return HANDLER_ERROR;
             }
@@ -1181,7 +1186,7 @@ int send_buf_ver(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len
 
 // buf must be BUF_SIZE byte long
 int recv_buf_ver(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len)){
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len)){
     int ret;
     mbedtls_printf("[CA]  < Read from server:");
     do {
@@ -1211,7 +1216,7 @@ int recv_buf_ver(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsi
         mbedtls_printf(" %lu bytes read\n\n%s", *len, (char *) buf);
 
         // Get the data from the response
-        if((ret = handler(buf, data, data_len)) != 0){
+        if((ret = handler(buf, *len, data, data_len)) != 0){
             *len = ret;
             return HANDLER_ERROR;
         } 
@@ -1222,7 +1227,7 @@ int recv_buf_ver(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsi
     return ret;
 }
 
-int check_ver_response(unsigned char *buf, unsigned char *tci, size_t *tci_len) {
+int check_ver_response(unsigned char *buf, size_t buf_len, unsigned char *tci, size_t *tci_len) {
     int msg = -1;
     if(memcmp(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400))==0) {
         mbedtls_printf("\nError in validating attestation\n\n");

@@ -80,9 +80,9 @@ unsigned char ref_nonce[] = {
 
 // int check_nonce_request(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
 
-int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp_len);
+int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *resp, size_t *resp_len);
 
-int get_encoded_field(unsigned char *buf, size_t *index, char *format, unsigned char *output, size_t *outlen, int encoded);
+int get_encoded_field(unsigned char *buf, size_t buf_len, size_t *index, char *format, unsigned char *output, size_t *outlen, int encoded);
 
 // int get_csr(unsigned char *buf, unsigned char *csr, size_t *csr_len);
 
@@ -93,7 +93,7 @@ int get_encoded_field(unsigned char *buf, size_t *index, char *format, unsigned 
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
 
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len));
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len));
 
 static void my_debug(void *ctx, int level,
                      const char *file, int line,
@@ -844,7 +844,7 @@ int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len) {
 }
 
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len)) {
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len)) {
     int ret;
     mbedtls_printf("[Ver]  < Read from client:");
     fflush(stdout);
@@ -879,7 +879,7 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
         mbedtls_printf(" %lu bytes read\n\n%s", *len, (char *) buf);
 
         if (ret > 0) {
-            if((ret = handler(buf, data, data_len))!=0) {
+            if((ret = handler(buf, *len, data, data_len))!=0) {
                 *len = ret;
                 return HANDLER_ERROR;
             }
@@ -890,7 +890,7 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
     return ret;
 }
 
-int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp_len) {
+int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *resp, size_t *resp_len) {
     int ret = 0;
     size_t len = 0;
     unsigned char cn[CN_MAX_LEN] = {0};
@@ -927,7 +927,7 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
         goto gen_resp;
     }
 
-    mbedtls_printf("body_len: %lu\n", body_len);
+    // mbedtls_printf("body_len: %lu\n", body_len);
 
     tmp_len = body_len;
     while(tmp_len > 0) { 
@@ -937,41 +937,47 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     digits -= 3;
     len = sizeof(POST_ATTESTATION_REQUEST_START)-1+digits;
 
-    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_SUBJECT, cn, &cn_len, 0)) != 0) {
+    if(body_len == 0 || body_len > buf_len-len) {
+        mbedtls_printf("Received less bytes than expected 1\n\n");
+        // mbedtls_printf("body_len: %lu, buf_len: %lu, digits: %d\n", body_len, buf_len, digits);
+        return -1;
+    }
+
+    if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_SUBJECT, cn, &cn_len, 0)) != 0) {
         goto gen_resp;
     }
     mbedtls_printf("CN: %s, %lu\n", cn, cn_len);
        
-    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_PK, pk, &pk_len, 1)) != 0) {
+    if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_PK, pk, &pk_len, 1)) != 0) {
         goto gen_resp;
     }
     print_hex_string("PK", pk, pk_len);
     
-    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_NONCE, nonce, &nonce_len, 1)) != 0) {
+    if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_NONCE, nonce, &nonce_len, 1)) != 0) {
         goto gen_resp;
     }
     print_hex_string("nonce", nonce, nonce_len);
 
-    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_ATTEST_SIG, attest_evd, &attest_evd_len, 1)) != 0) {
+    if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_ATTEST_SIG, attest_evd, &attest_evd_len, 1)) != 0) {
         goto gen_resp;
     }
     print_hex_string("attest_evd_sign", attest_evd, attest_evd_len);
 
-    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_DEVROOT, tmp_crt, &tmp_crt_len, 1)) != 0 ||
+    if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_CRT_DEVROOT, tmp_crt, &tmp_crt_len, 1)) != 0 ||
         (ret = mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) != 0) {
         goto gen_resp;
     }
     print_hex_string("DevRoot crt", tmp_crt, tmp_crt_len);
     tmp_crt_len = CERTS_MAX_LEN;
 
-    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_SM, tmp_crt, &tmp_crt_len, 1)) != 0 ||
+    if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_CRT_SM, tmp_crt, &tmp_crt_len, 1)) != 0 ||
         (ret = mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) != 0) {
         goto gen_resp;
     }
     print_hex_string("SM ECA crt", tmp_crt, tmp_crt_len);
     tmp_crt_len = CERTS_MAX_LEN;
 
-    if((ret = get_encoded_field(buf, &len, POST_ATTESTATION_REQUEST_CRT_LAK, tmp_crt, &tmp_crt_len, 1)) != 0 ||
+    if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_CRT_LAK, tmp_crt, &tmp_crt_len, 1)) != 0 ||
         (ret = mbedtls_x509_crt_parse_der(&dice_certs, tmp_crt, tmp_crt_len)) != 0) {
         goto gen_resp;
     }
@@ -980,6 +986,13 @@ int verify_attest_evidence(unsigned char *buf, unsigned char *resp, size_t *resp
     if(memcmp(buf+len, POST_ATTESTATION_REQUEST_END, sizeof(POST_ATTESTATION_REQUEST_END)) != 0){
         ret = -1;
         goto gen_resp;
+    }
+
+    len += sizeof(POST_ATTESTATION_REQUEST_END);
+    if(body_len != (len-(sizeof(POST_ATTESTATION_REQUEST_START)-1+digits)-1)) {
+        mbedtls_printf("Received less bytes than expected 2\n\n");
+        // mbedtls_printf("body_len: %lu, len: %lu, digits: %d\n", body_len, len, digits);
+        return -1;
     }
 
     // Start fields validation
@@ -1068,7 +1081,7 @@ gen_resp:
     return ret;
 }
 
-int get_encoded_field(unsigned char *buf, size_t *index, char *format, unsigned char *output, size_t *outlen, int encoded) {
+int get_encoded_field(unsigned char *buf, size_t buf_len, size_t *index, char *format, unsigned char *output, size_t *outlen, int encoded) {
     unsigned char enc_buf[BUF_SIZE];
     size_t enc_len = 0;
     size_t outbuf_len = *outlen;
@@ -1078,9 +1091,9 @@ int get_encoded_field(unsigned char *buf, size_t *index, char *format, unsigned 
         return -1;
     }
     *index += strlen(format);
-    while(buf[(*index)+enc_len] != '"' && buf[(*index)+enc_len] != '\0')
+    while(((*index) + enc_len) < buf_len && buf[(*index)+enc_len] != '"' && buf[(*index)+enc_len] != '\0')
         enc_len ++;
-    if(buf[(*index)+enc_len] == '\0') {
+    if(((*index) + enc_len) >= buf_len || buf[(*index)+enc_len] == '\0' || enc_len == 0) {
         mbedtls_printf("Error 2\n");
         return -1;
     }

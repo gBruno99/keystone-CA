@@ -86,9 +86,9 @@ struct report
   byte dev_public_key[PUBLIC_KEY_SIZE];
 };
 
-int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
+int get_nonce(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *nonce_len);
 
-int get_crt(unsigned char *buf, unsigned char *crt, size_t *len);
+int get_crt(unsigned char *buf, size_t buf_len, unsigned char *crt, size_t *len);
 
 void custom_exit(int status);
 
@@ -97,7 +97,7 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
 
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len));
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len));
 
 int main(void)
 {
@@ -479,7 +479,7 @@ void custom_exit(int status){
     EAPP_RETURN(status);
 }
 
-int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
+int get_nonce(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *nonce_len){
     int i, ret = 0;
     unsigned char enc_nonce[NONCE_MAX_LEN] = {0};
     size_t enc_nonce_len = 0;
@@ -508,8 +508,18 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
         i++;
     }
 
+    if(body_len == 0 || body_len > buf_len-i-4) {
+        mbedtls_printf("Received less bytes than expected\n\n");
+        return -1;
+    }
+
     enc_nonce_len = body_len-sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-sizeof(HTTP_NONCE_RESPONSE_END)+6;
     // mbedtls_printf("body_len: %lu, enc_nonce_len: %lu\n", body_len, enc_nonce_len);
+
+    if(enc_nonce_len <= 0) {
+        mbedtls_printf("Received less bytes than expected\n\n");
+        return -1;
+    }
 
     if(memcmp(buf+i, HTTP_NONCE_RESPONSE_MIDDLE, sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-1)!=0) {
         mbedtls_printf("Cannot read nonce 2\n\n");
@@ -528,7 +538,7 @@ int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
     return ret || (dec_nonce_len != NONCE_LEN);
 }
 
-int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
+int get_crt(unsigned char *buf, size_t buf_len, unsigned char *crt, size_t *crt_len) {
     int i;
     unsigned char enc_crt[CERTS_MAX_LEN] = {0};
     size_t enc_crt_len = 0;
@@ -556,8 +566,18 @@ int get_crt(unsigned char *buf, unsigned char *crt, size_t *crt_len) {
         i++;
     }
 
+    if(body_len == 0 || body_len > buf_len-i-4) {
+        mbedtls_printf("Received less bytes than expected\n\n");
+        return -1;
+    }
+
     enc_crt_len = body_len-sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-sizeof(HTTP_CERTIFICATE_RESPONSE_END)+6;
     // mbedtls_printf("body_len: %lu, enc_crt_len: %lu\n", body_len, enc_crt_len);
+
+    if(enc_crt_len <= 0) {
+        mbedtls_printf("Received less bytes than expected\n\n");
+        return -1;
+    }
 
     if(memcmp(buf+i, HTTP_CERTIFICATE_RESPONSE_MIDDLE, sizeof(HTTP_CERTIFICATE_RESPONSE_MIDDLE)-1)!=0) {
         mbedtls_printf("\nCannot read certificate 2\n\n");
@@ -592,7 +612,7 @@ int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len){
 
 // buf must be BUF_SIZE byte long
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
-    int (*handler)(unsigned char *recv_buf, unsigned char *out_data, size_t *out_len)){
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len)){
     int ret;
     mbedtls_printf("[E]  < Read from server:");
     do {
@@ -622,7 +642,7 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
         mbedtls_printf(" %d bytes read\n\n%s", *len, (char *) buf);
 
         // Get the data from the response
-        if((ret = handler(buf, data, data_len)) != 0){
+        if((ret = handler(buf, *len, data, data_len)) != 0){
             *len = ret;
             return HANDLER_ERROR;
         } 
