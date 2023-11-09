@@ -419,6 +419,15 @@ int main(void)
     }
     
     mbedtls_printf(" ...\n\n");
+
+    // Step 7: Close the connection
+
+    mbedtls_printf("Connected using %s\n", mbedtls_ssl_get_ciphersuite(&ssl));
+
+    mbedtls_ssl_close_notify(&ssl);
+    mbedtls_printf("\n");
+    
+    
     print_hex_string("new LDevID crt", ldevid_ca_cert, ldevid_ca_cert_len);
     mbedtls_printf("\n");
 
@@ -441,12 +450,6 @@ int main(void)
         mbedtls_printf("Error in storing LDevID_crt\n");
         goto exit;
     }
-
-    // Step 7: Close the connection
-
-    mbedtls_printf("Connected using %s\n", mbedtls_ssl_get_ciphersuite(&ssl));
-
-    mbedtls_ssl_close_notify(&ssl);
 
     exit_code = MBEDTLS_EXIT_SUCCESS;
 

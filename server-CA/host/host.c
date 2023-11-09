@@ -632,6 +632,7 @@ reset:
 
 
     mbedtls_printf("[CA]  . Closing the connection to Verifier...\n");
+    mbedtls_printf("Connected using %s\n", mbedtls_ssl_get_ciphersuite(&ssl));
     mbedtls_ssl_close_notify(&ssl_ver);
 
     exit_code = MBEDTLS_EXIT_SUCCESS;
@@ -1023,13 +1024,13 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
 
     // Set certificate fields
     mbedtls_printf("Setting Certificate fields...\n");
-    ret = mbedtls_x509write_crt_set_issuer_name(&cert_encl, "O=Certificate Authority");
+    ret = mbedtls_x509write_crt_set_issuer_name(&cert_encl, "CN=CA,O=CertificateAuthority,C=IT");
     mbedtls_printf("Setting issuer - ret: %d\n", ret);
     if(ret != 0) {
         goto end_issue_crt;
     }
     
-    ret = mbedtls_x509write_crt_set_subject_name(&cert_encl, "CN=Client1,O=Certificate Authority");
+    ret = mbedtls_x509write_crt_set_subject_name(&cert_encl, "CN=Client,O=CertificateAuthority,C=IT");
     mbedtls_printf("Setting subject - ret: %d\n", ret);
     if(ret != 0) {
         goto end_issue_crt;
@@ -1072,6 +1073,18 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
 
     ret = mbedtls_x509write_crt_set_extension(&cert_encl, MBEDTLS_OID_TCI, 3, 0, reference_tci, KEYSTONE_HASH_MAX_SIZE);
     mbedtls_printf("Setting TCI - ret: %d\n", ret);
+    if(ret != 0) {
+        goto end_issue_crt;
+    }
+
+    ret = mbedtls_x509write_crt_set_key_usage(&cert_encl, csr->key_usage);
+    mbedtls_printf("Setting key usage - ret: %d\n", ret);
+    if(ret != 0) {
+        goto end_issue_crt;
+    }
+
+    ret = mbedtls_x509write_crt_set_basic_constraints(&cert_encl, 0, 0);
+    mbedtls_printf("Setting basic constraints- ret: %d\n", ret);
     if(ret != 0) {
         goto end_issue_crt;
     }

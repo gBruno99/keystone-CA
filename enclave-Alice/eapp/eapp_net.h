@@ -7,10 +7,10 @@
 #define SERVER_NAME "192.168.100.2"
 
 #define GET_NONCE_REQUEST \
-    "GET /nonce HTTP/1.0\r\nContent-Length: 0\r\n\r\n"
+    "GET /nonce HTTP/1.1\r\nHost: www.ca.org\r\nContent-Length: 0\r\n\r\n"
 
 #define HTTP_NONCE_RESPONSE_START \
-    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: " 
+    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " 
 
 #define HTTP_NONCE_RESPONSE_MIDDLE \
     "\r\n\r\n{\r\n    \"nonce\": \""
@@ -19,13 +19,13 @@
     "\"\r\n}\r\n"
 
 #define POST_CSR_REQUEST_START \
-    "POST /csr HTTP/1.0\r\nContent-Type: application/json\r\nContent-Length: %lu\r\n\r\n" 
+    "POST /csr HTTP/1.1\r\nHost: www.ca.org\r\nContent-Type: application/json\r\nContent-Length: %lu\r\n\r\n" 
 
 #define POST_CSR_REQUEST_END \
     "{\r\n    \"csr\": \"%s\"\r\n}\r\n" 
 
 #define HTTP_CERTIFICATE_RESPONSE_START \
-    "HTTP/1.0 200 OK\r\nContent-Type: application/json\r\nContent-Length: " 
+    "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " 
 
 #define HTTP_CERTIFICATE_RESPONSE_MIDDLE \
     "\r\n\r\n{\r\n    \"crt\": \"" 
@@ -34,13 +34,13 @@
     "\"\r\n}\r\n"
 
 #define HTTP_RESPONSE_400 \
-    "HTTP/1.0 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
+    "HTTP/1.1 400 Bad Request\r\nContent-Length: 0\r\n\r\n"
 
 #define HTTP_RESPONSE_403 \
-    "HTTP/1.0 403 Forbidden\r\nContent-Length: 0\r\n\r\n"
+    "HTTP/1.1 403 Forbidden\r\nContent-Length: 0\r\n\r\n"
 
 #define HTTP_RESPONSE_500 \
-    "HTTP/1.0 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n"
+    "HTTP/1.1 500 Internal Server Error\r\nContent-Length: 0\r\n\r\n"
 
 void custom_net_init(mbedtls_net_context *ctx);
 int custom_net_connect(mbedtls_net_context *ctx, const char *host, const char *port, int proto);
