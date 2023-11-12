@@ -32,18 +32,18 @@ const unsigned long ca_key_pem_len = sizeof(ca_key_pem);
 
 const char ver_cert_pem[] = 
 "-----BEGIN CERTIFICATE-----\r\n" \
-"MIICKzCCAYygAwIBAgIBATAMBggqhkjOPQQDAgUAMC4xDDAKBgNVBAMMA1ZlcjER\r\n" \
+"MIICJDCCAYOgAwIBAgIBATAMBggqhkjOPQQDAgUAMC4xDDAKBgNVBAMMA1ZlcjER\r\n" \
 "MA8GA1UECgwIVmVyaWZpZXIxCzAJBgNVBAYTAklUMB4XDTIzMDEwMTAwMDAwMFoX\r\n" \
 "DTI0MDEwMTAwMDAwMFowLjEMMAoGA1UEAwwDVmVyMREwDwYDVQQKDAhWZXJpZmll\r\n" \
 "cjELMAkGA1UEBhMCSVQwgZswEAYHKoZIzj0CAQYFK4EEACMDgYYABAHjdXiAfteX\r\n" \
 "se9QA6zQiMLZSpY7vHQaw3bvYA3d0kmpgUVxZF/kzhLtsJPVb3yZgGvbTWSaXNqB\r\n" \
 "GnyOxo/bj6EMCQGmEleZiakh2k97TfkNKblZSs4+KWTboKDp7AOECV66sOfXkvdv\r\n" \
-"TG4v2NWEg/S/DJCrNBPmo7tQegUTkAt1EQVqR6NWMFQwEgYDVR0TAQH/BAgwBgEB\r\n" \
-"/wIBCjAdBgNVHQ4EFgQUU+mlbmN9mEaMIUudPCFMsJ7PvtwwHwYDVR0jBBgwFoAU\r\n" \
-"U+mlbmN9mEaMIUudPCFMsJ7PvtwwDAYIKoZIzj0EAwIFAAOBigAwgYYCQVpY9rsv\r\n" \
-"NE/xwiq1aurf6Wp0awFN7hbuKoZGttTpp78cEv4mihI500z75jCOe/iCWAlRu04Z\r\n" \
-"iGRywn2YWlEuGR2WAkEsLh+maSH3yg7bXKt27fy34rLDGtSZ2/p8maNpft4b3Ho5\r\n" \
-"GPk8xJNcfixlMH2hgm+qTvcwptUCybI5869Ej5ptGg==\r\n" \
+"TG4v2NWEg/S/DJCrNBPmo7tQegUTkAt1EQVqR6NNMEswCQYDVR0TBAIwADAdBgNV\r\n" \
+"HQ4EFgQUU+mlbmN9mEaMIUudPCFMsJ7PvtwwHwYDVR0jBBgwFoAUU+mlbmN9mEaM\r\n" \
+"IUudPCFMsJ7PvtwwDAYIKoZIzj0EAwIFAAOBjAAwgYgCQgFlN+TEmWHEz2aK5EDW\r\n" \
+"V7NshThBRy8dvTGFcwP680HAh3YQt1n5AoqnsCkxf/qgj92h1Uby5KulZcondkvT\r\n" \
+"vnGr+AJCAXuvHe/RvDNSh1SU3s/hOPojwx2IVqo5gJoShb3tjO9gwp68ZKboHUgc\r\n" \
+"ggwMyqnCUworuCdtvtcWBSSp+tXVdund\r\n" \
 "-----END CERTIFICATE-----\r\n";
 
 const unsigned long ver_cert_pem_len = sizeof(ver_cert_pem);

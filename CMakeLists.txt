@@ -74,6 +74,7 @@ find_program(MAKESELF makeself)
 # add_subdirectory(tls-server)
 # add_subdirectory(tls-client-enclave)
 add_subdirectory(enclave-Alice)
+add_subdirectory(enclave-Bob)
 add_subdirectory(server-CA)
 add_subdirectory(server-verifier)
 

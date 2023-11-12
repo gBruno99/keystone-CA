@@ -30,7 +30,7 @@
     "POST /attest HTTP/1.1\r\nHost: www.ver.org\r\nContent-Type: application/json\r\nContent-Length: %lu\r\n\r\n"
 
 #define POST_ATTESTATION_REQUEST_SUBJECT \
-    "{\r\n    \"subject_cn\": \""
+    "{\r\n    \"subject_o\": \""
     
 #define POST_ATTESTATION_REQUEST_PK \
     "\",\r\n    \"pk\": \""

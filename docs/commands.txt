@@ -6,4 +6,4 @@ $ ./programs/x509/cert_write selfsign=1 issuer_key=ca_key.key issuer_name=CN=CA,
 
 Commands to generate Ver cert:
 $ ./programs/pkey/gen_key type=ec filename=ver_key.key # curve secp521r1
-$ ./programs/x509/cert_write selfsign=1 issuer_key=ver_key.key issuer_name=CN=Ver,O=Verifier,C=IT not_before=20230101000000 not_after=20240101000000 is_ca=1 max_pathlen=10 output_file=ver.crt
+$ ./programs/x509/cert_write selfsign=1 issuer_key=ver_key.key issuer_name=CN=Ver,O=Verifier,C=IT not_before=20230101000000 not_after=20240101000000 is_ca=0 output_file=ver.crt

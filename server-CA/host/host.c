@@ -77,7 +77,7 @@
 
 unsigned char num_crt = 0;
 
-int csr_get_common_name(mbedtls_x509_csr *csr, unsigned char *cn, size_t *cn_len); 
+int csr_get_organization(mbedtls_x509_csr *csr, unsigned char *o, size_t *o_len); 
 
 int csr_get_pk(mbedtls_x509_csr *csr, unsigned char *pk, size_t *pk_len);
 
@@ -986,6 +986,9 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_entropy_context entropy;
     const char *pers = "issuing_cert";
+    char crt_subject[64] = {0};
+    char o[64];
+    size_t o_len;
     unsigned char serial[] = {0xAB, 0xAB, 0xAB};
     unsigned char reference_tci[KEYSTONE_HASH_MAX_SIZE] = {0};
     unsigned char cert_der[CERTS_MAX_LEN];
@@ -997,6 +1000,13 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     serial[2] = num_crt;
     num_crt++;
     print_hex_string("serial", serial, 3);
+    if(strncmp((char*)csr->subject.val.p, "Alice", 5)==0) {
+        mbedtls_printf("crt is for Alice!\n");
+        strncpy(crt_subject, "CN=Alice,O=CertificateAuthority,C=IT", 37);
+    } else if(strncmp((char*)csr->subject.val.p, "Bob", 3)==0) {
+        mbedtls_printf("crt is for Bob!\n");
+        strncpy(crt_subject, "CN=Bob,O=CertificateAuthority,C=IT", 35);
+    }
 
     mbedtls_entropy_init(&entropy);
     mbedtls_ctr_drbg_init(&ctr_drbg);
@@ -1005,7 +1015,12 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     mbedtls_pk_init(&issu_key);
 
     // Get enclave reference TCI
-    ret = getReferenceTCI(csr, reference_tci);
+    ret = csr_get_organization(csr, (unsigned char *) o, &o_len);
+    if(ret != 0) {
+        goto end_issue_crt;
+    }
+
+    ret = getReferenceTCI(o, reference_tci);
     mbedtls_printf("Getting Reference Enclave TCI - ret: %d\n", ret);
     #if PRINT_STRUCTS
     print_hex_string("Reference Enclave TCI", reference_tci, KEYSTONE_HASH_MAX_SIZE);
@@ -1030,7 +1045,7 @@ int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
         goto end_issue_crt;
     }
     
-    ret = mbedtls_x509write_crt_set_subject_name(&cert_encl, "CN=Client,O=CertificateAuthority,C=IT");
+    ret = mbedtls_x509write_crt_set_subject_name(&cert_encl, crt_subject);
     mbedtls_printf("Setting subject - ret: %d\n", ret);
     if(ret != 0) {
         goto end_issue_crt;
@@ -1268,14 +1283,14 @@ int check_ver_response(unsigned char *buf, size_t buf_len, unsigned char *tci, s
 }
 
 int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len) {
-    unsigned char csr_cn[CN_MAX_LEN];
+    unsigned char csr_o[CN_MAX_LEN];
     unsigned char csr_pk[PK_MAX_LEN];
     unsigned char csr_nonce[NONCE_MAX_LEN];  
     unsigned char csr_attest_sig[ATTEST_MAX_LEN]; 
     unsigned char csr_cert_lak[CERTS_MAX_LEN]; 
     unsigned char csr_cert_root[CERTS_MAX_LEN];
     unsigned char csr_cert_sm[CERTS_MAX_LEN];
-    size_t csr_cn_len;
+    size_t csr_o_len;
     size_t csr_pk_len;
     size_t csr_nonce_len;
     size_t csr_attest_sig_len;
@@ -1285,7 +1300,7 @@ int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len)
     size_t body_len;
     int ret;
 
-    if((ret = csr_get_common_name(csr, csr_cn, &csr_cn_len)) != 0) {
+    if((ret = csr_get_organization(csr, csr_o, &csr_o_len)) != 0) {
         return ret;
     }
 
@@ -1313,22 +1328,22 @@ int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len)
         return ret;
     }
 
-    body_len = sizeof(POST_ATTESTATION_REQUEST_END) + csr_cn_len + csr_pk_len + csr_nonce_len + csr_attest_sig_len + csr_cert_root_len + csr_cert_sm_len + csr_cert_lak_len - 15;
+    body_len = sizeof(POST_ATTESTATION_REQUEST_END) + csr_o_len + csr_pk_len + csr_nonce_len + csr_attest_sig_len + csr_cert_root_len + csr_cert_sm_len + csr_cert_lak_len - 15;
     *len = sprintf((char*) buf, POST_ATTESTATION_REQUEST_START, body_len);
-    *len += sprintf((char*) buf+(*len), POST_ATTESTATION_REQUEST_END, csr_cn, csr_pk, csr_nonce, csr_attest_sig, csr_cert_root, csr_cert_sm, csr_cert_lak);
+    *len += sprintf((char*) buf+(*len), POST_ATTESTATION_REQUEST_END, csr_o, csr_pk, csr_nonce, csr_attest_sig, csr_cert_root, csr_cert_sm, csr_cert_lak);
     return *len == -1;
 }
 
-int csr_get_common_name(mbedtls_x509_csr *csr, unsigned char *cn, size_t *cn_len) {
+int csr_get_organization(mbedtls_x509_csr *csr, unsigned char *o, size_t *o_len) {
     mbedtls_x509_name *subject = &(csr->subject);
-    while(subject != NULL && strncmp((char*) subject->oid.p, MBEDTLS_OID_AT_CN, subject->oid.len)!=0)
+    while(subject != NULL && strncmp((char*) subject->oid.p, MBEDTLS_OID_AT_ORGANIZATION, subject->oid.len)!=0)
         subject = subject->next;
     if(subject == NULL) {
         return -1;
     }
-    *cn_len = subject->val.len;
-    strncpy((char*) cn, (char*) subject->val.p, *cn_len);
-    cn[*cn_len] = '\0';
+    *o_len = subject->val.len;
+    strncpy((char*) o, (char*) subject->val.p, *o_len);
+    o[*o_len] = '\0';
     // mbedtls_printf("%lu: %s\n", *cn_len, cn);
     return 0;
 }

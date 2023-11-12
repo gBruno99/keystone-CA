@@ -36,6 +36,7 @@ extracthash () {
     expect "# " { send "ifdown lo && ifup lo\r" }
     expect "# " { send "./server-CA.riscv &\r" }
     expect "# " { send "./enclave-Alice.ke\r" }
+    expect "# " { send "./enclave-Bob.ke\r" }
 
 
     expect "# " { send "poweroff\r" }
@@ -48,16 +49,22 @@ extracthash () {
 
 extracthash | tee extract_hash.log
 SM_HASH=$(awk '/TCI sm:/' extract_hash.log  | cut -c 11-)
-EAPP_HASH=$(awk '/TCI enclave:/' extract_hash.log  | cut -c 16-)
+EAPP_ALICE_HASH=$(awk '/TCI enclave-alice:/' extract_hash.log  | cut -c 22-)
+EAPP_BOB_HASH=$(awk '/TCI enclave-bob:/' extract_hash.log  | cut -c 20-)
 rm -f extract_hash.log
 cd $output_path
 if [ "${SM_HASH}xxx" = "xxx" ]; then
     echo Could not extract the SM_HASH!;
     exit
 fi
-if [ "${EAPP_HASH}xxx" = "xxx" ]; then
-    echo Could not extract the EAPP_HASH!;
+if [ "${EAPP_ALICE_HASH}xxx" = "xxx" ]; then
+    echo Could not extract the EAPP_ALICE_HASH!;
+    exit
+fi
+if [ "${EAPP_BOB_HASH}xxx" = "xxx" ]; then
+    echo Could not extract the EAPP_BOB_HASH!;
     exit
 fi
 genhash sm $SM_HASH
-genhash enclave $EAPP_HASH
+genhash alice $EAPP_ALICE_HASH
+genhash bob $EAPP_BOB_HASH

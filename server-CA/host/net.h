@@ -32,7 +32,7 @@
     "POST /attest HTTP/1.1\r\nHost: www.ver.org\r\nContent-Type: application/json\r\nContent-Length: %lu\r\n\r\n"
 
 #define POST_ATTESTATION_REQUEST_END \
-    "{\r\n    \"subject_cn\": \"%s\",\r\n" \
+    "{\r\n    \"subject_o\": \"%s\",\r\n" \
     "    \"pk\": \"%s\",\r\n" \
     "    \"nonce\": \"%s\",\r\n" \
     "    \"attest_evd_sig\": \"%s\",\r\n" \

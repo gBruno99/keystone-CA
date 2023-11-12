@@ -886,8 +886,8 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
 int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *resp, size_t *resp_len) {
     int ret = 0;
     size_t len = 0;
-    unsigned char cn[CN_MAX_LEN] = {0};
-    size_t cn_len = CN_MAX_LEN;
+    unsigned char o[CN_MAX_LEN] = {0};
+    size_t o_len = CN_MAX_LEN;
     unsigned char pk[PUBLIC_KEY_SIZE] = {0};
     size_t pk_len = PUBLIC_KEY_SIZE;
     unsigned char nonce[NONCE_LEN] = {0};
@@ -940,11 +940,11 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
         goto gen_resp;
     }
 
-    if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_SUBJECT, cn, &cn_len, 0)) != 0) {
+    if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_SUBJECT, o, &o_len, 0)) != 0) {
         msg = STATUS_BAD_REQUEST;
         goto gen_resp;
     }
-    mbedtls_printf("CN: %s, %lu\n", cn, cn_len);
+    mbedtls_printf("O: %s, %lu\n", o, o_len);
        
     if((ret = get_encoded_field(buf, buf_len, &len, POST_ATTESTATION_REQUEST_PK, pk, &pk_len, 1)) != 0) {
         msg = STATUS_BAD_REQUEST;
@@ -1048,7 +1048,7 @@ int verify_attest_evidence(unsigned char *buf, size_t buf_len, unsigned char *re
     }
 
     // Get enclave reference TCI
-    ret = getReferenceTCI(NULL, reference_tci);
+    ret = getReferenceTCI((char*) o, reference_tci);
     mbedtls_printf("Getting Enclave Reference TCI - ret: %d\n", ret);
     #if PRINT_STRUCTS
     print_hex_string("Reference Enclave TCI", reference_tci, KEYSTONE_HASH_MAX_SIZE);
