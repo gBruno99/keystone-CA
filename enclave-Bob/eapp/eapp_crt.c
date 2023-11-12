@@ -6,8 +6,8 @@
 #include <string.h>
 // #include "psa/crypto.h"
 
-#define OCALL_STORE_CRT   5
-#define OCALL_READ_CRT    6
+#define OCALL_STORE_CRT   7
+#define OCALL_READ_CRT    8
 #define HMAC_KEY_SEED     "HMAC_key_seed"
 
 int store_crt(unsigned char *crt, size_t crt_len) {

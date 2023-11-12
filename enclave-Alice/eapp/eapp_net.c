@@ -7,6 +7,8 @@
 #define OCALL_NET_SEND    2
 #define OCALL_NET_RECV    3
 #define OCALL_NET_FREE    4
+#define OCALL_NET_BIND    5
+#define OCALL_NET_ACCEPT  6
 
 typedef struct {
   int fd;
@@ -20,7 +22,9 @@ void custom_net_init(mbedtls_net_context *ctx) {
 int custom_net_connect(mbedtls_net_context *ctx, const char *host, const char *port, int proto) {
     int ret;
     net_connect_t retval;
-    ret = ocall(OCALL_NET_CONNECT, NULL, 0,(void*) &retval, sizeof(net_connect_t));
+    char tmp[16] = {0};
+    memcpy(tmp, port, 5);
+    ret = ocall(OCALL_NET_CONNECT, tmp, 5,(void*) &retval, sizeof(net_connect_t));
     ret |= retval.retval;
     // mbedtls_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
     if(ret) {
@@ -60,4 +64,35 @@ int custom_net_recv(void *ctx, unsigned char *buf, size_t len) {
 void custom_net_free(mbedtls_net_context *ctx) {
     int fd = ((mbedtls_net_context *) ctx)->fd;
     ocall(OCALL_NET_FREE, (unsigned char *) &fd, sizeof(int), NULL, 0);
+}
+
+int custom_net_bind(mbedtls_net_context *ctx, const char *bind_ip, const char *port, int proto) {
+    int ret;
+    net_connect_t retval;
+    char tmp[16] = {0};
+    memcpy(tmp, port, 5);
+    ret = ocall(OCALL_NET_BIND, tmp, 5,(void*) &retval, sizeof(net_connect_t));
+    ret |= retval.retval;
+    // mbedtls_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
+    if(ret) {
+        return ret;
+    } else {
+        ctx->fd = retval.fd;
+    }
+    return 0;
+}
+
+int custom_net_accept(mbedtls_net_context *bind_ctx, mbedtls_net_context *client_ctx, void *client_ip, size_t buf_size, size_t *ip_len) {
+    int fd = ((mbedtls_net_context *) bind_ctx)->fd;
+    int ret;
+    net_connect_t retval;
+    ret = ocall(OCALL_NET_ACCEPT, (unsigned char *) &fd, sizeof(int), (void*) &retval, sizeof(net_connect_t));
+    ret |= retval.retval;
+    // mbedtls_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
+    if(ret) {
+        return ret;
+    } else {
+        client_ctx->fd = retval.fd;
+    }
+    return 0;
 }

@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include "crt.h"
 
-#define CERT_FILENAME "/root/crt.crt"
+#define CERT_FILENAME "/root/crt-Bob.crt"
 
 void
 store_cert_wrapper(void* buffer) {

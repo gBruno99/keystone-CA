@@ -28,7 +28,7 @@ net_connect_wrapper(void* buffer) {
   mbedtls_net_context server_fd;
   mbedtls_net_init(&server_fd);
   /* Pass the arguments from the eapp to the exported ocall function */
-  ret_val = mbedtls_net_connect(&server_fd, SERVER_NAME, SERVER_PORT, MBEDTLS_NET_PROTO_TCP);
+  ret_val = mbedtls_net_connect(&server_fd, SERVER_NAME, (char*) call_args, MBEDTLS_NET_PROTO_TCP);
 
   net_connect_t ret;
   ret.fd = server_fd.fd;
@@ -139,6 +139,79 @@ net_free_wrapper(void* buffer) {
   memcpy((void*)data_section, &ret_val, 0);
   if (edge_call_setup_ret(
           edge_call, (void*)data_section, 0)) {
+    edge_call->return_data.call_status = CALL_STATUS_BAD_PTR;
+  } else {
+    edge_call->return_data.call_status = CALL_STATUS_OK;
+  }
+
+  /* This will now eventually return control to the enclave */
+  return;
+}
+
+void
+net_bind_wrapper(void* buffer) {
+  /* Parse and validate the incoming call data */
+  struct edge_call* edge_call = (struct edge_call*)buffer;
+  uintptr_t call_args;
+  int ret_val;
+  size_t arg_len;
+  if (edge_call_args_ptr(edge_call, &call_args, &arg_len) != 0) {
+    edge_call->return_data.call_status = CALL_STATUS_BAD_OFFSET;
+    return;
+  }
+
+  mbedtls_net_context server_fd;
+  mbedtls_net_init(&server_fd);
+  /* Pass the arguments from the eapp to the exported ocall function */
+  ret_val = mbedtls_net_bind(&server_fd, NULL, (char*) call_args, MBEDTLS_NET_PROTO_TCP);
+
+  net_connect_t ret;
+  ret.fd = server_fd.fd;
+  ret.retval = ret_val;
+
+  /* Setup return data from the ocall function */
+  uintptr_t data_section = edge_call_data_ptr();
+  memcpy((void*)data_section, &ret, sizeof(net_connect_t));
+  if (edge_call_setup_ret(
+          edge_call, (void*)data_section, sizeof(net_connect_t))) {
+    edge_call->return_data.call_status = CALL_STATUS_BAD_PTR;
+  } else {
+    edge_call->return_data.call_status = CALL_STATUS_OK;
+  }
+
+  /* This will now eventually return control to the enclave */
+  return;
+}
+
+void
+net_accept_wrapper(void* buffer) {
+  /* Parse and validate the incoming call data */
+  struct edge_call* edge_call = (struct edge_call*)buffer;
+  uintptr_t call_args;
+  int ret_val;
+  size_t arg_len;
+  if (edge_call_args_ptr(edge_call, &call_args, &arg_len) != 0) {
+    edge_call->return_data.call_status = CALL_STATUS_BAD_OFFSET;
+    return;
+  }
+
+  mbedtls_net_context client_fd;
+  mbedtls_net_context server_fd;
+  mbedtls_net_init(&client_fd);
+  server_fd.fd = *((int*)call_args);
+
+  /* Pass the arguments from the eapp to the exported ocall function */
+  ret_val = mbedtls_net_accept(&server_fd, &client_fd, NULL, 0, NULL);
+
+  net_connect_t ret;
+  ret.fd = client_fd.fd;
+  ret.retval = ret_val;
+
+  /* Setup return data from the ocall function */
+  uintptr_t data_section = edge_call_data_ptr();
+  memcpy((void*)data_section, &ret, sizeof(net_connect_t));
+  if (edge_call_setup_ret(
+          edge_call, (void*)data_section, sizeof(net_connect_t))) {
     edge_call->return_data.call_status = CALL_STATUS_BAD_PTR;
   } else {
     edge_call->return_data.call_status = CALL_STATUS_OK;

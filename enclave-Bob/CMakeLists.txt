@@ -1,9 +1,9 @@
-set(eapp_bin enclave-Alice)
+set(eapp_bin enclave-Bob)
 set(eapp_src eapp/eapp.c)
-set(host_bin enclave-Alice-runner)
+set(host_bin enclave-Bob-runner)
 set(host_src host/host.cpp)
-set(package_name "enclave-Alice.ke")
-set(package_script "./enclave-Alice-runner enclave-Alice eyrie-rt")
+set(package_name "enclave-Bob.ke")
+set(package_script "./enclave-Bob-runner enclave-Bob eyrie-rt")
 
 if(RISCV32)
   set(eyrie_plugins "freemem rv32")

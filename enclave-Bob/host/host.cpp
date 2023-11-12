@@ -13,8 +13,10 @@ using namespace Keystone;
 #define OCALL_NET_SEND    2
 #define OCALL_NET_RECV    3
 #define OCALL_NET_FREE    4
-#define OCALL_STORE_CRT   5
-#define OCALL_READ_CRT    6
+#define OCALL_NET_BIND    5
+#define OCALL_NET_ACCEPT  6
+#define OCALL_STORE_CRT   7
+#define OCALL_READ_CRT    8
 
 int
 main(int argc, char** argv) {
@@ -23,7 +25,7 @@ main(int argc, char** argv) {
 
   params.setFreeMemSize(1024 * 1024);
   params.setUntrustedMem(DEFAULT_UNTRUSTED_PTR, 1024 * 1024);
-  params.setUUID((unsigned char*) "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+  params.setUUID((unsigned char*) "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
 
   enclave.init(argv[1], argv[2], params);
 
@@ -33,6 +35,8 @@ main(int argc, char** argv) {
   register_call(OCALL_NET_SEND, net_send_wrapper);
   register_call(OCALL_NET_RECV, net_recv_wrapper);
   register_call(OCALL_NET_FREE, net_free_wrapper);
+  register_call(OCALL_NET_BIND, net_bind_wrapper);
+  register_call(OCALL_NET_ACCEPT, net_accept_wrapper);
   register_call(OCALL_STORE_CRT, store_cert_wrapper);
   register_call(OCALL_READ_CRT, read_cert_wrapper);
 
