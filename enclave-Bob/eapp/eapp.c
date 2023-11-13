@@ -503,22 +503,22 @@ int get_nonce(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *
     size_t body_len = 0;
 
     if(memcmp(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400))==0) {
-        mbedtls_printf("Response: Bad Request\n");
+        mbedtls_printf("\nResponse: Bad Request\n");
         return -1;
     }
 
     if(memcmp(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500))==0) {
-        mbedtls_printf("Response: Internal Server Error\n");
+        mbedtls_printf("\nResponse: Internal Server Error\n");
         return -1;
     }
 
     if(memcmp(buf, HTTP_RESPONSE_403, sizeof(HTTP_RESPONSE_403))==0) {
-        mbedtls_printf("Response: Forbidden\n");
+        mbedtls_printf("\nResponse: Forbidden\n");
         return -1;
     }
 
     if(memcmp(buf, HTTP_NONCE_RESPONSE_START, sizeof(HTTP_NONCE_RESPONSE_START)-1)!=0) {
-        mbedtls_printf("Cannot read nonce 1\n\n");
+        mbedtls_printf("\nCannot read nonce 1\n\n");
         return -1;
     }
     i = sizeof(HTTP_NONCE_RESPONSE_START)-1;
@@ -530,7 +530,7 @@ int get_nonce(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *
     }
 
     if(body_len == 0 || body_len > buf_len-i-4) {
-        mbedtls_printf("Received less bytes than expected\n\n");
+        mbedtls_printf("\nReceived less bytes than expected\n\n");
         return -1;
     }
 
@@ -538,12 +538,12 @@ int get_nonce(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *
     // mbedtls_printf("body_len: %lu, enc_nonce_len: %lu\n", body_len, enc_nonce_len);
 
     if(enc_nonce_len <= 0) {
-        mbedtls_printf("Received less bytes than expected\n\n");
+        mbedtls_printf("\nReceived less bytes than expected\n\n");
         return -1;
     }
 
     if(memcmp(buf+i, HTTP_NONCE_RESPONSE_MIDDLE, sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-1)!=0) {
-        mbedtls_printf("Cannot read nonce 2\n\n");
+        mbedtls_printf("\nCannot read nonce 2\n\n");
         return -1;
     }
     i += sizeof(HTTP_NONCE_RESPONSE_MIDDLE)-1;
@@ -551,7 +551,7 @@ int get_nonce(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *
     memcpy(enc_nonce, buf+i, enc_nonce_len);
 
     if(memcmp(buf+i+enc_nonce_len, HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END))!=0){
-        mbedtls_printf("Cannot read nonce 3\n\n");
+        mbedtls_printf("\nCannot read nonce 3\n\n");
         return -1;
     }
 
@@ -576,7 +576,7 @@ int get_crt(unsigned char *buf, size_t buf_len, unsigned char *crt, size_t *crt_
     }
 
     if(memcmp(buf, HTTP_RESPONSE_403, sizeof(HTTP_RESPONSE_403))==0) {
-        mbedtls_printf("Response: Forbidden\n");
+        mbedtls_printf("\nResponse: Forbidden\n");
         return -1;
     }
 
@@ -593,7 +593,7 @@ int get_crt(unsigned char *buf, size_t buf_len, unsigned char *crt, size_t *crt_
     }
 
     if(body_len == 0 || body_len > buf_len-i-4) {
-        mbedtls_printf("Received less bytes than expected\n\n");
+        mbedtls_printf("\nReceived less bytes than expected\n\n");
         return -1;
     }
 
@@ -601,7 +601,7 @@ int get_crt(unsigned char *buf, size_t buf_len, unsigned char *crt, size_t *crt_
     // mbedtls_printf("body_len: %lu, enc_crt_len: %lu\n", body_len, enc_crt_len);
 
     if(enc_crt_len <= 0) {
-        mbedtls_printf("Received less bytes than expected\n\n");
+        mbedtls_printf("\nReceived less bytes than expected\n\n");
         return -1;
     }
 
