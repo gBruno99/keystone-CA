@@ -49,6 +49,10 @@
 // #include <time.h>
 #include <string.h>
 
+#if defined(MBEDTLS_SSL_CACHE_C)
+#include "mbedtls/ssl_cache.h"
+#endif
+
 #define CERTS_MAX_LEN           1024
 #define CSR_MAX_LEN             3072
 #define ATTEST_DATA_MAX_LEN     1024
@@ -57,10 +61,17 @@
 
 #define NET_SUCCESS     1
 #define HANDLER_ERROR   2
+#define GOTO_EXIT       3
+#define GOTO_RESET      4
+
+#define STATUS_OK           0
+#define STATUS_BAD_REQUEST  1
+#define STATUS_SERVER_ERROR 2
+#define STATUS_FORBIDDEN    3
 
 #define PRINT_STRUCTS 0
 
-#define DEBUG_LEVEL 1
+#define DEBUG_LEVEL 0
 
 typedef unsigned char byte;
 
@@ -88,6 +99,8 @@ struct report
 
 int get_nonce(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *nonce_len);
 
+int get_null(unsigned char *buf, size_t buf_len, unsigned char *empty, size_t *empty_len);
+
 int get_crt(unsigned char *buf, size_t buf_len, unsigned char *crt, size_t *len);
 
 void custom_exit(int status);
@@ -97,6 +110,15 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
 int send_buf(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
 
 int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len));
+
+int test_connection_Bob(mbedtls_x509_crt *crt_Alice, unsigned char *ldevid_pk);
+
+void my_debug(void *ctx, int level, const char *file, int line, const char *str);
+
+int send_buf_test(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len);
+
+int recv_buf_test(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
     int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len));
 
 int main(void)
@@ -152,7 +174,7 @@ int main(void)
     mbedtls_printf("Getting TCI values...\n");
     attest_enclave((void*) report, "test", 5);
     parsed_report = (struct report*) report;
-    print_hex_string("TCI enclave", parsed_report->enclave.hash, KEYSTONE_HASH_MAX_SIZE);
+    print_hex_string("TCI enclave-alice", parsed_report->enclave.hash, KEYSTONE_HASH_MAX_SIZE);
     print_hex_string("TCI sm", parsed_report->sm.hash, KEYSTONE_HASH_MAX_SIZE);
     mbedtls_printf("\n");
 
@@ -299,7 +321,7 @@ int main(void)
     mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
     mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
     mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
-    // mbedtls_ssl_conf_dbg(&conf, my_debug, stdout);
+    mbedtls_ssl_conf_dbg(&conf, my_debug, NULL);
 
     if ((ret = mbedtls_ssl_conf_own_cert(&conf, &ldevid_cert_parsed, &ldevid_parsed)) != 0) {
         mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
@@ -435,17 +457,24 @@ int main(void)
     mbedtls_x509_crt_init(&cert_gen);
     ret = mbedtls_x509_crt_parse_der(&cert_gen, ldevid_ca_cert, ldevid_ca_cert_len);
     mbedtls_printf("Parsing new LDevID crt - ret: %d\n", ret);
-    mbedtls_x509_crt_free(&cert_gen);
-    if(ret != 0)
+    if(ret != 0) {
+        mbedtls_x509_crt_free(&cert_gen);
         goto exit;
+    }
     mbedtls_printf("\n");
+
+    ret = test_connection_Bob(&cert_gen, pk);
+    mbedtls_x509_crt_free(&cert_gen);
+    if(ret != 0) {
+        goto exit;
+    }
 
     #if PRINT_STRUCTS
     print_mbedtls_x509_cert("new LDevID crt", cert_gen);
     #endif
 
     // Store the certificate
-    mbedtls_printf("Storing the certificate in memory...\n");
+    mbedtls_printf("\nStoring the certificate in memory...\n");
     if((ret = store_crt(ldevid_ca_cert, ldevid_ca_cert_len)) != 0) {
         mbedtls_printf("Error in storing LDevID_crt\n");
         goto exit;
@@ -674,7 +703,7 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     size_t attest_proof_len;
     mbedtls_x509write_csr req;
     unsigned char key_usage = MBEDTLS_X509_KU_DIGITAL_SIGNATURE;
-    const char subject_name[] = "CN=Client,O=Enclave";
+    const char subject_name[] = "CN=Alice,O=Enclave-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     unsigned char out_csr[CSR_MAX_LEN];
 
     /*
@@ -781,3 +810,370 @@ end_create_csr:
     return ret;
 }
 
+int test_connection_Bob(mbedtls_x509_crt *crt_Alice, unsigned char *ldevid_pk) {
+    int ret, msg; 
+    uint32_t flags;
+    size_t len;
+    mbedtls_net_context listen_fd, client_fd;
+    unsigned char buf[BUF_SIZE];
+    // const char *pers = "ssl_server";
+    // mbedtls_entropy_context entropy;
+    mbedtls_ctr_drbg_context ctr_drbg;
+    mbedtls_ssl_context ssl;
+    mbedtls_ssl_config conf;
+    // mbedtls_x509_crt srvcert;
+    mbedtls_x509_crt cacert;
+    mbedtls_pk_context pkey;
+#if defined(MBEDTLS_SSL_CACHE_C)
+    mbedtls_ssl_cache_context cache;
+#endif
+
+    custom_net_init(&listen_fd);
+    custom_net_init(&client_fd);
+    mbedtls_ssl_init(&ssl);
+    mbedtls_ssl_config_init(&conf);
+#if defined(MBEDTLS_SSL_CACHE_C)
+    mbedtls_ssl_cache_init(&cache);
+#endif
+    // mbedtls_x509_crt_init(&srvcert);
+    mbedtls_x509_crt_init(&cacert);
+    mbedtls_pk_init(&pkey);
+    // mbedtls_entropy_init(&entropy);
+    mbedtls_ctr_drbg_init(&ctr_drbg);
+
+#if defined(MBEDTLS_DEBUG_C)
+    mbedtls_debug_set_threshold(DEBUG_LEVEL);
+#endif
+
+    /*
+     * 1. Seed the RNG
+     */
+    /*
+    mbedtls_printf("[E]  . Seeding the random number generator...");
+
+    if ((ret = mbedtls_ctr_drbg_seed(&ctr_drbg, mbedtls_entropy_func, &entropy,
+                                     (const unsigned char *) pers,
+                                     strlen((char*)pers))) != 0) {
+        mbedtls_printf(" failed\n[E]  ! mbedtls_ctr_drbg_seed returned %d\n", ret);
+        goto exit_test;
+    }
+
+    mbedtls_printf(" ok\n");
+    */
+
+    /*
+     * 2. Load the certificates and private RSA key
+     */
+    mbedtls_printf("[E]  . Loading the server cert. and key...");
+
+    /*
+     * This demonstration program uses embedded test certificates.
+     * Instead, you may want to use mbedtls_x509_crt_parse_file() to read the
+     * server and CA certificates, as well as mbedtls_pk_parse_keyfile().
+     */
+
+    ret = mbedtls_x509_crt_parse(&cacert, (const unsigned char *) ca_cert_pem,
+                                 ca_cert_pem_len);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n[E]  !  mbedtls_x509_crt_parse returned %d\n\n", ret);
+        goto exit_test;
+    }
+
+    ret =  mbedtls_pk_parse_ed25519_key(&pkey, (const unsigned char *) ldevid_pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
+    if (ret != 0) {
+        mbedtls_printf(" failed\n[E]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
+        goto exit_test;
+    }
+
+    mbedtls_printf(" ok\n");
+
+    /*
+     * 3. Setup the listening TCP socket
+     */
+    mbedtls_printf("[E]  . Bind on https://localhost:8062/ ...");
+
+    if ((ret = custom_net_bind(&listen_fd, NULL, "8062", MBEDTLS_NET_PROTO_TCP)) != 0) {
+        mbedtls_printf(" failed\n[E]  ! mbedtls_net_bind returned %d\n\n", ret);
+        goto exit_test;
+    }
+
+    mbedtls_printf(" ok\n");
+
+    /*
+     * 4. Setup stuff
+     */
+    mbedtls_printf("[E]  . Setting up the SSL data....");
+
+    if ((ret = mbedtls_ssl_config_defaults(&conf,
+                                           MBEDTLS_SSL_IS_SERVER,
+                                           MBEDTLS_SSL_TRANSPORT_STREAM,
+                                           MBEDTLS_SSL_PRESET_DEFAULT)) != 0) {
+        mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_config_defaults returned %d\n\n", ret);
+        goto exit_test;
+    }
+
+    mbedtls_ssl_conf_rng(&conf, mbedtls_ctr_drbg_random, &ctr_drbg);
+    mbedtls_ssl_conf_dbg(&conf, my_debug, NULL);
+
+#if defined(MBEDTLS_SSL_CACHE_C)
+    mbedtls_ssl_conf_session_cache(&conf, &cache,
+                                   mbedtls_ssl_cache_get,
+                                   mbedtls_ssl_cache_set);
+#endif
+
+    mbedtls_ssl_conf_authmode(&conf, MBEDTLS_SSL_VERIFY_REQUIRED);
+    mbedtls_ssl_conf_ca_chain(&conf, &cacert, NULL);
+    // mbedtls_ssl_conf_cert_profile(&conf,&mbedtls_x509_crt_profile_keystone);
+    if ((ret = mbedtls_ssl_conf_own_cert(&conf, crt_Alice, &pkey)) != 0) {
+        mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_conf_own_cert returned %d\n\n", ret);
+        goto exit_test;
+    }
+
+    if ((ret = mbedtls_ssl_setup(&ssl, &conf)) != 0) {
+        mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_setup returned %d\n\n", ret);
+        goto exit_test;
+    }
+
+    mbedtls_printf(" ok\n");
+
+reset_test:
+    msg = STATUS_OK;
+#ifdef MBEDTLS_ERROR_C
+    if (ret != 0) {
+        char error_buf[100];
+        mbedtls_strerror(ret, error_buf, 100);
+        mbedtls_printf("[E] Last error was: %d - %s\n\n", ret, error_buf);
+    }
+#endif
+
+    custom_net_free(&client_fd);
+
+    mbedtls_ssl_session_reset(&ssl);
+
+    /*
+     * 3. Wait until a client connects
+     */
+    mbedtls_printf("[E]  . Waiting for a remote connection ...");
+
+    if ((ret = custom_net_accept(&listen_fd, &client_fd,
+                                  NULL, 0, NULL)) != 0) {
+        mbedtls_printf(" failed\n[E]  ! mbedtls_net_accept returned %d\n\n", ret);
+        goto exit_test;
+    }
+
+    mbedtls_ssl_set_bio(&ssl, &client_fd, custom_net_send, custom_net_recv, NULL);
+
+    mbedtls_printf(" ok\n");
+
+    /*
+     * 5. Handshake
+     */
+    mbedtls_printf("[E]  . Performing the SSL/TLS handshake...");
+
+    while ((ret = mbedtls_ssl_handshake(&ssl)) != 0) {
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+            mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_handshake returned %d\n\n", ret);
+            goto reset_test;
+        }
+    }
+
+    mbedtls_printf(" ok\n");
+
+    /*
+     * 4. Verify the client certificate
+     */
+    mbedtls_printf("[E]  . Verifying peer X.509 certificate...");
+
+    /* In real life, we probably want to bail out when ret != 0 */
+    if ((flags = mbedtls_ssl_get_verify_result(&ssl)) != 0) {
+#if !defined(MBEDTLS_X509_REMOVE_INFO)
+        char vrfy_buf[512];
+#endif
+
+        mbedtls_printf(" failed\n");
+
+#if !defined(MBEDTLS_X509_REMOVE_INFO)
+        mbedtls_x509_crt_verify_info(vrfy_buf, sizeof(vrfy_buf), "  ! ", flags);
+
+        mbedtls_printf("%s\n", vrfy_buf);
+#endif
+    } else {
+        mbedtls_printf(" ok\n");
+    }
+
+    /* Send and receive data*/
+    if((ret = recv_buf(&ssl, buf, &len, NULL, NULL, get_null))!=NET_SUCCESS){
+        if(ret == HANDLER_ERROR) {
+            ret = len;
+            msg = STATUS_BAD_REQUEST;
+            goto send_answer_test;
+        }
+        goto reset_test;
+    }
+
+    len = sprintf((char*) buf, "Hello, I'm Alice!\r\n");
+
+    // Send the response
+    if((ret = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
+        if(ret == GOTO_EXIT){
+            ret = len;
+            goto exit_test;
+        }
+        if(ret == GOTO_RESET){
+            ret = len;
+            goto reset_test;
+        }
+        goto reset_test;
+    }
+    
+    mbedtls_printf("[E]  . Closing the connection to Enclave...");
+
+    while ((ret = mbedtls_ssl_close_notify(&ssl)) < 0) {
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ &&
+            ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+            mbedtls_printf(" failed\n[E]  ! mbedtls_ssl_close_notify returned %d\n\n", ret);
+            goto reset_test;
+        }
+    }
+
+    mbedtls_printf(" ok\n");
+
+    ret = 0;
+
+send_answer_test:
+
+    if(msg != STATUS_OK) {
+        switch(msg) {
+            case STATUS_BAD_REQUEST:
+                memcpy(buf, HTTP_RESPONSE_400, sizeof(HTTP_RESPONSE_400));
+                len = sizeof(HTTP_RESPONSE_400);
+                break;
+            case STATUS_FORBIDDEN:
+                memcpy(buf, HTTP_RESPONSE_403, sizeof(HTTP_RESPONSE_403));
+                len = sizeof(HTTP_RESPONSE_403);
+                break;
+            default:
+                memcpy(buf, HTTP_RESPONSE_500, sizeof(HTTP_RESPONSE_500));
+                len = sizeof(HTTP_RESPONSE_500);
+                break;
+        }
+        int ret2 = 0;
+        if((ret2 = send_buf(&ssl, buf, &len))!=NET_SUCCESS){
+            if(ret2 == GOTO_EXIT){
+                ret = len;
+            } else if(ret2 == GOTO_RESET){
+                ret = len;
+                goto reset_test;
+            } else {
+                ret = ret2;
+            }
+        }
+        if(ret2 != GOTO_EXIT) {
+            goto reset_test;
+        }
+    }
+            
+exit_test:
+
+#ifdef MBEDTLS_ERROR_C
+    if (ret != 0) {
+        char error_buf[100];
+        mbedtls_strerror(ret, error_buf, 100);
+        mbedtls_printf("[E] Last error was: %d - %s\n\n", ret, error_buf);
+    }
+#endif
+
+    custom_net_free(&client_fd);
+    custom_net_free(&listen_fd);
+    // mbedtls_x509_crt_free(&srvcert);
+    mbedtls_x509_crt_free(&cacert);
+    mbedtls_pk_free(&pkey);
+    mbedtls_ssl_free(&ssl);
+    mbedtls_ssl_config_free(&conf);
+#if defined(MBEDTLS_SSL_CACHE_C)
+    mbedtls_ssl_cache_free(&cache);
+#endif
+    mbedtls_ctr_drbg_free(&ctr_drbg);
+    // mbedtls_entropy_free(&entropy);
+    return ret;
+}
+
+void my_debug(void *ctx, int level, const char *file, int line, const char *str)
+{
+    ((void) level);
+
+    mbedtls_printf("%s:%04d: %s", file, line, str);
+}
+
+int get_null(unsigned char *buf, size_t buf_len, unsigned char *empty, size_t *empty_len) {
+    return 0;
+}
+
+int send_buf_test(mbedtls_ssl_context *ssl, const unsigned char *buf, size_t *len) {
+    int ret;
+    mbedtls_printf("[CA]  > Write to client:");
+
+    while ((ret = mbedtls_ssl_write(ssl, buf, *len)) <= 0) {
+        if (ret == MBEDTLS_ERR_NET_CONN_RESET) {
+            mbedtls_printf(" failed\n[CA]  ! peer closed the connection\n\n");
+            *len = ret;
+            return GOTO_RESET;
+        }
+
+        if (ret != MBEDTLS_ERR_SSL_WANT_READ && ret != MBEDTLS_ERR_SSL_WANT_WRITE) {
+            mbedtls_printf(" failed\n[CA]  ! mbedtls_ssl_write returned %d\n\n", ret);
+            *len = ret;
+            return GOTO_EXIT;
+        }
+    }
+
+    *len = ret;
+    mbedtls_printf(" %lu bytes written\n\n%s\n", *len, (char *) buf);
+    return NET_SUCCESS;
+}
+
+int recv_buf_test(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned char *data, size_t *data_len, 
+    int (*handler)(unsigned char *recv_buf, size_t recv_buf_len, unsigned char *out_data, size_t *out_len)) {
+    int ret;
+    mbedtls_printf("[CA]  < Read from client:");
+    do {
+        *len = BUF_SIZE - 1;
+        memset(buf, 0, BUF_SIZE);
+        ret = mbedtls_ssl_read(ssl, buf, *len);
+
+        if (ret == MBEDTLS_ERR_SSL_WANT_READ || ret == MBEDTLS_ERR_SSL_WANT_WRITE) {
+            continue;
+        }
+
+        if (ret <= 0) {
+            switch (ret) {
+                case MBEDTLS_ERR_SSL_PEER_CLOSE_NOTIFY:
+                    mbedtls_printf(" connection was closed gracefully\n");
+                    break;
+
+                case MBEDTLS_ERR_NET_CONN_RESET:
+                    mbedtls_printf(" connection was reset by peer\n");
+                    break;
+
+                default:
+                    mbedtls_printf(" mbedtls_ssl_read returned -0x%x\n", (unsigned int) -ret);
+                    break;
+            }
+
+            break;
+        }
+
+        *len = ret;
+        mbedtls_printf(" %lu bytes read\n\n%s", *len, (char *) buf);
+
+        if (ret > 0) {
+            if((ret = handler(buf, *len, data, data_len))!=0) {
+                *len = ret;
+                return HANDLER_ERROR;
+            }
+            ret = NET_SUCCESS;
+            break;
+        }
+    } while (1);
+    return ret;
+}
