@@ -48,6 +48,7 @@
 // #include <stdio.h>
 // #include <time.h>
 #include <string.h>
+#include "riscv_time.h"
 
 #define CERTS_MAX_LEN           1024
 #define CSR_MAX_LEN             3072
@@ -61,6 +62,8 @@
 #define PRINT_STRUCTS 0
 
 #define DEBUG_LEVEL 0
+
+#define TRUSTED_CHANNEL 1
 
 typedef unsigned char byte;
 
@@ -137,6 +140,9 @@ int main(void)
     mbedtls_ssl_context ssl;
     mbedtls_ssl_config conf;
     mbedtls_x509_crt cacert;
+    #if PERFORMANCE_TEST
+    ticks_t t_start, t_end, t_diff;
+    #endif
 
     custom_printf("Setting calloc and free...\n");
     mbedtls_platform_set_calloc_free(calloc, free);
@@ -437,9 +443,16 @@ int main(void)
     print_hex_string("new LDevID crt", ldevid_ca_cert, ldevid_ca_cert_len);
     mbedtls_printf("\n");
 
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
     // Parse the received certificate
     mbedtls_x509_crt_init(&cert_gen);
+    #if TRUSTED_CHANNEL
     ret = mbedtls_x509_crt_parse_der(&cert_gen, ldevid_ca_cert, ldevid_ca_cert_len);
+    #else
+    ret = mbedtls_x509_crt_parse(&cert_gen, (const unsigned char*) bob_cert_pem, bob_cert_pem_len);
+    #endif
     mbedtls_printf("Parsing new LDevID crt - ret: %d\n", ret);
     if(ret != 0) {
         mbedtls_x509_crt_free(&cert_gen);
@@ -452,6 +465,12 @@ int main(void)
     if(ret != 0) {
         goto exit;
     }
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for channel to other enclave: %lu\n", t_diff);
+    #endif
 
     #if PRINT_STRUCTS
     print_mbedtls_x509_cert("new LDevID crt", cert_gen);
@@ -808,6 +827,12 @@ int test_connection_Alice(mbedtls_x509_crt *crt_Bob, unsigned char *ldevid_pk) {
     mbedtls_ssl_context ssl;
     mbedtls_ssl_config conf;
     mbedtls_x509_crt cacert;
+
+    #if PERFORMANCE_TEST
+    ticks_t t_start, t_end, t_diff;
+    
+    t_start = get_time_inline();
+    #endif
     
     #if defined(MBEDTLS_DEBUG_C)
     mbedtls_debug_set_threshold(DEBUG_LEVEL);
@@ -843,7 +868,11 @@ int test_connection_Alice(mbedtls_x509_crt *crt_Bob, unsigned char *ldevid_pk) {
      */
     mbedtls_printf("[EB]  . Loading the CA root certificate ...");
 
+    #if TRUSTED_CHANNEL
     ret =  mbedtls_pk_parse_ed25519_key(&ldevid_parsed, (const unsigned char *) ldevid_pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
+    #else
+    ret =  mbedtls_pk_parse_key(&ldevid_parsed, (const unsigned char *) bob_key_pem, bob_key_pem_len, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
+    #endif
     if (ret != 0) {
         mbedtls_printf(" failed\n[EB]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
         goto exit_test;
@@ -947,6 +976,12 @@ int test_connection_Alice(mbedtls_x509_crt *crt_Bob, unsigned char *ldevid_pk) {
     } else {
         mbedtls_printf(" ok\n");
     }
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for channel setup: %lu\n", t_diff);
+    #endif
 
     /* Send and receive data*/
     len = sprintf((char *) buf, "Hello, I'm Bob!\r\n");

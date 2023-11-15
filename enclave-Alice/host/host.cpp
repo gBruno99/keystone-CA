@@ -6,6 +6,7 @@
 #include "host/keystone.h"
 #include "net.h"
 #include "crt.h"
+// #include "riscv_time.h"
 
 using namespace Keystone;
 
@@ -28,6 +29,10 @@ main(int argc, char** argv) {
   params.setUUID((unsigned char*) "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
   enclave.init(argv[1], argv[2], params);
+
+  // ticks_t t;
+  // t = get_time_inline();
+  // std::cout << "[host] time: " << t << std::endl;
 
   enclave.registerOcallDispatch(incoming_call_dispatch);
 

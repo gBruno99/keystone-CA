@@ -1,6 +1,8 @@
 #include "eapp/eapp_net.h"
 #include "app/syscall.h"
 #include <string.h>
+#include "riscv_time.h"
+#include "eapp/printf.h"
 // #include <stdio.h>
 
 #define OCALL_NET_CONNECT 1
@@ -15,6 +17,10 @@ typedef struct {
   int retval;
 } net_connect_t;
 
+#if PERFORMANCE_TEST
+ticks_t t_start, t_end, t_diff;
+#endif
+
 void custom_net_init(mbedtls_net_context *ctx) {
     ctx->fd = -1;
 }
@@ -24,7 +30,15 @@ int custom_net_connect(mbedtls_net_context *ctx, const char *host, const char *p
     net_connect_t retval;
     char tmp[16] = {0};
     memcpy(tmp, port, 5);
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
     ret = ocall(OCALL_NET_CONNECT, tmp, 5,(void*) &retval, sizeof(net_connect_t));
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+    t_diff = t_end - t_start;
+    custom_printf("\n[OCALL_NET_CONNECT] Ticks: %lu\n", t_diff);
+    #endif
     ret |= retval.retval;
     // mbedtls_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
     if(ret) {
@@ -43,6 +57,10 @@ int custom_net_send(void *ctx, const unsigned char *buf, size_t len) {
     int *fd = (int*) tmp_buf;
     *fd = ((mbedtls_net_context *) ctx)->fd;
     memcpy(tmp_buf+sizeof(int), buf, len);
+    #if PERFORMANCE_TEST
+    custom_printf("\n[OCALL_NET_SEND] Sending...\n");
+    t_start = get_time_inline();
+    #endif
     ret = ocall(OCALL_NET_SEND, (unsigned char *)tmp_buf, len+sizeof(int), &retval, sizeof(int));
     return ret|retval;
 }
@@ -53,6 +71,12 @@ int custom_net_recv(void *ctx, unsigned char *buf, size_t len) {
     int *fd = (int*) tmp_buf;
     *fd = ((mbedtls_net_context *) ctx)->fd;
     ret = ocall(OCALL_NET_RECV, tmp_buf, len, tmp_buf, len + sizeof(int));
+    #if PERFORMANCE_TEST
+    custom_printf("\n[OCALL_NET_RECV] ...Receiving\n");
+    t_end = get_time_inline();
+    t_diff = t_end - t_start;
+    custom_printf("\nTicks between request and response: %lu\n", t_diff);
+    #endif
     // printf("ocall returned %d\n", ret);
     int retval = * ((int*)tmp_buf);
     memcpy(buf, tmp_buf+sizeof(int), len);
@@ -86,7 +110,15 @@ int custom_net_accept(mbedtls_net_context *bind_ctx, mbedtls_net_context *client
     int fd = ((mbedtls_net_context *) bind_ctx)->fd;
     int ret;
     net_connect_t retval;
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
     ret = ocall(OCALL_NET_ACCEPT, (unsigned char *) &fd, sizeof(int), (void*) &retval, sizeof(net_connect_t));
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+    t_diff = t_end - t_start;
+    custom_printf("\n[OCALL_NET_ACCEPT] Ticks: %lu\n", t_diff);
+    #endif
     ret |= retval.retval;
     // mbedtls_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
     if(ret) {

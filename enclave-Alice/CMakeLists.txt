@@ -21,7 +21,7 @@ endif()
 # ../my_mbedtls/ed25519/ge.h ../my_mbedtls/ed25519/ge.c ../my_mbedtls/ed25519/keypair.c ../my_mbedtls/ed25519/precomp_data.h
 # ../my_mbedtls/ed25519/sc.h ../my_mbedtls/ed25519/sc.c ../my_mbedtls/ed25519/sign.c ../my_mbedtls/ed25519/verify.c)
 
-add_executable(${eapp_bin} ${eapp_src} eapp/eapp_net.h eapp/eapp_net.c eapp/eapp_crt.h eapp/eapp_crt.c eapp/printf.h eapp/printf.c custom_certs.h custom_certs.c) 
+add_executable(${eapp_bin} ${eapp_src} eapp/eapp_net.h eapp/eapp_net.c eapp/eapp_crt.h eapp/eapp_crt.c eapp/printf.h eapp/printf.c custom_certs.h custom_certs.c riscv_time.h riscv_time.c) 
 # ${my_mbedtls_files} ${sha3_dir}/sha3.h ${sha3_dir}/sha3.c ${ed25519_files})
 target_link_libraries(${eapp_bin} "-nostdlib -static -T ${CMAKE_CURRENT_SOURCE_DIR}/app.lds" ${KEYSTONE_LIB_EAPP} ${KEYSTONE_LIB_EDGE} ${MBEDTLS_LIB_TLS_EAPP} ${MBEDTLS_LIB_X509_EAPP} ${MBEDTLS_LIB_CRYPTO_EAPP})
 target_include_directories(${eapp_bin} 
@@ -35,7 +35,7 @@ target_include_directories(${eapp_bin}
 
 # host
 
-add_executable(${host_bin} ${host_src} host/net.cpp host/net.h host/crt.cpp host/crt.h)
+add_executable(${host_bin} ${host_src} host/net.cpp host/net.h host/crt.cpp host/crt.h riscv_time.h riscv_time.c)
 target_link_libraries(${host_bin} ${KEYSTONE_LIB_HOST} ${KEYSTONE_LIB_EDGE} ${MBEDTLS_LIB_TLS_HOST_RISCV} ${MBEDTLS_LIB_X509_HOST_RISCV} ${MBEDTLS_LIB_CRYPTO_HOST_RISCV})
 target_include_directories(${host_bin}
   PUBLIC ${KEYSTONE_SDK_DIR}/include/host

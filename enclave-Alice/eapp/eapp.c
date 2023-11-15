@@ -42,6 +42,8 @@
 // #include "certs.h"
 #include "eapp/printf.h"
 #include "custom_certs.h"
+#include "riscv_time.h"
+#include "mbedtls/ed25519.h"
 // #include "eapp/ref_certs.h"
 // #include "custom_functions.h"
 
@@ -72,6 +74,10 @@
 #define PRINT_STRUCTS 0
 
 #define DEBUG_LEVEL 0
+
+#define COMPARE_CRYPTO_OP 0
+
+#define TRUSTED_CHANNEL 1
 
 typedef unsigned char byte;
 
@@ -153,6 +159,9 @@ int main(void)
     mbedtls_ssl_context ssl;
     mbedtls_ssl_config conf;
     mbedtls_x509_crt cacert;
+    #if PERFORMANCE_TEST
+    ticks_t t_start_global, t_end_global, t_start, t_end, t_diff;
+    #endif
 
     custom_printf("Setting calloc and free...\n");
     mbedtls_platform_set_calloc_free(calloc, free);
@@ -180,7 +189,13 @@ int main(void)
 
     // Try to read certificate in memory
     mbedtls_printf("Retrieving crt from memory...\n");
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
     ret = read_crt((unsigned char *) ldevid_ca_cert, &ldevid_ca_cert_len);
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+    #endif
     if(ret != 0) {
         if(ret != -4)
             mbedtls_printf("Error in retrieving crt\n");
@@ -191,14 +206,58 @@ int main(void)
     }
     mbedtls_printf("\n");
 
+    #if PERFORMANCE_TEST
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for reading crt: %lu\n", t_diff);
+
+    t_start_global = get_time_inline();
+    #endif
+
     // Step 1: Create LDevID keypair
     mbedtls_printf("1.1 Generating LDevID...\n");
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
     create_keypair(pk, 15, ldevid_crt, &ldevid_crt_len);
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for generating LDevID: %lu\n", t_diff);
+    #endif
 
     print_hex_string("LDevID PK", pk, PUBLIC_KEY_SIZE);
     print_hex_string("LDevID crt", ldevid_crt, ldevid_crt_len);
     // mbedtls_x509_crt_free(&ldevid_cert_parsed);
     mbedtls_printf("\n");
+
+    #if PERFORMANCE_TEST && COMPARE_CRYPTO_OP
+    unsigned char new_pk[PUBLIC_KEY_SIZE];
+    unsigned char new_sk[PRIVATE_KEY_SIZE];
+    unsigned char seed[PRIVATE_KEY_SIZE] = { 
+        0x30, 0x82, 0x05, 0x32, 0x30, 0x82, 0x04, 0xe2, 0x02, 0x01, 0x00, 0x30, 0x45, 0x31, 0x0c, 0x30, 
+        0x0a, 0x06, 0x03, 0x55, 0x04, 0x03, 0x0c, 0x03, 0x42, 0x6f, 0x62, 0x31, 0x35, 0x30, 0x33, 0x06, 
+        0x03, 0x55, 0x04, 0x0a, 0x0c, 0x2c, 0x45, 0x6e, 0x63, 0x6c, 0x61, 0x76, 0x65, 0x2d, 0x62, 0x62, 
+        0x62, 0x62, 0x62, 0x62, 0x62, 0x62, 0x2d, 0x62, 0x62, 0x62, 0x62, 0x2d, 0x62, 0x62, 0x62, 0x62 
+    };
+    unsigned char signature[KEYSTONE_PK_SIGNATURE_MAX_SIZE];
+    size_t sig_len;
+    ed25519_create_keypair(new_pk, new_sk, seed);
+
+    t_start = get_time_inline();
+    ed25519_sign(signature, seed, PRIVATE_KEY_SIZE, new_pk, new_sk);
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for signing - standard: %lu\n", t_diff);
+
+    t_start = get_time_inline();
+    crypto_interface(2, seed, PRIVATE_KEY_SIZE, signature, &sig_len, pk);
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for signing - crypto_interface: %lu\n", t_diff);
+    #endif
 
     certs[0] = mbedtls_calloc(1, CERTS_MAX_LEN);
     if(certs[0]==NULL){
@@ -216,7 +275,16 @@ int main(void)
         mbedtls_exit(-1);
     }
 
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
     get_cert_chain(certs[0], certs[1], certs[2], &sizes[0], &sizes[1], &sizes[2]);
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for getting DICE chain: %lu\n", t_diff);
+    #endif
 
     mbedtls_printf("2.1 Getting DICE certificates...\n");
     print_hex_string("LAK crt", certs[0], sizes[0]);
@@ -224,6 +292,10 @@ int main(void)
     print_hex_string("DevRoot crt", certs[2], sizes[2]);
 
     mbedtls_printf("\n");
+
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
     mbedtls_x509_crt_init(&ldevid_cert_parsed);
     ret = mbedtls_x509_crt_parse_der(&ldevid_cert_parsed, ldevid_crt, ldevid_crt_len);
     mbedtls_printf("Parsing LDevID crt - ret: %d\n", ret);
@@ -379,8 +451,19 @@ int main(void)
         mbedtls_printf(" ok\n");
     }
 
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for establishing TLS connection: %lu\n", t_diff);
+    #endif
+
     // Step 3: Retrieve the nonce
     mbedtls_printf("\n2.5 Getting nonce...\n");
+
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
 
     // Send request to get the nonce
     len = sprintf((char *) buf, GET_NONCE_REQUEST);
@@ -396,6 +479,13 @@ int main(void)
         goto exit;
     }
 
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for getting nonce: %lu\n", t_diff);
+    #endif
+
     mbedtls_printf("\n");
     // Nonce contained in the response
     print_hex_string("nonce", nonce, NONCE_LEN);
@@ -406,9 +496,20 @@ int main(void)
     // Step 4: Generate CSR
     mbedtls_printf("Generating CSR...\n");
 
-    if((ret = create_csr(pk, nonce, certs, sizes, csr, &csr_len))!=0){
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
+    ret = create_csr(pk, nonce, certs, sizes, csr, &csr_len);
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+    #endif
+    if(ret!=0){
         goto exit;
     }
+    #if PERFORMANCE_TEST
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for generating CSR: %lu\n", t_diff);
+    #endif
     
     // Generated CSR
     print_hex_string("CSR", csr, csr_len);
@@ -416,6 +517,10 @@ int main(void)
 
     // Step 5: Send CSR to CA
     mbedtls_printf("2.18 Sending CSR...\n");
+
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
 
     // Send CSR
     if((ret = mbedtls_base64_encode(enc_csr, CSR_MAX_LEN, &enc_csr_len, csr, csr_len))!=0) {
@@ -439,6 +544,13 @@ int main(void)
         if(ret == HANDLER_ERROR) ret = len;
         goto exit;
     }
+
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for getting new crt: %lu\n", t_diff);
+    #endif
     
     mbedtls_printf(" ...\n\n");
 
@@ -446,16 +558,36 @@ int main(void)
 
     mbedtls_printf("Connected using %s\n", mbedtls_ssl_get_ciphersuite(&ssl));
 
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
     mbedtls_ssl_close_notify(&ssl);
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for closing connection: %lu\n", t_diff);
+    #endif
     mbedtls_printf("\n");
     
     
     print_hex_string("new LDevID crt", ldevid_ca_cert, ldevid_ca_cert_len);
     mbedtls_printf("\n");
 
+    #if PERFORMANCE_TEST
+    t_end_global = get_time_inline();
+    t_diff = t_end_global-t_start_global;
+    mbedtls_printf("\nTicks for certification protocol: %lu\n", t_diff);
+
+    t_start = get_time_inline();
+    #endif
     // Parse the received certificate
     mbedtls_x509_crt_init(&cert_gen);
+    #if TRUSTED_CHANNEL
     ret = mbedtls_x509_crt_parse_der(&cert_gen, ldevid_ca_cert, ldevid_ca_cert_len);
+    #else
+    ret = mbedtls_x509_crt_parse(&cert_gen, (const unsigned char*) alice_cert_pem, alice_cert_pem_len);
+    #endif
     mbedtls_printf("Parsing new LDevID crt - ret: %d\n", ret);
     if(ret != 0) {
         mbedtls_x509_crt_free(&cert_gen);
@@ -468,6 +600,12 @@ int main(void)
     if(ret != 0) {
         goto exit;
     }
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for channel to other enclave: %lu\n", t_diff);
+    #endif
 
     #if PRINT_STRUCTS
     print_mbedtls_x509_cert("new LDevID crt", cert_gen);
@@ -475,10 +613,22 @@ int main(void)
 
     // Store the certificate
     mbedtls_printf("\nStoring the certificate in memory...\n");
-    if((ret = store_crt(ldevid_ca_cert, ldevid_ca_cert_len)) != 0) {
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
+    ret = store_crt(ldevid_ca_cert, ldevid_ca_cert_len);
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+    #endif
+    if(ret != 0) {
         mbedtls_printf("Error in storing LDevID_crt\n");
         goto exit;
     }
+
+    #if PERFORMANCE_TEST
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for storing crt: %lu\n", t_diff);
+    #endif
 
     exit_code = MBEDTLS_EXIT_SUCCESS;
 
@@ -705,6 +855,9 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     unsigned char key_usage = MBEDTLS_X509_KU_DIGITAL_SIGNATURE;
     const char subject_name[] = "CN=Alice,O=Enclave-aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
     unsigned char out_csr[CSR_MAX_LEN];
+    #if PERFORMANCE_TEST
+    ticks_t t_start, t_end, t_diff;
+    #endif
 
     /*
     certs[0] = mbedtls_calloc(1, CERTS_MAX_LEN);
@@ -734,10 +887,20 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     int ret = 0;
 
     mbedtls_printf("2.11 Generating attestation evidence signature...\n");
+    #if PERFORMANCE_TEST
+    t_start = get_time_inline();
+    #endif
     crypto_interface(1, nonce, NONCE_LEN, attest_proof, &attest_proof_len, pk);
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+    #endif
     print_hex_string("attest_evd_sign", attest_proof, attest_proof_len);
     // mbedtls_printf("\n");
 
+    #if PERFORMANCE_TEST
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for getting attestation evidence signature: %lu\n", t_diff);
+    #endif
     // attest_proof[10] = '\x00';
 
     mbedtls_x509write_csr_init(&req);
@@ -827,6 +990,11 @@ int test_connection_Bob(mbedtls_x509_crt *crt_Alice, unsigned char *ldevid_pk) {
 #if defined(MBEDTLS_SSL_CACHE_C)
     mbedtls_ssl_cache_context cache;
 #endif
+    #if PERFORMANCE_TEST
+    ticks_t t_start, t_end, t_diff;
+
+    t_start = get_time_inline();
+    #endif
 
     custom_net_init(&listen_fd);
     custom_net_init(&client_fd);
@@ -879,7 +1047,11 @@ int test_connection_Bob(mbedtls_x509_crt *crt_Alice, unsigned char *ldevid_pk) {
         goto exit_test;
     }
 
+    #if TRUSTED_CHANNEL
     ret =  mbedtls_pk_parse_ed25519_key(&pkey, (const unsigned char *) ldevid_pk, PUBLIC_KEY_SIZE, ED25519_PARSE_PUBLIC_KEY);
+    #else
+    ret =  mbedtls_pk_parse_key(&pkey, (const unsigned char *) alice_key_pem, alice_key_pem_len, NULL, 0, mbedtls_ctr_drbg_random, &ctr_drbg);
+    #endif
     if (ret != 0) {
         mbedtls_printf(" failed\n[EA]  !  mbedtls_pk_parse_key returned %d\n\n", ret);
         goto exit_test;
@@ -1000,6 +1172,13 @@ reset_test:
     } else {
         mbedtls_printf(" ok\n");
     }
+
+    #if PERFORMANCE_TEST
+    t_end = get_time_inline();
+
+    t_diff = t_end-t_start;
+    mbedtls_printf("\nTicks for channel setup: %lu\n", t_diff);
+    #endif
 
     /* Send and receive data*/
     if((ret = recv_buf_test(&ssl, buf, &len, NULL, NULL, get_null))!=NET_SUCCESS){

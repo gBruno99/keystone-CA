@@ -79,3 +79,62 @@ const unsigned char ref_cert_man[] = {
 };
 
 const int ref_cert_man_len = 254;
+
+const char alice_cert_pem[] = 
+"-----BEGIN CERTIFICATE-----\r\n" \
+"MIICPTCCAZygAwIBAgIBATAMBggqhkjOPQQDAgUAMDkxCzAJBgNVBAMMAkNBMR0w\r\n" \
+"GwYDVQQKDBRDZXJ0aWZpY2F0ZUF1dGhvcml0eTELMAkGA1UEBhMCSVQwHhcNMjMw\r\n" \
+"MTAxMDAwMDAwWhcNMjQwMTAxMDAwMDAwWjA8MQ4wDAYDVQQDDAVBbGljZTEdMBsG\r\n" \
+"A1UECgwUQ2VydGlmaWNhdGVBdXRob3JpdHkxCzAJBgNVBAYTAklUMIGbMBAGByqG\r\n" \
+"SM49AgEGBSuBBAAjA4GGAAQAMKybeZwjM+jNgxSJoE/nyzvIrO6EtPDWSt4qOSX2\r\n" \
+"nJtyIz6SteZeKmaSncLjdU6AukQ5tC2eigPaWE2Wuii1kxIBJWgHyGhWnyYoUXqS\r\n" \
+"1Wkd+gDDJMr+rwG7gSbdrUm7dK6IXyosmyi56ZXTgSklsnqaCvY9EMncXEgb/9OP\r\n" \
+"0RmKyhWjTTBLMAkGA1UdEwQCMAAwHQYDVR0OBBYEFA1tapC5yCvraBJAxa+4CC2m\r\n" \
+"czOGMB8GA1UdIwQYMBaAFN9R6F+/WOrcT/pySdzr0DMVsIgYMAwGCCqGSM49BAMC\r\n" \
+"BQADgYwAMIGIAkIBKMou7t4Llyi0vClL24qUqtj532eZx5ii1+sjIC+duNIDNIvE\r\n" \
+"gLP1GEfVfq3l5bgGVzMbAEqq5vPn2jgHhPyJMfYCQgET6HK0eMVKLPpeV2Tz3e6R\r\n" \
+"EeLqr2Ge1OITrhmhYwUeqmWAFLF1g1TOAqLEBT1bas5i9b5aGfwDFm1q284EJble\r\n" \
+"hA==\r\n" \
+"-----END CERTIFICATE-----\r\n";
+
+const unsigned long alice_cert_pem_len = sizeof(alice_cert_pem);
+
+const char alice_key_pem[] = 
+"-----BEGIN EC PRIVATE KEY-----\r\n" \
+"MIHcAgEBBEIAXHnHfJBUeeEipFCqIiRLIbJB4ZYhDvR9sDI5hd2SVXoBFjK4KIfz\r\n" \
+"sj0MWOe11yD0adMS3m66EqOp7h73Lzek82CgBwYFK4EEACOhgYkDgYYABAAwrJt5\r\n" \
+"nCMz6M2DFImgT+fLO8is7oS08NZK3io5Jfacm3IjPpK15l4qZpKdwuN1ToC6RDm0\r\n" \
+"LZ6KA9pYTZa6KLWTEgElaAfIaFafJihRepLVaR36AMMkyv6vAbuBJt2tSbt0rohf\r\n" \
+"KiybKLnpldOBKSWyepoK9j0QydxcSBv/04/RGYrKFQ==\r\n" \
+"-----END EC PRIVATE KEY-----\r\n";
+
+const unsigned long alice_key_pem_len = sizeof(alice_key_pem);
+
+const char bob_cert_pem[] = 
+"-----BEGIN CERTIFICATE-----\r\n" \
+"MIICOzCCAZqgAwIBAgIBATAMBggqhkjOPQQDAgUAMDkxCzAJBgNVBAMMAkNBMR0w\r\n" \
+"GwYDVQQKDBRDZXJ0aWZpY2F0ZUF1dGhvcml0eTELMAkGA1UEBhMCSVQwHhcNMjMw\r\n" \
+"MTAxMDAwMDAwWhcNMjQwMTAxMDAwMDAwWjA6MQwwCgYDVQQDDANCb2IxHTAbBgNV\r\n" \
+"BAoMFENlcnRpZmljYXRlQXV0aG9yaXR5MQswCQYDVQQGEwJJVDCBmzAQBgcqhkjO\r\n" \
+"PQIBBgUrgQQAIwOBhgAEAYOQu/rcYisMOFUNlaIklGlk4V9jaGiijCOhYm285hvw\r\n" \
+"veTwX3AlDomFQ5heggENJUHxrH/zrXHvcdiBEmNzyI2bANcunGPgwz1U0k6nswiB\r\n" \
+"VapZ8sgmyNIt4IWZnJLpXRrQSG9Wy4zC8r7ASFdlgbtV5wOybwCIVD6yCPlu2fRD\r\n" \
+"GfLmo00wSzAJBgNVHRMEAjAAMB0GA1UdDgQWBBTD9X7IYpo4xYebLgOmNg+I0fdV\r\n" \
+"KDAfBgNVHSMEGDAWgBTfUehfv1jq3E/6cknc69AzFbCIGDAMBggqhkjOPQQDAgUA\r\n" \
+"A4GMADCBiAJCAMZ9eDdq6JjKmldkSOW4Bz5aJchupI8/z7ot85Lb/+f+Ak2ihYqf\r\n" \
+"E6ggqcrTmqPq9SJ5NCKyRhgGme9WUZi9wS05AkIAl/NW9Tgqqy8hgRA0X+gFO0+M\r\n" \
+"aBI3dLvBIRBmY/LFzO/dvCNiIjSIALXE4IR/QChzNBqFLS8FbpOQilCC9AtSFcw=\r\n" \
+"-----END CERTIFICATE-----\r\n";
+
+const unsigned long bob_cert_pem_len = sizeof(bob_cert_pem);
+
+const char bob_key_pem[] = 
+"-----BEGIN EC PRIVATE KEY-----\r\n" \
+"MIHcAgEBBEIBj1dfgce2yrcxy6+xx0M6GkJvEHmRn9cfJ/eVngBQq2yZ8a5p4hjJ\r\n" \
+"sPFX5ojcs74S8CarbUeEfR/6lO6AsPDbtaCgBwYFK4EEACOhgYkDgYYABAGDkLv6\r\n" \
+"3GIrDDhVDZWiJJRpZOFfY2hooowjoWJtvOYb8L3k8F9wJQ6JhUOYXoIBDSVB8ax/\r\n" \
+"861x73HYgRJjc8iNmwDXLpxj4MM9VNJOp7MIgVWqWfLIJsjSLeCFmZyS6V0a0Ehv\r\n" \
+"VsuMwvK+wEhXZYG7VecDsm8AiFQ+sgj5btn0Qxny5g==\r\n" \
+"-----END EC PRIVATE KEY-----\r\n";
+
+const unsigned long bob_key_pem_len = sizeof(bob_key_pem);
