@@ -2,7 +2,7 @@
 
 set -e
 
-cd ./mbedtls_builds/mbedtls_eapp/
+cd ../mbedtls_builds/mbedtls_eapp/
 git add -N include/mbedtls/ed25519.h
 git add -N include/mbedtls/keystone_ext.h
 git add -N include/mbedtls/print.h

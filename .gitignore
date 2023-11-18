@@ -3,6 +3,3 @@
 *.riscv
 *~
 build/
-valerio/
-old_implementation/
-openssl_install_dir/

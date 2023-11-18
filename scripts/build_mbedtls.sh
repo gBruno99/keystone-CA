@@ -2,7 +2,7 @@
 
 set -e
 
-cd ./mbedtls_builds/mbedtls_eapp/build
+cd ../mbedtls_builds/mbedtls_eapp/build
 cmake -DCMAKE_TOOLCHAIN_FILE=$DEMO_DIR/riscv-toolchain.cmake -DENABLE_TESTING=0ff ..
 cmake --build .
 
