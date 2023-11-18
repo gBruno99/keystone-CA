@@ -17,11 +17,6 @@ if (NOT DEFINED ENV{MBEDTLS_DIR_HOST})
 endif()
 set(MBEDTLS_DIR_HOST $ENV{MBEDTLS_DIR_HOST})
 
-# if (NOT DEFINED ENV{OPENSSL_DIR})
-#   message(FATAL_ERROR "Please set OPENSSL_DIR")
-# endif()
-# set(OPENSSL_DIR $ENV{OPENSSL_DIR})
-
 include($ENV{KEYSTONE_SDK_DIR}/cmake/macros.cmake)
 
 if(RISCV32)
@@ -59,20 +54,9 @@ set(MBEDTLS_LIB_CRYPTO_HOST_LINUX ${MBEDTLS_DIR_HOST}/build_linux/library/libmbe
 set(MBEDTLS_LIB_TLS_HOST_LINUX ${MBEDTLS_DIR_HOST}/build_linux/library/libmbedtls.a)
 set(MBEDTLS_LIB_X509_HOST_LINUX ${MBEDTLS_DIR_HOST}/build_linux/library/libmbedx509.a)
 
-# set(OPENSSL_LIB_SSL ${OPENSSL_DIR}/lib/libssl.a)
-# set(OPENSSL_LIB_CRYPTO ${OPENSSL_DIR}/lib/libcrypto.a)
-
 # find program "makeself"
 find_program(MAKESELF makeself)
 
-# enclave
-# add_subdirectory(client)
-# add_subdirectory(hello)
-# add_subdirectory(hello-native)
-# add_subdirectory(enclave-client)
-# add_subdirectory(tls-client)
-# add_subdirectory(tls-server)
-# add_subdirectory(tls-client-enclave)
 add_subdirectory(enclave-Alice)
 add_subdirectory(enclave-Bob)
 add_subdirectory(server-CA)
