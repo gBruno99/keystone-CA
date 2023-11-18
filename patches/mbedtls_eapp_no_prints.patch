@@ -1,15 +1,3 @@
-diff --git a/.gitignore b/.gitignore
-index 8824ecea0..2e71a6295 100644
---- a/.gitignore
-+++ b/.gitignore
-@@ -57,3 +57,7 @@ massif-*
- /TAGS
- /cscope*.out
- /tags
-+
-+# Build directories for Keystone project
-+/build_riscv/
-+/build_linux/
 diff --git a/include/mbedtls/ed25519.h b/include/mbedtls/ed25519.h
 new file mode 100644
 index 000000000..b5b1560dc
@@ -57,10 +45,10 @@ index 000000000..b5b1560dc
 +#endif
 diff --git a/include/mbedtls/keystone_ext.h b/include/mbedtls/keystone_ext.h
 new file mode 100644
-index 000000000..6d739ba71
+index 000000000..00b389452
 --- /dev/null
 +++ b/include/mbedtls/keystone_ext.h
-@@ -0,0 +1,66 @@
+@@ -0,0 +1,70 @@
 +#ifndef MBEDTLS_KEYSTONE_EXT_H
 +#define MBEDTLS_KEYSTONE_EXT_H
 +
@@ -126,12 +114,25 @@ index 000000000..6d739ba71
 +int mbedtls_x509write_csr_set_attestation_proof(mbedtls_x509write_csr *ctx, unsigned char *attest_proof);
 +int mbedtls_x509write_csr_set_dice_certs(mbedtls_x509write_csr *ctx, unsigned char *certs[], int *sizes);
 +
++// Functions to wrap and set crypto_interface of Keystone's SDK
++extern int (*keystone_crypto_interface)(unsigned long flag, void* data, size_t data_len, void* out_buf, size_t* out_buf_len, void* pk);
++int mbedtls_platform_set_keystone_crypto_interface(int (*crypto_interface_func)(unsigned long flag, void* data, size_t data_len, void* out_buf, size_t* out_buf_len, void* pk));
++
 +#endif
 \ No newline at end of file
 diff --git a/include/mbedtls/mbedtls_config.h b/include/mbedtls/mbedtls_config.h
-index 89d565971..4e1ed9db9 100644
+index 89d565971..fc1788539 100644
 --- a/include/mbedtls/mbedtls_config.h
 +++ b/include/mbedtls/mbedtls_config.h
+@@ -140,7 +140,7 @@
+  *       regardless of the setting of MBEDTLS_HAVE_TIME, unless
+  *       MBEDTLS_TIMING_ALT is used. See timing.c for more information.
+  */
+-#define MBEDTLS_HAVE_TIME
++//#define MBEDTLS_HAVE_TIME
+ 
+ /**
+  * \def MBEDTLS_HAVE_TIME_DATE
 @@ -161,7 +161,7 @@
   * mbedtls_platform_gmtime_r() at compile-time by using the macro
   * MBEDTLS_PLATFORM_GMTIME_R_ALT.
@@ -141,6 +142,141 @@ index 89d565971..4e1ed9db9 100644
  
  /**
   * \def MBEDTLS_PLATFORM_MEMORY
+@@ -185,7 +185,7 @@
+  *
+  * Enable this layer to allow use of alternative memory allocators.
+  */
+-//#define MBEDTLS_PLATFORM_MEMORY
++#define MBEDTLS_PLATFORM_MEMORY
+ 
+ /**
+  * \def MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
+@@ -204,7 +204,7 @@
+  * Uncomment to prevent default assignment of standard functions in the
+  * platform layer.
+  */
+-//#define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
++#define MBEDTLS_PLATFORM_NO_STD_FUNCTIONS
+ 
+ /**
+  * \def MBEDTLS_PLATFORM_EXIT_ALT
+@@ -230,12 +230,12 @@
+  * platform function
+  */
+ //#define MBEDTLS_PLATFORM_SETBUF_ALT
+-//#define MBEDTLS_PLATFORM_EXIT_ALT
++#define MBEDTLS_PLATFORM_EXIT_ALT
+ //#define MBEDTLS_PLATFORM_TIME_ALT
+-//#define MBEDTLS_PLATFORM_FPRINTF_ALT
+-//#define MBEDTLS_PLATFORM_PRINTF_ALT
+-//#define MBEDTLS_PLATFORM_SNPRINTF_ALT
+-//#define MBEDTLS_PLATFORM_VSNPRINTF_ALT
++#define MBEDTLS_PLATFORM_FPRINTF_ALT
++#define MBEDTLS_PLATFORM_PRINTF_ALT
++#define MBEDTLS_PLATFORM_SNPRINTF_ALT
++#define MBEDTLS_PLATFORM_VSNPRINTF_ALT
+ //#define MBEDTLS_PLATFORM_NV_SEED_ALT
+ //#define MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT
+ //#define MBEDTLS_PLATFORM_MS_TIME_ALT
+@@ -1058,7 +1058,7 @@
+  *
+  * Enable functions that use the filesystem.
+  */
+-#define MBEDTLS_FS_IO
++//#define MBEDTLS_FS_IO
+ 
+ /**
+  * \def MBEDTLS_NO_DEFAULT_ENTROPY_SOURCES
+@@ -1081,7 +1081,7 @@
+  *
+  * Uncomment this macro to disable the built-in platform entropy functions.
+  */
+-//#define MBEDTLS_NO_PLATFORM_ENTROPY
++#define MBEDTLS_NO_PLATFORM_ENTROPY
+ 
+ /**
+  * \def MBEDTLS_ENTROPY_FORCE_SHA256
+@@ -2559,7 +2559,7 @@
+  *
+  * This module provides a generic entropy pool
+  */
+-#define MBEDTLS_ENTROPY_C
++//#define MBEDTLS_ENTROPY_C
+ 
+ /**
+  * \def MBEDTLS_ERROR_C
+@@ -2629,7 +2629,7 @@
+  *
+  * Uncomment to enable the LMS verification algorithm and public key operations.
+  */
+-#define MBEDTLS_LMS_C
++//#define MBEDTLS_LMS_C
+ 
+ /**
+  * \def MBEDTLS_LMS_PRIVATE
+@@ -2743,7 +2743,7 @@
+  *
+  * This module provides networking routines.
+  */
+-#define MBEDTLS_NET_C
++//#define MBEDTLS_NET_C
+ 
+ /**
+  * \def MBEDTLS_OID_C
+@@ -2780,7 +2780,7 @@
+  *
+  * This modules adds support for the VIA PadLock on x86.
+  */
+-#define MBEDTLS_PADLOCK_C
++//#define MBEDTLS_PADLOCK_C
+ 
+ /**
+  * \def MBEDTLS_PEM_PARSE_C
+@@ -2962,7 +2962,7 @@
+  *           or MBEDTLS_PSA_CRYPTO_EXTERNAL_RNG.
+  *
+  */
+-#define MBEDTLS_PSA_CRYPTO_C
++//#define MBEDTLS_PSA_CRYPTO_C
+ 
+ /**
+  * \def MBEDTLS_PSA_CRYPTO_SE_C
+@@ -2991,7 +2991,7 @@
+  *           either MBEDTLS_PSA_ITS_FILE_C or a native implementation of
+  *           the PSA ITS interface
+  */
+-#define MBEDTLS_PSA_CRYPTO_STORAGE_C
++//#define MBEDTLS_PSA_CRYPTO_STORAGE_C
+ 
+ /**
+  * \def MBEDTLS_PSA_ITS_FILE_C
+@@ -3003,7 +3003,7 @@
+  *
+  * Requires: MBEDTLS_FS_IO
+  */
+-#define MBEDTLS_PSA_ITS_FILE_C
++//#define MBEDTLS_PSA_ITS_FILE_C
+ 
+ /**
+  * \def MBEDTLS_RIPEMD160_C
+@@ -3333,7 +3333,7 @@
+  *
+  * Module:  library/timing.c
+  */
+-#define MBEDTLS_TIMING_C
++//#define MBEDTLS_TIMING_C
+ 
+ /**
+  * \def MBEDTLS_VERSION_C
+@@ -3886,7 +3886,7 @@
+  * C standards (e.g using memset_s() in C11) or calling a secure memset() from
+  * their system (e.g explicit_bzero() in BSD).
+  */
+-//#define MBEDTLS_PLATFORM_ZEROIZE_ALT
++#define MBEDTLS_PLATFORM_ZEROIZE_ALT
+ 
+ /**
+  * Uncomment the macro to let Mbed TLS use your alternate implementation of
 diff --git a/include/mbedtls/md.h b/include/mbedtls/md.h
 index 7bad24dc9..9dbc42b47 100644
 --- a/include/mbedtls/md.h
@@ -194,6 +330,28 @@ index c579661b3..28acffe9e 100644
  } mbedtls_pk_type_t;
  
  /**
+diff --git a/include/mbedtls/platform.h b/include/mbedtls/platform.h
+index f65158719..c50475655 100644
+--- a/include/mbedtls/platform.h
++++ b/include/mbedtls/platform.h
+@@ -465,6 +465,17 @@ int mbedtls_platform_setup(mbedtls_platform_context *ctx);
+  */
+ void mbedtls_platform_teardown(mbedtls_platform_context *ctx);
+ 
++int atoi(const char *nptr);
++
++int rand(void);
++void srand(unsigned int seed);
++
++int strcmp(const char *string1, const char *string2);
++int strncmp(const char *string1, const char *string2, size_t count);
++char *strncpy(char *strDest, const char *strSource, size_t count);
++char *strchr(const char *str, int c);
++char *strstr(const char *str, const char *strSearch);
++
+ #ifdef __cplusplus
+ }
+ #endif
 diff --git a/include/mbedtls/print.h b/include/mbedtls/print.h
 new file mode 100644
 index 000000000..33c538f3b
@@ -363,16 +521,64 @@ index 535988303..9d9091869 100644
      psa_crypto.c
      psa_crypto_aead.c
      psa_crypto_cipher.c
+diff --git a/library/alignment.h b/library/alignment.h
+index 41823485a..647118308 100644
+--- a/library/alignment.h
++++ b/library/alignment.h
+@@ -189,6 +189,7 @@ inline void mbedtls_put_unaligned_uint64(void *p, uint64_t x)
+  * compiler may be able to detect and transform into the relevant bswap or
+  * similar instruction.
+  */
++#undef MBEDTLS_BSWAP16
+ #if !defined(MBEDTLS_BSWAP16)
+ static inline uint16_t mbedtls_bswap16(uint16_t x)
+ {
+@@ -199,6 +200,7 @@ static inline uint16_t mbedtls_bswap16(uint16_t x)
+ #define MBEDTLS_BSWAP16 mbedtls_bswap16
+ #endif /* !defined(MBEDTLS_BSWAP16) */
+ 
++#undef MBEDTLS_BSWAP32
+ #if !defined(MBEDTLS_BSWAP32)
+ static inline uint32_t mbedtls_bswap32(uint32_t x)
+ {
+@@ -211,6 +213,7 @@ static inline uint32_t mbedtls_bswap32(uint32_t x)
+ #define MBEDTLS_BSWAP32 mbedtls_bswap32
+ #endif /* !defined(MBEDTLS_BSWAP32) */
+ 
++#undef MBEDTLS_BSWAP64
+ #if !defined(MBEDTLS_BSWAP64)
+ static inline uint64_t mbedtls_bswap64(uint64_t x)
+ {
 diff --git a/library/ed25519.c b/library/ed25519.c
 new file mode 100644
-index 000000000..c76837b3d
+index 000000000..9c537c14d
 --- /dev/null
 +++ b/library/ed25519.c
-@@ -0,0 +1,242 @@
+@@ -0,0 +1,264 @@
 +#include "mbedtls/keystone_ext.h"
 +#include "mbedtls/ed25519.h"
 +#include "hash_info.h"
 +#include "mbedtls/print.h"
++
++static int std_crypto_interface(unsigned long flag, void* data, size_t data_len, void* out_buf, size_t* out_buf_len, void* pk) {
++    (void) flag;
++    (void) data;
++    (void) data_len;
++    (void) out_buf;
++    (void) out_buf_len;
++    (void) pk;
++    return 0;
++}
++
++#define STD_CRYPTO_INTERFACE std_crypto_interface
++
++int (*keystone_crypto_interface)(unsigned long flag, void* data, size_t data_len, void* out_buf, size_t* out_buf_len, void* pk) = STD_CRYPTO_INTERFACE;
++
++int mbedtls_platform_set_keystone_crypto_interface(int (*crypto_interface_func)(unsigned long flag, void* data, size_t data_len, void* out_buf, size_t* out_buf_len, void* pk)){
++    keystone_crypto_interface = crypto_interface_func;
++    return 0;
++}
++
 +
 +mbedtls_ed25519_context *mbedtls_pk_ed25519(const mbedtls_pk_context pk)
 +{
@@ -401,6 +607,7 @@ index 000000000..c76837b3d
 +
 +int pk_set_ed25519pubkey(unsigned char **p, mbedtls_ed25519_context *ed25519)
 +{
++
 +    for (int i = 0; i < PUBLIC_KEY_SIZE; i++)
 +    {
 +        ed25519->pub_key[i] = (*p)[i];
@@ -411,6 +618,7 @@ index 000000000..c76837b3d
 +
 +int pk_set_ed25519privkey(unsigned char **p, mbedtls_ed25519_context *ed25519)
 +{
++
 +    for (int i = 0; i < PRIVATE_KEY_SIZE; i++)
 +    {
 +        ed25519->priv_key[i] = (*p)[i];
@@ -460,7 +668,7 @@ index 000000000..c76837b3d
 +        ed25519_sign(sig, hash, hlen, ctx->pub_key, ctx->priv_key);
 +        *slen = KEYSTONE_PK_SIGNATURE_MAX_SIZE;
 +    } else {
-+        return -1;
++        return keystone_crypto_interface(2, (void*) hash, hlen, sig, slen, ctx->pub_key);
 +    }
 +    return 0;
 +}
@@ -5370,7 +5578,7 @@ index 57bfdcaa2..f331f8f11 100644
  /*
   * Generic EC key
 diff --git a/library/pk_wrap.h b/library/pk_wrap.h
-index 89bce40eb..e2f0cc5c8 100644
+index 89bce40eb..f05c49268 100644
 --- a/library/pk_wrap.h
 +++ b/library/pk_wrap.h
 @@ -133,6 +133,8 @@ extern const mbedtls_pk_info_t mbedtls_ecdsa_info;
@@ -5378,12 +5586,12 @@ index 89bce40eb..e2f0cc5c8 100644
  #endif
  
 +extern const mbedtls_pk_info_t mbedtls_ed25519_info;
-+
++ 
  #if defined(MBEDTLS_USE_PSA_CRYPTO)
  extern const mbedtls_pk_info_t mbedtls_pk_ecdsa_opaque_info;
  extern const mbedtls_pk_info_t mbedtls_pk_rsa_opaque_info;
 diff --git a/library/pkparse.c b/library/pkparse.c
-index 800e352da..ba079bd37 100644
+index 800e352da..1d264a6d7 100644
 --- a/library/pkparse.c
 +++ b/library/pkparse.c
 @@ -58,6 +58,9 @@
@@ -5407,7 +5615,7 @@ index 800e352da..ba079bd37 100644
  #if defined(MBEDTLS_RSA_C)
      if (pk_alg == MBEDTLS_PK_RSA) {
          ret = pk_get_rsapubkey(p, end, mbedtls_pk_rsa(*pk));
-@@ -1594,4 +1601,36 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
+@@ -1594,4 +1601,40 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
      return ret;
  }
  
@@ -5437,6 +5645,10 @@ index 800e352da..ba079bd37 100644
 +
 +    if (type_k == 0) {
 +        pk_set_ed25519pubkey(&p, mbedtls_pk_ed25519(*ctx));
++        /*for(int i = 0; i < 32; i++){
++            ctx->pk_ctx->pub_key[i] = p[i];
++        }
++        ctx->pk_ctx->len = 32;*/
 +    }
 +    else
 +        pk_set_ed25519privkey(&p, mbedtls_pk_ed25519(*ctx));
@@ -5467,9 +5679,163 @@ index 3c1a40809..55de7e410 100644
  #if defined(MBEDTLS_RSA_C)
      if (mbedtls_pk_get_type(key) == MBEDTLS_PK_RSA) {
          MBEDTLS_ASN1_CHK_ADD(len, pk_write_rsa_pubkey(p, start, mbedtls_pk_rsa(*key)));
+diff --git a/library/platform.c b/library/platform.c
+index b15b7b29a..871b1b00d 100644
+--- a/library/platform.c
++++ b/library/platform.c
+@@ -411,4 +411,122 @@ void mbedtls_platform_teardown(mbedtls_platform_context *ctx)
+ }
+ #endif /* MBEDTLS_PLATFORM_SETUP_TEARDOWN_ALT */
+ 
++int atoi(const char *nptr)
++{
++    int val = 0;
++    int i = 0;
++    while(nptr[i]!='\0'){
++        if(nptr[i]<'0'||nptr[i]>'9')
++            return 0;
++        val *= 10;
++        val += (int) nptr[i] - 48;
++        i++;
++    }
++    return val;
++}
++
++static unsigned long int next = 1;
++
++int rand(void)
++{  
++    // RAND_MAX assumed to be 32767
++    next = next * 1103515245 + 12345;
++    return (unsigned int)(next/65536) % 32768;
++}
++
++void srand(unsigned int seed)
++{
++    next = seed;
++}
++
++int strcmp(const char *string1, const char *string2)
++{
++    while(*string1 && (*string1 == *string2))
++    {
++        string1++;
++        string2++;
++    }
++    return *(const unsigned char*)string1 - *(const unsigned char*)string2;
++}
++
++char *strchr(const char *str, int c)
++{
++    char ch;
++
++    ch = c;
++    for (;; ++str) {
++        if (*str == ch)
++            return ((char *)str);
++        if (*str == '\0')
++            return (NULL);
++    }
++    /* NOTREACHED */
++}
++
++char *strstr(const char *str, const char *strSearch)
++{
++    char *a, *b;
++
++    b = (char*) strSearch;
++    if (*b == 0) {
++	    return (char*) str;
++    }
++    for ( ; *str != 0; str += 1) {
++        if (*str != *b) {
++            continue;
++        }
++        a = (char*) str;
++        while (1) {
++            if (*b == 0) {
++                return (char*) str;
++            }
++            if (*a++ != *b++) {
++                break;
++            }
++        }
++        b = (char*) strSearch;
++    }
++    return NULL;
++}
++
++int strncmp(const char *string1, const char *string2, size_t count)
++{
++    while ( count && *string1 && ( *string1 == *string2 ) )
++    {
++        ++string1;
++        ++string2;
++        --count;
++    }
++    if ( count == 0 )
++    {
++        return 0;
++    }
++    else
++    {
++        return ( *(unsigned char *)string1 - *(unsigned char *)string2 );
++    }
++}
++
++// Function to implement `strncpy()` function
++char *strncpy(char *strDest, const char *strSource, size_t count)
++{
++    // take a pointer pointing to the beginning of the destination string
++    char* ptr = strDest;
++ 
++    // copy first `num` characters of C-string pointed by source
++    // into the array pointed by destination
++    while (*strSource && count--)
++    {
++        *strDest = *strSource;
++        strDest++;
++        strSource++;
++    }
++ 
++    // null terminate destination string
++    *strDest = '\0';
++ 
++    // the destination is returned by standard `strncpy()`
++    return ptr;
++}
++
+ #endif /* MBEDTLS_PLATFORM_C */
+diff --git a/library/platform_util.c b/library/platform_util.c
+index e903f8ed3..a5acd891d 100644
+--- a/library/platform_util.c
++++ b/library/platform_util.c
+@@ -51,9 +51,9 @@
+ 
+ // Detect platforms known to support explicit_bzero()
+ #if defined(__GLIBC__) && (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 25)
+-#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
++//#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
+ #elif (defined(__FreeBSD__) && (__FreeBSD_version >= 1100037)) || defined(__OpenBSD__)
+-#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
++//#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
+ #endif
+ 
+ #if !defined(MBEDTLS_PLATFORM_ZEROIZE_ALT)
+@@ -129,6 +129,10 @@ void mbedtls_platform_zeroize(void *buf, size_t len)
+ }
+ #endif /* MBEDTLS_PLATFORM_ZEROIZE_ALT */
+ 
++void mbedtls_platform_zeroize(void *buf, size_t len){
++    memset(buf, 0x00, len);
++}
++
+ #if defined(MBEDTLS_HAVE_TIME_DATE) && !defined(MBEDTLS_PLATFORM_GMTIME_R_ALT)
+ #include <time.h>
+ #if !defined(_WIN32) && (defined(unix) || \
 diff --git a/library/print.c b/library/print.c
 new file mode 100644
-index 000000000..eb23097d5
+index 000000000..07b3cd448
 --- /dev/null
 +++ b/library/print.c
 @@ -0,0 +1,131 @@
@@ -5489,7 +5855,7 @@ index 000000000..eb23097d5
 +
 +// certs prints
 +int print_mbedtls_asn1_buf(const char *name, mbedtls_asn1_buf buf){
-+  mbedtls_printf("%s_tag: %02x\n", name, (unsigned int) buf.tag);
++  mbedtls_printf("%s_tag: %02x\n", name, buf.tag);
 +  print_hex_string(name, buf.p, buf.len);
 +  return 0;
 +}
@@ -5549,8 +5915,8 @@ index 000000000..eb23097d5
 +  mbedtls_printf("max_pathlen: %d\n", PRIVATE_FIELD(crt, max_pathlen));
 +  mbedtls_printf("\n");
 +  print_mbedtls_asn1_buf("sig", PRIVATE_FIELD(crt, sig));
-+  mbedtls_printf("sig_md: %d\n", (int) PRIVATE_FIELD(crt, sig_md));
-+  mbedtls_printf("sig_pk: %d\n", (int) PRIVATE_FIELD(crt, sig_pk));
++  mbedtls_printf("sig_md: %d\n", PRIVATE_FIELD(crt, sig_md));
++  mbedtls_printf("sig_pk: %d\n", PRIVATE_FIELD(crt, sig_pk));
 +  mbedtls_printf("\n\n");
 +  return;
 +}
@@ -5587,7 +5953,7 @@ index 000000000..eb23097d5
 +  mbedtls_printf("\n");
 +  print_mbedtls_pk_context("pk", csr.pk);
 +  mbedtls_printf("\n");
-+  mbedtls_printf("key_usage: %d\n", (int) csr.key_usage);
++  mbedtls_printf("key_usage: %d\n", csr.key_usage);
 +  mbedtls_printf("\n");
 +  print_mbedtls_x509_cert("cert_1", csr.cert_chain);
 +  print_mbedtls_x509_cert("cert_2", *(csr.cert_chain.next));
@@ -5599,8 +5965,8 @@ index 000000000..eb23097d5
 +  mbedtls_printf("\n");
 +  print_mbedtls_asn1_buf("sig_oid", csr.sig_oid);
 +  print_mbedtls_asn1_buf("sig", PRIVATE_FIELD(csr, sig));
-+  mbedtls_printf("sig_md: %d\n", (int) PRIVATE_FIELD(csr, sig_md));
-+  mbedtls_printf("sig_pk: %d\n", (int) PRIVATE_FIELD(csr, sig_pk));
++  mbedtls_printf("sig_md: %d\n", PRIVATE_FIELD(csr, sig_md));
++  mbedtls_printf("sig_pk: %d\n", PRIVATE_FIELD(csr, sig_pk));
 +  mbedtls_printf("\n\n");
 +  return;
 +}
@@ -5776,7 +6142,7 @@ index 000000000..cdaab2f47
 +}
 +
 diff --git a/library/ssl_tls12_server.c b/library/ssl_tls12_server.c
-index 42f5fe92b..bfe7242d1 100644
+index 42f5fe92b..23e438fd2 100644
 --- a/library/ssl_tls12_server.c
 +++ b/library/ssl_tls12_server.c
 @@ -665,6 +665,10 @@ MBEDTLS_CHECK_RETURN_CRITICAL
@@ -5786,38 +6152,38 @@ index 42f5fe92b..bfe7242d1 100644
 +    if(pk->pk_info == mbedtls_pk_info_from_type(MBEDTLS_PK_ED25519) ) {
 +        return 0;
 +    }
-+    
++
      uint16_t *curr_tls_id = curves_tls_id;
      mbedtls_ecp_group_id grp_id = mbedtls_pk_ec(*pk)->grp.id;
      mbedtls_ecp_group_id curr_grp_id;
 diff --git a/library/verifier_utils_mock/alice_reference_value.h b/library/verifier_utils_mock/alice_reference_value.h
 new file mode 100644
-index 000000000..1216fab25
+index 000000000..3b7d715b7
 --- /dev/null
 +++ b/library/verifier_utils_mock/alice_reference_value.h
 @@ -0,0 +1,9 @@
 +unsigned char alice_reference_value[] = {
-+  0x28, 0x50, 0x55, 0x58, 0x44, 0x8e, 0xa8, 0xdb, 0x84, 0xc9, 0x45, 0xe2,
-+  0x24, 0x60, 0x0c, 0x78, 0x31, 0xed, 0xfa, 0x3c, 0x0d, 0x86, 0x70, 0x15,
-+  0xff, 0x32, 0xb6, 0xcc, 0xc0, 0x1d, 0x7b, 0x3d, 0x5c, 0x26, 0x1f, 0xf0,
-+  0xe1, 0xbf, 0x59, 0x10, 0x38, 0xb5, 0xb8, 0xb8, 0xf8, 0x43, 0x0b, 0x68,
-+  0x2c, 0x28, 0x45, 0xa8, 0x4f, 0xe0, 0x38, 0xb3, 0x5a, 0x81, 0x6a, 0x06,
-+  0x66, 0xb9, 0x5b, 0x68
++  0xc3, 0xd8, 0x97, 0xea, 0x72, 0xac, 0xe5, 0x84, 0xe7, 0xef, 0x29, 0xf8,
++  0xd8, 0xfd, 0x23, 0xfb, 0xfc, 0x05, 0x43, 0x48, 0xc4, 0x8b, 0x39, 0x4c,
++  0xf2, 0xb9, 0x2b, 0xd3, 0x48, 0x8d, 0x78, 0x0c, 0xda, 0xfa, 0x2f, 0x79,
++  0x3f, 0xa3, 0xb1, 0x52, 0x54, 0x40, 0xe6, 0xc8, 0x7a, 0xc9, 0x9c, 0xa4,
++  0x02, 0x63, 0x17, 0xe7, 0x88, 0x88, 0x1f, 0x23, 0x57, 0x51, 0x2f, 0xbe,
++  0x85, 0xda, 0x50, 0xbf
 +};
 +unsigned int alice_reference_value_len = 64;
 diff --git a/library/verifier_utils_mock/bob_reference_value.h b/library/verifier_utils_mock/bob_reference_value.h
 new file mode 100644
-index 000000000..6a9414278
+index 000000000..d614f4edb
 --- /dev/null
 +++ b/library/verifier_utils_mock/bob_reference_value.h
 @@ -0,0 +1,9 @@
 +unsigned char bob_reference_value[] = {
-+  0x91, 0x99, 0xcc, 0xab, 0x42, 0x31, 0x6d, 0x14, 0xad, 0xc4, 0x06, 0x44,
-+  0x64, 0x82, 0xb3, 0x98, 0x60, 0x21, 0x6c, 0x68, 0x25, 0x38, 0x10, 0x33,
-+  0xbc, 0x1c, 0x43, 0x01, 0xd8, 0xbd, 0xd7, 0x4d, 0x05, 0x8e, 0xca, 0xce,
-+  0x3e, 0xaa, 0xa6, 0x50, 0xae, 0x4b, 0xee, 0xcc, 0x0a, 0xaf, 0x3b, 0x06,
-+  0x4d, 0x23, 0xd1, 0x80, 0xf0, 0xda, 0x51, 0x38, 0x43, 0x99, 0xe4, 0x4e,
-+  0x77, 0xe2, 0x53, 0xbc
++  0x55, 0xcd, 0x7f, 0xe1, 0x01, 0x7b, 0x59, 0x5f, 0x3d, 0xf9, 0x26, 0x9b,
++  0x40, 0xcc, 0x8b, 0x43, 0xf8, 0x81, 0x7c, 0x5c, 0xaf, 0x08, 0x67, 0x71,
++  0xd3, 0xf3, 0xcf, 0x5c, 0x9b, 0xd2, 0x80, 0x91, 0xef, 0x32, 0x52, 0x02,
++  0xbb, 0xc0, 0x94, 0xc1, 0x56, 0xa0, 0x9d, 0xde, 0xd0, 0xd8, 0x51, 0x79,
++  0x04, 0xc5, 0x6a, 0x3a, 0x28, 0x31, 0x1e, 0xa9, 0x8f, 0x06, 0x11, 0xa8,
++  0x06, 0x59, 0x9f, 0xbf
 +};
 +unsigned int bob_reference_value_len = 64;
 diff --git a/library/verifier_utils_mock/sm_reference_value.h b/library/verifier_utils_mock/sm_reference_value.h
@@ -5837,7 +6203,7 @@ index 000000000..780e9fe2e
 +unsigned int sm_reference_value_len = 64;
 diff --git a/library/verifier_utils_mock/verifier_utils_mock.c b/library/verifier_utils_mock/verifier_utils_mock.c
 new file mode 100644
-index 000000000..3c77409c9
+index 000000000..32825d046
 --- /dev/null
 +++ b/library/verifier_utils_mock/verifier_utils_mock.c
 @@ -0,0 +1,72 @@
@@ -5848,8 +6214,8 @@ index 000000000..3c77409c9
 +#include "bob_reference_value.h"
 +#include <string.h>
 +
-+/** 
-+ * Mock of functions that are used by the verifier to retrive 
++/**
++ *  Mock of functions that are used by the verifier to retrive 
 + * the reference values and to compare them with the evidence 
 + * provided by the attester 
 + */
@@ -5914,7 +6280,7 @@ index 000000000..3c77409c9
 +    return -1;
 +}
 diff --git a/library/x509_crt.c b/library/x509_crt.c
-index faf862364..c344a04fe 100644
+index faf862364..c7d9647dc 100644
 --- a/library/x509_crt.c
 +++ b/library/x509_crt.c
 @@ -78,6 +78,9 @@
@@ -5954,19 +6320,19 @@ index faf862364..c344a04fe 100644
  #if defined(MBEDTLS_RSA_C)
      if (pk_alg == MBEDTLS_PK_RSA || pk_alg == MBEDTLS_PK_RSASSA_PSS) {
          if (mbedtls_pk_get_bitlen(pk) >= profile->rsa_min_bitlen) {
-@@ -927,6 +943,12 @@ static int x509_get_crt_ext(unsigned char **p,
+@@ -926,6 +942,12 @@ static int x509_get_crt_ext(unsigned char **p,
+                     }
                  }
                  break;
- 
++            
 +            case MBEDTLS_OID_X509_EXT_TCI:
 +                crt ->hash.p = *p;
 +                crt ->hash.len = 64;
 +                *p += 64;
 +                break;
-+
+ 
              default:
                  /*
-                  * If this is a non-critical extension, which the oid layer
 @@ -2413,6 +2435,10 @@ static int x509_crt_verify_chain(
              *flags |= MBEDTLS_X509_BADCERT_FUTURE;
          }
@@ -6278,3 +6644,16 @@ index deb66174b..eb318c653 100644
 +}
 +
  #endif /* MBEDTLS_X509_CSR_WRITE_C */
+diff --git a/programs/test/udp_proxy.c b/programs/test/udp_proxy.c
+index ac527f257..4d631fe04 100644
+--- a/programs/test/udp_proxy.c
++++ b/programs/test/udp_proxy.c
+@@ -258,7 +258,7 @@ static void get_options(int argc, char *argv[])
+             buf = mbedtls_calloc(1, len + 1);
+             if (buf == NULL) {
+                 mbedtls_printf(" Allocation failure\n");
+-                exit(1);
++                mbedtls_exit(1);
+             }
+             memcpy(buf, q, len + 1);
+ 
