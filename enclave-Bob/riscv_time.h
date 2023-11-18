@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#define PERFORMANCE_TEST 1
+#define PERFORMANCE_TEST 0
 
 typedef unsigned long ticks_t;
 
