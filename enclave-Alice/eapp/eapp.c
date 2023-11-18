@@ -39,16 +39,10 @@
 #include "mbedtls/base64.h"
 #include "mbedtls/print.h"
 #include "mbedtls/keystone_ext.h"
-// #include "certs.h"
 #include "eapp/printf.h"
 #include "custom_certs.h"
 #include "riscv_time.h"
 #include "mbedtls/ed25519.h"
-// #include "eapp/ref_certs.h"
-// #include "custom_functions.h"
-
-// #include <stdio.h>
-// #include <time.h>
 #include <string.h>
 
 #if defined(MBEDTLS_SSL_CACHE_C)
@@ -228,7 +222,6 @@ int main(void)
 
     print_hex_string("LDevID PK", pk, PUBLIC_KEY_SIZE);
     print_hex_string("LDevID crt", ldevid_crt, ldevid_crt_len);
-    // mbedtls_x509_crt_free(&ldevid_cert_parsed);
     mbedtls_printf("\n");
 
     #if PERFORMANCE_TEST && COMPARE_CRYPTO_OP
@@ -846,8 +839,6 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
 }
 
 int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], int *sizes, unsigned char *csr, size_t *csr_len){
-    // unsigned char *certs[3];
-    // int sizes[3];
     mbedtls_pk_context key;
     unsigned char attest_proof[ATTEST_DATA_MAX_LEN];
     size_t attest_proof_len;
@@ -858,31 +849,6 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     #if PERFORMANCE_TEST
     ticks_t t_start, t_end, t_diff;
     #endif
-
-    /*
-    certs[0] = mbedtls_calloc(1, CERTS_MAX_LEN);
-    if(certs[0]==NULL)
-        mbedtls_exit(-1);
-    certs[1] = mbedtls_calloc(1, CERTS_MAX_LEN);
-    if(certs[1]==NULL){
-        mbedtls_free(certs[0]);
-        mbedtls_exit(-1);
-    }
-    certs[2] = mbedtls_calloc(1, CERTS_MAX_LEN);
-    if(certs[2]==NULL){
-        mbedtls_free(certs[0]);
-        mbedtls_free(certs[1]);
-        mbedtls_exit(-1);
-    }
-
-    get_cert_chain(certs[0], certs[1], certs[2], &sizes[0], &sizes[1], &sizes[2]);
-
-    mbedtls_printf("Getting DICE certificates...\n");
-    print_hex_string("certs[0]", certs[0], sizes[0]);
-    print_hex_string("certs[1]", certs[1], sizes[1]);
-    print_hex_string("certs[2]", certs[2], sizes[2]);
-    mbedtls_printf("\n");
-    */
 
     int ret = 0;
 
@@ -965,11 +931,6 @@ end_create_csr:
     mbedtls_pk_free(&key);
     mbedtls_x509write_csr_free(&req);
 
-    /*
-    mbedtls_free(certs[0]);
-    mbedtls_free(certs[1]);
-    mbedtls_free(certs[2]);
-    */
     return ret;
 }
 
@@ -984,7 +945,6 @@ int test_connection_Bob(mbedtls_x509_crt *crt_Alice, unsigned char *ldevid_pk) {
     mbedtls_ctr_drbg_context ctr_drbg;
     mbedtls_ssl_context ssl;
     mbedtls_ssl_config conf;
-    // mbedtls_x509_crt srvcert;
     mbedtls_x509_crt cacert;
     mbedtls_pk_context pkey;
 #if defined(MBEDTLS_SSL_CACHE_C)
@@ -1003,7 +963,6 @@ int test_connection_Bob(mbedtls_x509_crt *crt_Alice, unsigned char *ldevid_pk) {
 #if defined(MBEDTLS_SSL_CACHE_C)
     mbedtls_ssl_cache_init(&cache);
 #endif
-    // mbedtls_x509_crt_init(&srvcert);
     mbedtls_x509_crt_init(&cacert);
     mbedtls_pk_init(&pkey);
     // mbedtls_entropy_init(&entropy);
@@ -1264,7 +1223,6 @@ exit_test:
 
     custom_net_free(&client_fd);
     custom_net_free(&listen_fd);
-    // mbedtls_x509_crt_free(&srvcert);
     mbedtls_x509_crt_free(&cacert);
     mbedtls_pk_free(&pkey);
     mbedtls_ssl_free(&ssl);

@@ -3,7 +3,6 @@
 #include <string.h>
 #include "riscv_time.h"
 #include "eapp/printf.h"
-// #include <stdio.h>
 
 #define OCALL_NET_CONNECT 1
 #define OCALL_NET_SEND    2
@@ -40,7 +39,7 @@ int custom_net_connect(mbedtls_net_context *ctx, const char *host, const char *p
     custom_printf("\n[OCALL_NET_CONNECT] Ticks: %lu\n", t_diff);
     #endif
     ret |= retval.retval;
-    // mbedtls_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
+    // custom_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
     if(ret) {
         return ret;
     } else {
@@ -77,11 +76,10 @@ int custom_net_recv(void *ctx, unsigned char *buf, size_t len) {
     t_diff = t_end - t_start;
     custom_printf("\nTicks between request and response: %lu\n", t_diff);
     #endif
-    // printf("ocall returned %d\n", ret);
+    // custom_printf("ocall returned %d\n", ret);
     int retval = * ((int*)tmp_buf);
     memcpy(buf, tmp_buf+sizeof(int), len);
-    // printf("Asked for %lu bytes, received %d: %s\n", len, retval, tmp_buf+sizeof(int));
-    // fflush(stdout);
+    // custom_printf("Asked for %lu bytes, received %d: %s\n", len, retval, tmp_buf+sizeof(int));
     return ret|retval;
 }
 
@@ -97,7 +95,7 @@ int custom_net_bind(mbedtls_net_context *ctx, const char *bind_ip, const char *p
     memcpy(tmp, port, 5);
     ret = ocall(OCALL_NET_BIND, tmp, 5,(void*) &retval, sizeof(net_connect_t));
     ret |= retval.retval;
-    // mbedtls_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
+    // custom_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
     if(ret) {
         return ret;
     } else {
@@ -120,7 +118,7 @@ int custom_net_accept(mbedtls_net_context *bind_ctx, mbedtls_net_context *client
     custom_printf("\n[OCALL_NET_ACCEPT] Ticks: %lu\n", t_diff);
     #endif
     ret |= retval.retval;
-    // mbedtls_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
+    // custom_printf("net_connect - fd: %d, ret: %d\n", retval.fd, retval.retval);
     if(ret) {
         return ret;
     } else {

@@ -39,14 +39,8 @@
 #include "mbedtls/base64.h"
 #include "mbedtls/print.h"
 #include "mbedtls/keystone_ext.h"
-// #include "certs.h"
 #include "eapp/printf.h"
 #include "custom_certs.h"
-// #include "eapp/ref_certs.h"
-// #include "custom_functions.h"
-
-// #include <stdio.h>
-// #include <time.h>
 #include <string.h>
 #include "riscv_time.h"
 
@@ -187,7 +181,6 @@ int main(void)
 
     print_hex_string("LDevID PK", pk, PUBLIC_KEY_SIZE);
     print_hex_string("LDevID crt", ldevid_crt, ldevid_crt_len);
-    // mbedtls_x509_crt_free(&ldevid_cert_parsed);
     mbedtls_printf("\n");
 
     certs[0] = mbedtls_calloc(1, CERTS_MAX_LEN);
@@ -699,8 +692,6 @@ int recv_buf(mbedtls_ssl_context *ssl, unsigned char *buf, size_t *len, unsigned
 }
 
 int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], int *sizes, unsigned char *csr, size_t *csr_len){
-    // unsigned char *certs[3];
-    // int sizes[3];
     mbedtls_pk_context key;
     unsigned char attest_proof[ATTEST_DATA_MAX_LEN];
     size_t attest_proof_len;
@@ -708,31 +699,6 @@ int create_csr(unsigned char *pk, unsigned char *nonce, unsigned char *certs[], 
     unsigned char key_usage = MBEDTLS_X509_KU_DIGITAL_SIGNATURE;
     const char subject_name[] = "CN=Bob,O=Enclave-bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb";
     unsigned char out_csr[CSR_MAX_LEN];
-
-    /*
-    certs[0] = mbedtls_calloc(1, CERTS_MAX_LEN);
-    if(certs[0]==NULL)
-        mbedtls_exit(-1);
-    certs[1] = mbedtls_calloc(1, CERTS_MAX_LEN);
-    if(certs[1]==NULL){
-        mbedtls_free(certs[0]);
-        mbedtls_exit(-1);
-    }
-    certs[2] = mbedtls_calloc(1, CERTS_MAX_LEN);
-    if(certs[2]==NULL){
-        mbedtls_free(certs[0]);
-        mbedtls_free(certs[1]);
-        mbedtls_exit(-1);
-    }
-
-    get_cert_chain(certs[0], certs[1], certs[2], &sizes[0], &sizes[1], &sizes[2]);
-
-    mbedtls_printf("Getting DICE certificates...\n");
-    print_hex_string("certs[0]", certs[0], sizes[0]);
-    print_hex_string("certs[1]", certs[1], sizes[1]);
-    print_hex_string("certs[2]", certs[2], sizes[2]);
-    mbedtls_printf("\n");
-    */
 
     int ret = 0;
 
@@ -805,11 +771,6 @@ end_create_csr:
     mbedtls_pk_free(&key);
     mbedtls_x509write_csr_free(&req);
 
-    /*
-    mbedtls_free(certs[0]);
-    mbedtls_free(certs[1]);
-    mbedtls_free(certs[2]);
-    */
     return ret;
 }
 

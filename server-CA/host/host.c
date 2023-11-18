@@ -35,7 +35,6 @@
 #include "mbedtls/net_sockets.h"
 #include "mbedtls/error.h"
 #include "mbedtls/debug.h"
-// #include "certs.h"
 #include "mbedtls/x509_csr.h"
 #include "mbedtls/keystone_ext.h"
 #include "mbedtls/print.h"
@@ -46,12 +45,9 @@
 #include "mbedtls/ssl_cache.h"
 #endif
 
-// #include "mbedtls_functions.h"
-// #include "ed25519/ed25519.h"
 #include "custom_certs.h"
 #include "mbedtls/sha3.h"
 #include "host/net.h"
-// #include "host/ref_certs.h"
 
 #define BUF_SIZE                2048
 #define CSR_MAX_LEN             3072
@@ -92,8 +88,6 @@ int write_attest_ver_req(mbedtls_x509_csr *csr, unsigned char *buf, size_t *len)
 int check_nonce_request(unsigned char *buf, size_t buf_len, unsigned char *nonce, size_t *nonce_len);
 
 int check_ver_response(unsigned char *buf, size_t buf_len, unsigned char *tci, size_t *tci_len);
-
-// int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len);
 
 int get_csr(unsigned char *buf, size_t buf_len, unsigned char *csr, size_t *csr_len);
 
@@ -377,25 +371,6 @@ reset:
         goto reset;
     }
 
-    /*
-    // Send request to get the nonce
-    // len = sprintf((char *) buf, GET_NONCE_REQUEST);
-
-    if((ret = send_buf_ver(&ssl_ver, buf, &len))!=NET_SUCCESS){
-        err = 2;
-        goto exit_ver;
-    }
-
-    // Read the nonce from the response
-
-    if((ret = recv_buf_ver(&ssl_ver, buf, &len, nonce, NULL, get_nonce))!=NET_SUCCESS){
-        if(ret == HANDLER_ERROR) ret = -1;
-        err = 2;
-        goto exit_ver;
-    }
-    mbedtls_printf("\n");
-    */
-
    // Generating nonce
    mbedtls_printf("2.6 Generating nonce...\n");
    ret = mbedtls_ctr_drbg_random(&nonce_ctr_drbg, nonce, sizeof(nonce));
@@ -648,13 +623,6 @@ exit_ver:
     mbedtls_entropy_free(&entropy_ver);
 
     if (exit_code != MBEDTLS_EXIT_SUCCESS) {
-/*
-#ifdef MBEDTLS_ERROR_C
-        char error_buf[100];
-        mbedtls_strerror(ret, error_buf, 100);
-        mbedtls_printf("[CA] Last error was: %d - %s\n\n", ret, error_buf);
-#endif
-*/      
         mbedtls_x509_csr_free(&csr);
         if(msg != STATUS_FORBIDDEN)
             msg = STATUS_SERVER_ERROR;
@@ -778,40 +746,6 @@ int check_nonce_request(unsigned char *buf, size_t buf_len, unsigned char *nonce
     return 0;
 }
 
-/*
-int get_nonce(unsigned char *buf, unsigned char *nonce, size_t *nonce_len){
-    int ret = 0;
-    unsigned char enc_nonce[NONCE_MAX_LEN] = {0};
-    size_t enc_nonce_len = 0;
-    size_t dec_nonce_len = 0;
-    size_t tmp_len = 0;
-    int digits = 0;
-
-    if (sscanf((const char *)buf, HTTP_NONCE_RESPONSE_START, &enc_nonce_len) != 1) {
-        mbedtls_printf("Error in reading nonce_len\n\n");
-        return -1;
-    }
-
-    tmp_len = enc_nonce_len;
-    while(tmp_len > 0) { 
-        digits++;
-        tmp_len/=10;
-    } 
-    digits -= 3;
-
-    // Read CSR from the request
-    memcpy(enc_nonce, buf + sizeof(HTTP_NONCE_RESPONSE_START)-1+digits, enc_nonce_len);
-    
-    if (memcmp(buf + sizeof(HTTP_NONCE_RESPONSE_START) + digits + enc_nonce_len -1 , HTTP_NONCE_RESPONSE_END, sizeof(HTTP_NONCE_RESPONSE_END)) != 0) {
-        mbedtls_printf("Cannot read nonce 2\n\n");
-        return -1;
-    }
-
-    ret = mbedtls_base64_decode(nonce, NONCE_MAX_LEN, &dec_nonce_len, enc_nonce, enc_nonce_len);
-    return ret || (dec_nonce_len != NONCE_LEN);
-}
-*/
-
 int get_csr(unsigned char *buf, size_t buf_len, unsigned char *csr, size_t *csr_len) {
     unsigned char enc_csr[CSR_MAX_LEN];
     size_t enc_csr_len;
@@ -863,11 +797,6 @@ int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce, int *msg) {
     unsigned char csr_hash[KEYSTONE_HASH_MAX_SIZE] = {0};
     uint32_t flags = 0;
     mbedtls_x509_crt trusted_certs;
-    // unsigned char verification_pk[PUBLIC_KEY_SIZE] = {0};
-    // unsigned char reference_tci[KEYSTONE_HASH_MAX_SIZE] = {0};
-    // unsigned char fin_hash[KEYSTONE_HASH_MAX_SIZE] = {0};
-    // sha3_ctx_t ctx_hash;
-    // mbedtls_pk_context key;
 
     *msg = STATUS_FORBIDDEN;
 
@@ -922,55 +851,6 @@ int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce, int *msg) {
         return ret;
     }
 
-    /*
-    // Verify attestation proof
-    // Get SM public key
-    ret = getAttestationPublicKey(csr, verification_pk);
-    mbedtls_printf("Getting SM PK - ret: %d\n", ret);
-    #if PRINT_STRUCTS
-    print_hex_string("SM PK", verification_pk, PUBLIC_KEY_SIZE);
-    #endif
-    if(ret != 0) {
-        return 8;
-    }
-
-    // Get enclave reference TCI
-    ret = getReferenceTCI(csr, reference_tci);
-    mbedtls_printf("Getting Reference Enclave TCI - ret: %d\n", ret);
-    #if PRINT_STRUCTS
-    print_hex_string("Reference Enclave TCI", reference_tci, KEYSTONE_HASH_MAX_SIZE);
-    #endif
-    if(ret != 0) {
-        return 9;
-    }
-
-    // Compute reference attestation proof
-    sha3_init(&ctx_hash, KEYSTONE_HASH_MAX_SIZE);
-    sha3_update(&ctx_hash, nonce, NONCE_LEN);
-    sha3_update(&ctx_hash, reference_tci, KEYSTONE_HASH_MAX_SIZE);
-    sha3_update(&ctx_hash, mbedtls_pk_ed25519(csr->pk)->pub_key, PUBLIC_KEY_SIZE);
-    sha3_final(fin_hash, &ctx_hash);
-    #if PRINT_STRUCTS
-    print_hex_string("fin_hash", fin_hash, KEYSTONE_HASH_MAX_SIZE);
-    #endif
-
-    // Verify signature of the attestation proof
-    mbedtls_pk_init(&key);
-    ret = mbedtls_pk_parse_ed25519_key(&key, verification_pk, PUBLIC_KEY_SIZE, 0);
-    mbedtls_printf("Parsing SM PK - ret: %d\n", ret);
-    if(ret != 0) {
-        mbedtls_pk_free(&key);
-        return 10;
-    }
-
-    ret = mbedtls_pk_verify_ext(MBEDTLS_PK_ED25519, NULL, &key, MBEDTLS_MD_KEYSTONE_SHA3, fin_hash, KEYSTONE_HASH_MAX_SIZE, csr->attestation_proof.p, csr->attestation_proof.len);
-    mbedtls_printf("Verifying attestation proof - ret: %d\n", ret);
-    mbedtls_pk_free(&key);
-    if(ret != 0) {
-        return 11;
-    }
-    */
-
     mbedtls_printf("\n");
     fflush(stdout);
     *msg = STATUS_OK;
@@ -979,7 +859,6 @@ int verify_csr(mbedtls_x509_csr *csr, unsigned char *nonce, int *msg) {
 
 int issue_crt(mbedtls_x509_csr *csr, unsigned char *crt, size_t *crt_len) {
     int ret;
-    // mbedtls_x509_csr csr;
     mbedtls_x509write_cert cert_encl;
     mbedtls_pk_context subj_key;
     mbedtls_pk_context issu_key;

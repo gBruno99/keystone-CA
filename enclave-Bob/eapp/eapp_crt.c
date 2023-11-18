@@ -4,7 +4,6 @@
 #include "eapp/printf.h"
 #include "mbedtls/md.h"
 #include <string.h>
-// #include "psa/crypto.h"
 
 #define OCALL_STORE_CRT   7
 #define OCALL_READ_CRT    8
