@@ -13,7 +13,7 @@ git add -N library/sha3.c
 git add -N library/ed25519
 git add -N library/verifier_utils_mock
 git diff > mbedtls_eapp.patch
-cp mbedtls_eapp.patch ../../test_patches/
+cp mbedtls_eapp.patch ../../patches/
 git add .
 git restore --staged .
 
@@ -28,6 +28,6 @@ git add -N library/sha3.c
 git add -N library/ed25519
 git add -N library/verifier_utils_mock
 git diff > mbedtls_host.patch
-cp mbedtls_host.patch ../../test_patches/
+cp mbedtls_host.patch ../../patches/
 git add .
 git restore --staged .
