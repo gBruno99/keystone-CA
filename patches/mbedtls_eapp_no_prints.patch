@@ -551,10 +551,10 @@ index 41823485a..647118308 100644
  {
 diff --git a/library/ed25519.c b/library/ed25519.c
 new file mode 100644
-index 000000000..9c537c14d
+index 000000000..eaa6e68b3
 --- /dev/null
 +++ b/library/ed25519.c
-@@ -0,0 +1,264 @@
+@@ -0,0 +1,262 @@
 +#include "mbedtls/keystone_ext.h"
 +#include "mbedtls/ed25519.h"
 +#include "hash_info.h"
@@ -607,7 +607,6 @@ index 000000000..9c537c14d
 +
 +int pk_set_ed25519pubkey(unsigned char **p, mbedtls_ed25519_context *ed25519)
 +{
-+
 +    for (int i = 0; i < PUBLIC_KEY_SIZE; i++)
 +    {
 +        ed25519->pub_key[i] = (*p)[i];
@@ -618,7 +617,6 @@ index 000000000..9c537c14d
 +
 +int pk_set_ed25519privkey(unsigned char **p, mbedtls_ed25519_context *ed25519)
 +{
-+
 +    for (int i = 0; i < PRIVATE_KEY_SIZE; i++)
 +    {
 +        ed25519->priv_key[i] = (*p)[i];
@@ -5591,7 +5589,7 @@ index 89bce40eb..f05c49268 100644
  extern const mbedtls_pk_info_t mbedtls_pk_ecdsa_opaque_info;
  extern const mbedtls_pk_info_t mbedtls_pk_rsa_opaque_info;
 diff --git a/library/pkparse.c b/library/pkparse.c
-index 800e352da..1d264a6d7 100644
+index 800e352da..ba079bd37 100644
 --- a/library/pkparse.c
 +++ b/library/pkparse.c
 @@ -58,6 +58,9 @@
@@ -5615,7 +5613,7 @@ index 800e352da..1d264a6d7 100644
  #if defined(MBEDTLS_RSA_C)
      if (pk_alg == MBEDTLS_PK_RSA) {
          ret = pk_get_rsapubkey(p, end, mbedtls_pk_rsa(*pk));
-@@ -1594,4 +1601,40 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
+@@ -1594,4 +1601,36 @@ int mbedtls_pk_parse_public_key(mbedtls_pk_context *ctx,
      return ret;
  }
  
@@ -5645,10 +5643,6 @@ index 800e352da..1d264a6d7 100644
 +
 +    if (type_k == 0) {
 +        pk_set_ed25519pubkey(&p, mbedtls_pk_ed25519(*ctx));
-+        /*for(int i = 0; i < 32; i++){
-+            ctx->pk_ctx->pub_key[i] = p[i];
-+        }
-+        ctx->pk_ctx->len = 32;*/
 +    }
 +    else
 +        pk_set_ed25519privkey(&p, mbedtls_pk_ed25519(*ctx));
@@ -5807,7 +5801,7 @@ index b15b7b29a..871b1b00d 100644
 +
  #endif /* MBEDTLS_PLATFORM_C */
 diff --git a/library/platform_util.c b/library/platform_util.c
-index e903f8ed3..a5acd891d 100644
+index e903f8ed3..b8c189160 100644
 --- a/library/platform_util.c
 +++ b/library/platform_util.c
 @@ -51,9 +51,9 @@
@@ -5815,10 +5809,10 @@ index e903f8ed3..a5acd891d 100644
  // Detect platforms known to support explicit_bzero()
  #if defined(__GLIBC__) && (__GLIBC__ >= 2) && (__GLIBC_MINOR__ >= 25)
 -#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
-+//#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
++// #define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
  #elif (defined(__FreeBSD__) && (__FreeBSD_version >= 1100037)) || defined(__OpenBSD__)
 -#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
-+//#define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
++// #define MBEDTLS_PLATFORM_HAS_EXPLICIT_BZERO 1
  #endif
  
  #if !defined(MBEDTLS_PLATFORM_ZEROIZE_ALT)
@@ -6203,7 +6197,7 @@ index 000000000..780e9fe2e
 +unsigned int sm_reference_value_len = 64;
 diff --git a/library/verifier_utils_mock/verifier_utils_mock.c b/library/verifier_utils_mock/verifier_utils_mock.c
 new file mode 100644
-index 000000000..32825d046
+index 000000000..62b01651c
 --- /dev/null
 +++ b/library/verifier_utils_mock/verifier_utils_mock.c
 @@ -0,0 +1,72 @@
@@ -6215,7 +6209,7 @@ index 000000000..32825d046
 +#include <string.h>
 +
 +/**
-+ *  Mock of functions that are used by the verifier to retrive 
++ * Mock of functions that are used by the verifier to retrive 
 + * the reference values and to compare them with the evidence 
 + * provided by the attester 
 + */
@@ -6280,7 +6274,7 @@ index 000000000..32825d046
 +    return -1;
 +}
 diff --git a/library/x509_crt.c b/library/x509_crt.c
-index faf862364..c7d9647dc 100644
+index faf862364..c344a04fe 100644
 --- a/library/x509_crt.c
 +++ b/library/x509_crt.c
 @@ -78,6 +78,9 @@
@@ -6320,19 +6314,19 @@ index faf862364..c7d9647dc 100644
  #if defined(MBEDTLS_RSA_C)
      if (pk_alg == MBEDTLS_PK_RSA || pk_alg == MBEDTLS_PK_RSASSA_PSS) {
          if (mbedtls_pk_get_bitlen(pk) >= profile->rsa_min_bitlen) {
-@@ -926,6 +942,12 @@ static int x509_get_crt_ext(unsigned char **p,
-                     }
+@@ -927,6 +943,12 @@ static int x509_get_crt_ext(unsigned char **p,
                  }
                  break;
-+            
+ 
 +            case MBEDTLS_OID_X509_EXT_TCI:
 +                crt ->hash.p = *p;
 +                crt ->hash.len = 64;
 +                *p += 64;
 +                break;
- 
++
              default:
                  /*
+                  * If this is a non-critical extension, which the oid layer
 @@ -2413,6 +2435,10 @@ static int x509_crt_verify_chain(
              *flags |= MBEDTLS_X509_BADCERT_FUTURE;
          }
