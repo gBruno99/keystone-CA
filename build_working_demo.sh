@@ -3,6 +3,7 @@
 set -e
 
 source source.sh
+export DEMO_DIR=$(pwd)
 
 # Build mbedtls libraries
 cd ./scripts/
